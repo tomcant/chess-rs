@@ -134,7 +134,7 @@ mod tests {
         let state: GameState = fen.parse().unwrap();
 
         assert_eq!(
-            state.board.piece_at("e4".parse::<Square>().unwrap()),
+            state.board.get_piece_at("e4".parse::<Square>().unwrap()),
             Some(Piece::WhitePawn)
         );
         assert!(!state.board.has_piece_at("e2".parse::<Square>().unwrap()));

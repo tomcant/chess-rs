@@ -8,6 +8,11 @@ impl Square {
         Self(index)
     }
 
+    pub fn from_u64(u64: u64) -> Self {
+        assert_eq!(u64.count_ones(), 1, "given u64 must be a power of 2");
+        Self(63 - u64.leading_zeros() as u8)
+    }
+
     pub fn from_file_and_rank(file: u8, rank: u8) -> Self {
         Self(rank << 3 | file)
     }
@@ -42,13 +47,20 @@ impl FromStr for Square {
             return Err(());
         }
 
-        Ok(Square::from_file_and_rank(file - b'a', rank - b'1'))
+        Ok(Self::from_file_and_rank(file - b'a', rank - b'1'))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Square;
+
+    #[test]
+    fn test_from_u64() {
+        assert_eq!(Square::from_u64(1), Square::from_index(0));
+        assert_eq!(Square::from_u64(2u64.pow(33)), Square::from_index(33));
+        assert_eq!(Square::from_u64(2u64.pow(63)), Square::from_index(63));
+    }
 
     #[test]
     fn test_from_file_and_rank() {
@@ -58,7 +70,7 @@ mod tests {
     }
 
     #[test]
-    fn test_from_string_valid() {
+    fn test_from_string() {
         assert_eq!("a1".parse::<Square>(), Ok(Square::from_index(0)));
         assert_eq!("h8".parse::<Square>(), Ok(Square::from_index(63)));
         assert_eq!("b5".parse::<Square>(), Ok(Square::from_index(33)));

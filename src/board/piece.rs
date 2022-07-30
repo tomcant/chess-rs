@@ -17,20 +17,20 @@ pub enum Piece {
 }
 
 impl Piece {
-    pub fn iter() -> Iter<'static, Piece> {
+    pub fn iter() -> Iter<'static, Self> {
         [
-            Piece::WhitePawn,
-            Piece::WhiteKnight,
-            Piece::WhiteBishop,
-            Piece::WhiteRook,
-            Piece::WhiteQueen,
-            Piece::WhiteKing,
-            Piece::BlackPawn,
-            Piece::BlackKnight,
-            Piece::BlackBishop,
-            Piece::BlackRook,
-            Piece::BlackQueen,
-            Piece::BlackKing,
+            Self::WhitePawn,
+            Self::WhiteKnight,
+            Self::WhiteBishop,
+            Self::WhiteRook,
+            Self::WhiteQueen,
+            Self::WhiteKing,
+            Self::BlackPawn,
+            Self::BlackKnight,
+            Self::BlackBishop,
+            Self::BlackRook,
+            Self::BlackQueen,
+            Self::BlackKing,
         ]
         .iter()
     }

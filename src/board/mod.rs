@@ -26,7 +26,7 @@ impl Board {
         self.occupancy() & 1 << square.index() != 0
     }
 
-    pub fn piece_at(&self, square: Square) -> Option<Piece> {
+    pub fn get_piece_at(&self, square: Square) -> Option<Piece> {
         let square_index = 1 << square.index();
 
         Piece::iter()
@@ -35,9 +35,17 @@ impl Board {
     }
 
     pub fn clear_square(&mut self, square: Square) {
-        if let Some(piece) = self.piece_at(square) {
+        if let Some(piece) = self.get_piece_at(square) {
             self.pieces[piece as usize] ^= 1 << square.index();
         }
+    }
+
+    pub fn get_king_square(&self, colour: Colour) -> Square {
+        let king = match colour {
+            Colour::White => Piece::WhiteKing,
+            _ => Piece::BlackKing,
+        };
+        Square::from_u64(self.pieces[king as usize])
     }
 
     fn occupancy(&self) -> BitBoard {
@@ -47,7 +55,7 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use super::{Board, Piece, Square};
+    use super::{Board, Colour, Piece, Square};
 
     #[test]
     fn test_put_piece() {
@@ -58,7 +66,7 @@ mod tests {
         board.put_piece(piece, square);
 
         assert!(board.has_piece_at(square));
-        assert_eq!(board.piece_at(square), Some(piece));
+        assert_eq!(board.get_piece_at(square), Some(piece));
     }
 
     #[test]
@@ -72,5 +80,17 @@ mod tests {
         board.clear_square(square);
 
         assert!(!board.has_piece_at(square));
+    }
+
+    #[test]
+    fn test_get_king_square() {
+        let mut board = Board::empty();
+        let white_king_square = "e1".parse::<Square>().unwrap();
+        let black_king_square = "e8".parse::<Square>().unwrap();
+        board.put_piece(Piece::WhiteKing, white_king_square);
+        board.put_piece(Piece::BlackKing, black_king_square);
+
+        assert_eq!(board.get_king_square(Colour::White), white_king_square);
+        assert_eq!(board.get_king_square(Colour::Black), black_king_square);
     }
 }
