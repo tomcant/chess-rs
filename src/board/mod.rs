@@ -3,10 +3,10 @@ pub mod piece;
 pub mod square;
 
 pub use colour::Colour;
-pub use piece::Piece;
+pub use piece::{Piece, PieceType};
 pub use square::Square;
 
-type BitBoard = u64;
+pub type BitBoard = u64;
 
 #[derive(Debug)]
 pub struct Board {
@@ -34,6 +34,10 @@ impl Board {
             .copied()
     }
 
+    pub fn get_pieces(&self, piece: Piece) -> BitBoard {
+        self.pieces[piece as usize]
+    }
+
     pub fn clear_square(&mut self, square: Square) {
         if let Some(piece) = self.get_piece_at(square) {
             self.pieces[piece as usize] ^= 1 << square.index();
@@ -45,7 +49,7 @@ impl Board {
             Colour::White => Piece::WhiteKing,
             _ => Piece::BlackKing,
         };
-        Square::from_u64(self.pieces[king as usize])
+        Square::from_u64(self.get_pieces(king))
     }
 
     fn occupancy(&self) -> BitBoard {

@@ -6,10 +6,10 @@ use castling::CastlingAbility;
 
 #[derive(Debug)]
 pub struct GameState {
-    board: Board,
-    colour_to_move: Colour,
-    castling_ability: CastlingAbility,
-    en_passant_square: Option<Square>,
-    half_move_clock: u8,
-    full_move_counter: u8,
+    pub board: Board,
+    pub colour_to_move: Colour,
+    pub castling_ability: CastlingAbility,
+    pub en_passant_square: Option<Square>,
+    pub half_move_clock: u8,
+    pub full_move_counter: u8,
 }

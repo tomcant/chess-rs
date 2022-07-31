@@ -1,5 +1,6 @@
 mod board;
 mod game_state;
+mod move_generator;
 
 fn main() {
     let start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

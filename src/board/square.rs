@@ -1,7 +1,21 @@
+use lazy_static::lazy_static;
+use std::slice::Iter;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Square(u8);
+
+lazy_static! {
+    static ref SQUARES: [Square; 64] = {
+        let mut squares = [Square(0); 64];
+
+        for index in 0..64 {
+            squares[index] = Square(index as u8);
+        }
+
+        squares
+    };
+}
 
 impl Square {
     pub fn from_index(index: u8) -> Self {
@@ -21,12 +35,20 @@ impl Square {
         self.0
     }
 
+    pub fn u64(&self) -> u64 {
+        1 << self.0
+    }
+
     pub fn file(&self) -> u8 {
         self.0 & 7
     }
 
     pub fn rank(&self) -> u8 {
         self.0 >> 3
+    }
+
+    pub fn iter() -> Iter<'static, Self> {
+        SQUARES.iter()
     }
 }
 
