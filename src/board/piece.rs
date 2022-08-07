@@ -41,6 +41,17 @@ impl Piece {
         };
     }
 
+    pub fn get_type(&self) -> PieceType {
+        match self {
+            Self::WhitePawn | Self::BlackPawn => PieceType::Pawn,
+            Self::WhiteKnight | Self::BlackKnight => PieceType::Knight,
+            Self::WhiteBishop | Self::BlackBishop => PieceType::Bishop,
+            Self::WhiteRook | Self::BlackRook => PieceType::Rook,
+            Self::WhiteQueen | Self::BlackQueen => PieceType::Queen,
+            Self::WhiteKing | Self::BlackKing => PieceType::King,
+        }
+    }
+
     pub fn iter() -> Iter<'static, Self> {
         [
             Self::WhitePawn,
@@ -57,5 +68,29 @@ impl Piece {
             Self::BlackKing,
         ]
         .iter()
+    }
+
+    pub fn iter_colour(colour: Colour) -> Iter<'static, Self> {
+        if colour == Colour::White {
+            [
+                Self::WhitePawn,
+                Self::WhiteKnight,
+                Self::WhiteBishop,
+                Self::WhiteRook,
+                Self::WhiteQueen,
+                Self::WhiteKing,
+            ]
+            .iter()
+        } else {
+            [
+                Self::BlackPawn,
+                Self::BlackKnight,
+                Self::BlackBishop,
+                Self::BlackRook,
+                Self::BlackQueen,
+                Self::BlackKing,
+            ]
+            .iter()
+        }
     }
 }

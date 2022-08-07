@@ -11,6 +11,7 @@ pub type BitBoard = u64;
 #[derive(Debug)]
 pub struct Board {
     pieces: [BitBoard; 12],
+    // colours: [BitBoard; 2],
 }
 
 impl Board {
@@ -19,15 +20,15 @@ impl Board {
     }
 
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
-        self.pieces[piece as usize] |= 1 << square.index();
+        self.pieces[piece as usize] |= square.u64();
     }
 
     pub fn has_piece_at(&self, square: Square) -> bool {
-        self.occupancy() & 1 << square.index() != 0
+        self.occupancy() & square.u64() != 0
     }
 
     pub fn get_piece_at(&self, square: Square) -> Option<Piece> {
-        let square_index = 1 << square.index();
+        let square_index = square.u64();
 
         Piece::iter()
             .find(|&&piece| self.pieces[piece as usize] & square_index != 0)
@@ -40,19 +41,15 @@ impl Board {
 
     pub fn clear_square(&mut self, square: Square) {
         if let Some(piece) = self.get_piece_at(square) {
-            self.pieces[piece as usize] ^= 1 << square.index();
+            self.pieces[piece as usize] ^= square.u64();
         }
     }
 
     pub fn get_king_square(&self, colour: Colour) -> Square {
-        let king = match colour {
-            Colour::White => Piece::WhiteKing,
-            _ => Piece::BlackKing,
-        };
-        Square::from_u64(self.get_pieces(king))
+        Square::from_u64(self.get_pieces(Piece::make(PieceType::King, colour)))
     }
 
-    fn occupancy(&self) -> BitBoard {
+    pub fn occupancy(&self) -> BitBoard {
         self.pieces.iter().sum()
     }
 }
