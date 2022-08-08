@@ -32,8 +32,8 @@ impl Square {
         Self(rank << 3 | file)
     }
 
-    pub fn index(&self) -> u8 {
-        self.0
+    pub fn index(&self) -> usize {
+        self.0 as usize
     }
 
     pub fn u64(&self) -> u64 {

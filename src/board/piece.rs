@@ -42,6 +42,10 @@ impl Piece {
         };
     }
 
+    pub fn index(&self) -> usize {
+        *self as usize
+    }
+
     pub fn get_type(&self) -> PieceType {
         match self {
             Self::WhitePawn | Self::BlackPawn => PieceType::Pawn,
@@ -50,6 +54,18 @@ impl Piece {
             Self::WhiteRook | Self::BlackRook => PieceType::Rook,
             Self::WhiteQueen | Self::BlackQueen => PieceType::Queen,
             Self::WhiteKing | Self::BlackKing => PieceType::King,
+        }
+    }
+
+    pub fn colour(&self) -> Colour {
+        match self {
+            Self::WhitePawn
+            | Self::WhiteKnight
+            | Self::WhiteBishop
+            | Self::WhiteRook
+            | Self::WhiteQueen
+            | Self::WhiteKing => Colour::White,
+            _ => Colour::Black,
         }
     }
 

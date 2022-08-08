@@ -20,7 +20,7 @@ impl Board {
     }
 
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
-        self.pieces[piece as usize] |= square.u64();
+        self.pieces[piece.index()] |= square.u64();
     }
 
     pub fn get_piece_at(&self, square: Square) -> Option<Piece> {
@@ -28,10 +28,10 @@ impl Board {
             return None;
         }
 
-        let square_index = square.u64();
+        let square_u64 = square.u64();
 
         Piece::iter()
-            .find(|&&piece| self.pieces[piece as usize] & square_index != 0)
+            .find(|&&piece| self.pieces[piece.index()] & square_u64 != 0)
             .copied()
     }
 
@@ -40,12 +40,12 @@ impl Board {
     }
 
     pub fn get_pieces(&self, piece: Piece) -> BitBoard {
-        self.pieces[piece as usize]
+        self.pieces[piece.index()]
     }
 
     pub fn clear_square(&mut self, square: Square) {
         if let Some(piece) = self.get_piece_at(square) {
-            self.pieces[piece as usize] ^= square.u64();
+            self.pieces[piece.index()] ^= square.u64();
         }
     }
 

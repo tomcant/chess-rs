@@ -34,7 +34,7 @@ fn parse_board(str: &str) -> Board {
     }
 
     let mut board = Board::empty();
-    let mut square_index = "a8".parse::<Square>().unwrap().index();
+    let mut square_index = "a8".parse::<Square>().unwrap().index() as u8;
 
     for char in str.chars() {
         if char == '/' {
