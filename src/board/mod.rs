@@ -23,16 +23,20 @@ impl Board {
         self.pieces[piece as usize] |= square.u64();
     }
 
-    pub fn has_piece_at(&self, square: Square) -> bool {
-        self.occupancy() & square.u64() != 0
-    }
-
     pub fn get_piece_at(&self, square: Square) -> Option<Piece> {
+        if !self.has_piece_at(square) {
+            return None;
+        }
+
         let square_index = square.u64();
 
         Piece::iter()
             .find(|&&piece| self.pieces[piece as usize] & square_index != 0)
             .copied()
+    }
+
+    pub fn has_piece_at(&self, square: Square) -> bool {
+        self.occupancy() & square.u64() != 0
     }
 
     pub fn get_pieces(&self, piece: Piece) -> BitBoard {

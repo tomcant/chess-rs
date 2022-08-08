@@ -1,3 +1,4 @@
+use super::Colour;
 use lazy_static::lazy_static;
 use std::slice::Iter;
 use std::str::FromStr;
@@ -49,6 +50,15 @@ impl Square {
 
     pub fn iter() -> Iter<'static, Self> {
         SQUARES.iter()
+    }
+}
+
+impl Square {
+    pub fn up_for_colour(&self, colour: Colour) -> Self {
+        match colour {
+            Colour::White => Self(self.0 + 8),
+            _ => Self(self.0 - 8),
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 use super::Colour;
 use std::slice::Iter;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PieceType {
     Pawn,
     Knight,
@@ -27,11 +28,11 @@ pub enum Piece {
 }
 
 impl Piece {
-    pub fn make(pt: PieceType, colour: Colour) -> Self {
+    pub fn make(piece_type: PieceType, colour: Colour) -> Self {
         let is_white = colour == Colour::White;
 
         #[rustfmt::skip]
-        return match pt {
+        return match piece_type {
             PieceType::Pawn => if is_white { Self::WhitePawn } else { Self::BlackPawn },
             PieceType::Knight => if is_white { Self::WhiteKnight } else { Self::BlackKnight },
             PieceType::Bishop => if is_white { Self::WhiteBishop } else { Self::BlackBishop },

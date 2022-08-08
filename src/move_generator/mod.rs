@@ -173,6 +173,30 @@ fn get_pawn_attacks(square: Square, colour: Colour) -> BitBoard {
     PAWN_ATTACKS[colour as usize][square.index() as usize]
 }
 
+fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard {
+    let mut advances = 0;
+    let up_square = square.up_for_colour(colour);
+
+    if !board.has_piece_at(up_square) {
+        advances += up_square.u64();
+    }
+
+    let start_rank = match colour {
+        Colour::White => 1,
+        Colour::Black => 6,
+    };
+
+    if square.rank() == start_rank {
+        let up_up_square = up_square.up_for_colour(colour);
+
+        if !board.has_piece_at(up_up_square) {
+            advances += up_up_square.u64();
+        }
+    }
+
+    advances
+}
+
 fn get_knight_attacks(square: Square) -> BitBoard {
     KNIGHT_ATTACKS[square.index() as usize]
 }
@@ -228,7 +252,10 @@ impl MoveGenerator for GameState {
                 pieces_u64 ^= from_square.u64();
 
                 let mut attacks_u64 = match piece.get_type() {
-                    PieceType::Pawn => get_pawn_attacks(from_square, self.colour_to_move),
+                    PieceType::Pawn => {
+                        get_pawn_advances(from_square, self.colour_to_move, &self.board)
+                            | get_pawn_attacks(from_square, self.colour_to_move)
+                    }
                     PieceType::Knight => get_knight_attacks(from_square),
                     PieceType::King => get_king_attacks(from_square),
                     _ => 0,
@@ -251,7 +278,7 @@ impl MoveGenerator for GameState {
                         from: from_square,
                         to: to_square,
                         captured,
-                        promoted: None,
+                        promoted: None, // todo: generate promotions
                     });
                 }
             }
