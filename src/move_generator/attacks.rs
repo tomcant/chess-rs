@@ -150,7 +150,7 @@ lazy_static! {
 }
 
 pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard {
-    (board.get_pieces(Piece::make(PieceType::Pawn, colour)) & get_pawn_attacks(square, colour.flip()))
+    (board.get_pieces(Piece::make(PieceType::Pawn, colour)) & get_pawn_attacks(square, colour.flip(), board))
         | (board.get_pieces(Piece::make(PieceType::Knight, colour)) & get_knight_attacks(square))
         | (board.get_pieces(Piece::make(PieceType::Bishop, colour)) & get_bishop_attacks(square, &board))
         | (board.get_pieces(Piece::make(PieceType::Rook, colour)) & get_rook_attacks(square, &board))
@@ -167,7 +167,7 @@ pub fn get_attacks(square: Square, board: &Board) -> BitBoard {
     let piece = maybe_piece.unwrap();
 
     match piece.get_type() {
-        PieceType::Pawn => get_pawn_attacks(square, piece.colour()),
+        PieceType::Pawn => get_pawn_attacks(square, piece.colour(), board),
         PieceType::Knight => get_knight_attacks(square),
         PieceType::Bishop => get_bishop_attacks(square, board),
         PieceType::Rook => get_rook_attacks(square, board),
@@ -176,8 +176,8 @@ pub fn get_attacks(square: Square, board: &Board) -> BitBoard {
     }
 }
 
-pub fn get_pawn_attacks(square: Square, colour: Colour) -> BitBoard {
-    PAWN_ATTACKS[colour as usize][square.index()]
+pub fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> BitBoard {
+    PAWN_ATTACKS[colour as usize][square.index()] & board.occupancy()
 }
 
 pub fn get_knight_attacks(square: Square) -> BitBoard {
@@ -213,16 +213,64 @@ mod tests {
     };
 
     #[test]
-    fn test_white_pawn_attacks() {
+    fn test_white_pawn_attacks_none() {
         let fen = "8/8/8/8/8/8/4P3/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(&state, "e2", &[]);
+    }
+
+    #[test]
+    fn test_white_pawn_attacks_left() {
+        let fen = "8/8/8/8/8/3p4/4P3/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(&state, "e2", &["d3"]);
+    }
+
+    #[test]
+    fn test_white_pawn_attacks_right() {
+        let fen = "8/8/8/8/8/5p2/4P3/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(&state, "e2", &["f3"]);
+    }
+
+    #[test]
+    fn test_white_pawn_attacks_left_and_right() {
+        let fen = "8/8/8/8/8/3p1p2/4P3/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
         assert_attacks_eq(&state, "e2", &["d3", "f3"]);
     }
 
     #[test]
-    fn test_black_pawn_attacks() {
+    fn test_black_pawn_attacks_none() {
         let fen = "8/4p3/8/8/8/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(&state, "e7", &[]);
+    }
+
+    #[test]
+    fn test_black_pawn_attacks_left() {
+        let fen = "8/4p3/3P4/8/8/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(&state, "e7", &["d6"]);
+    }
+
+    #[test]
+    fn test_black_pawn_attacks_right() {
+        let fen = "8/4p3/5P2/8/8/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(&state, "e7", &["f6"]);
+    }
+
+    #[test]
+    fn test_black_pawn_attacks_left_and_right() {
+        let fen = "8/4p3/3P1P2/8/8/8/8/8 b - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
         assert_attacks_eq(&state, "e7", &["d6", "f6"]);

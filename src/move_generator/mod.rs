@@ -3,9 +3,7 @@ mod r#move;
 
 use crate::board::{BitBoard, Board, Colour, Piece, PieceType, Square};
 use crate::game_state::GameState;
-use crate::move_generator::attacks::{
-    get_attackers, get_attacks, get_king_attacks, get_knight_attacks, get_pawn_attacks,
-};
+use crate::move_generator::attacks::{get_attackers, get_attacks};
 use r#move::Move;
 
 trait MoveGenerator {
@@ -45,6 +43,10 @@ impl MoveGenerator for GameState {
                 let mut attacks = get_attacks(from_square, &self.board);
                 // & !self.board.colours[self.colour_to_move];
 
+                if piece.get_type() == PieceType::Pawn {
+                    attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
+                }
+
                 println!("from_square = {from_square:?} attacks = {attacks}");
 
                 while attacks > 0 {
@@ -62,30 +64,6 @@ impl MoveGenerator for GameState {
                         promoted: None, // todo: generate promotions
                     });
                 }
-
-                // if piece.get_type() == PieceType::Pawn {
-                //     let advances = get_pawn_advances(from_square, self.colour_to_move, &self.board);
-
-                //     if advances > 0 {
-                //         let to_square = from_square.up_for_colour(self.colour_to_move);
-
-                //         moves.push(Move {
-                //             from: from_square,
-                //             to: to_square,
-                //             captured: None,
-                //             promoted: None, // todo
-                //         });
-
-                //         if advances ^ to_square.u64() > 0 {
-                //             moves.push(Move {
-                //                 from: from_square,
-                //                 to: to_square.up_for_colour(self.colour_to_move),
-                //                 captured: None,
-                //                 promoted: None,
-                //             });
-                //         }
-                //     }
-                // }
             }
         }
 
@@ -94,12 +72,13 @@ impl MoveGenerator for GameState {
 }
 
 fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard {
-    let mut advances = 0;
     let up_square = square.up_for_colour(colour);
 
-    if !board.has_piece_at(up_square) {
-        advances += up_square.u64();
+    if board.has_piece_at(up_square) {
+        return 0;
     }
+
+    let mut advances = up_square.u64();
 
     let start_rank = match colour {
         Colour::White => 1,
@@ -126,8 +105,31 @@ mod tests {
         let fen = "8/8/8/8/8/8/4P3/4K3 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        // todo: wrong 2 pawn moves are included, should be single/double advance, not the diagonal attacks
         assert_eq!(state.generate_moves().len(), 7);
+    }
+
+    #[test]
+    fn test_generate_black_pawn_moves() {
+        let fen = "4k3/4p3/8/8/8/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_eq!(state.generate_moves().len(), 7);
+    }
+
+    #[test]
+    fn test_generate_white_pawn_advance_single() {
+        let fen = "8/8/8/8/4k3/8/4P3/4K3 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_eq!(state.generate_moves().len(), 6);
+    }
+
+    #[test]
+    fn test_generate_white_pawn_advance_double() {
+        let fen = "8/8/8/8/8/4k3/4P3/4K3 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_eq!(state.generate_moves().len(), 5);
     }
 
     #[test]
