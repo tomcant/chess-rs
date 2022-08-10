@@ -98,7 +98,7 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
 
 #[cfg(test)]
 mod tests {
-    use crate::{game_state::GameState, move_generator::MoveGenerator};
+    use crate::{game_state::GameState, move_generator::{MoveGenerator, r#move::Move}};
 
     #[test]
     fn test_generate_white_pawn_moves() {
@@ -138,6 +138,18 @@ mod tests {
         let state: GameState = fen.parse().unwrap();
 
         assert_eq!(state.generate_moves().len(), 13);
+    }
+
+    #[test]
+    fn test_generate_bishop_moves() {
+        let fen = "8/r7/5n2/8/3B4/8/8/4K3 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        let moves = state.generate_moves();
+        let captures = moves.iter().filter(|mv| mv.captured.is_some()).collect::<Vec<&Move>>();
+
+        assert_eq!(moves.len(), 16);
+        assert_eq!(captures.len(), 2);
     }
 
     #[test]

@@ -44,7 +44,7 @@ lazy_static! {
         attacks
     };
 
-    static ref BISHOP_RAYS: [[BitBoard; 4]; 64] = {
+    static ref BISHOP_ATTACK_RAYS: [[BitBoard; 4]; 64] = {
         fn up_right_ray_from(square: Square) -> BitBoard {
             let mut ray = 0;
             let mut file = square.file() as i8 + 1;
@@ -115,17 +115,6 @@ lazy_static! {
         rays
     };
 
-    static ref BISHOP_ATTACKS: [BitBoard; 64] = {
-        let mut attacks = [0; 64];
-
-        for square in Square::iter() {
-            let square_index = square.index();
-            attacks[square_index] = BISHOP_RAYS[square_index].iter().sum();
-        }
-
-        attacks
-    };
-
     static ref KING_ATTACKS: [BitBoard; 64] = {
         let mut attacks = [0; 64];
 
@@ -185,15 +174,27 @@ pub fn get_knight_attacks(square: Square) -> BitBoard {
 }
 
 pub fn get_bishop_attacks(square: Square, board: &Board) -> BitBoard {
-    // let b = board.occupancy() & BISHOP_RAYS[square.index()][0];
-    //
-    // println!(
-    //     "b = {b:?} occ = {} ray = {}",
-    //     board.occupancy(),
-    //     BISHOP_RAYS[square.index()][0]
-    // );
+    let mut attacks = 0;
 
-    BISHOP_ATTACKS[square.index()]
+    for direction in 0..4 {
+        let attack_ray = BISHOP_ATTACK_RAYS[square.index()][direction];
+        let blockers_on_ray = attack_ray & board.occupancy();
+
+        if blockers_on_ray == 0 {
+            attacks |= attack_ray;
+            continue;
+        }
+
+        let blocker_square_index = if direction < 2 {
+            blockers_on_ray.trailing_zeros()
+        } else {
+            63 - blockers_on_ray.leading_zeros()
+        };
+
+        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[blocker_square_index as usize][direction];
+    }
+
+    attacks
 }
 
 pub fn get_rook_attacks(square: Square, board: &Board) -> BitBoard {
@@ -298,23 +299,45 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_bishop_attacks_on_occupied_board() {
-    //     let fen = "r7/8/2n5/8/8/8/6B1/8 w - - 0 1";
-    //     let state: GameState = fen.parse().unwrap();
+    #[test]
+    fn test_bishop_attacks_with_up_left_blocker() {
+        let fen = "8/8/2n5/8/8/8/6B1/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
 
-    //     let attacker = "g2".parse::<Square>().unwrap();
+        assert_attacks_eq(&state, "g2", &["h1", "h3", "f1", "f3", "e4", "d5", "c6"]);
+    }
 
-    //     let mut attacks = 0;
-    //     for sq in ["f3", "e4", "d5", "c6"] {
-    //         attacks += sq.parse::<Square>().unwrap().u64();
-    //     }
-    //     println!("attacks = {attacks:?}");
+    #[test]
+    fn test_bishop_attacks_with_up_right_blocker() {
+        let fen = "8/8/5n2/8/8/8/1B6/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
 
-    //     assert_eq!(get_attacks(attacker, &state.board), attacks);
+        assert_attacks_eq(&state, "b2", &["a1", "a3", "c1", "c3", "d4", "e5", "f6"]);
+    }
 
-    //     // assert_attacks_eq(&state, "g2", &["f3", "e4", "d5", "c6"]);
-    // }
+    #[test]
+    fn test_bishop_attacks_with_down_left_blocker() {
+        let fen = "8/8/8/4B3/3n4/8/8/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(
+            &state,
+            "e5",
+            &["h8", "g7", "f6", "d4", "f4", "g3", "h2", "d6", "c7", "b8"],
+        );
+    }
+
+    #[test]
+    fn test_bishop_attacks_with_down_right_blocker() {
+        let fen = "8/8/8/3b4/8/5N2/8/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(
+            &state,
+            "d5",
+            &["a8", "b7", "c6", "e6", "f7", "g8", "c4", "b3", "a2", "e4", "f3"],
+        );
+    }
 
     #[test]
     fn test_king_attacks() {
