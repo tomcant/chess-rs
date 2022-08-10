@@ -40,8 +40,8 @@ impl MoveGenerator for GameState {
                 let from_square = Square::from_index(pieces.trailing_zeros() as u8);
                 pieces ^= from_square.u64();
 
-                let mut attacks = get_attacks(from_square, &self.board);
-                // & !self.board.colours[self.colour_to_move];
+                let mut attacks =
+                    get_attacks(from_square, &self.board) & !self.board.get_pieces_by_colour(self.colour_to_move);
 
                 if piece.get_type() == PieceType::Pawn {
                     attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
@@ -98,14 +98,17 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
 
 #[cfg(test)]
 mod tests {
-    use crate::{game_state::GameState, move_generator::{MoveGenerator, r#move::Move}};
+    use crate::{
+        game_state::GameState,
+        move_generator::{r#move::Move, MoveGenerator},
+    };
 
     #[test]
     fn test_generate_white_pawn_moves() {
         let fen = "8/8/8/8/8/8/4P3/4K3 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 7);
+        assert_eq!(state.generate_moves().len(), 6);
     }
 
     #[test]
@@ -113,7 +116,7 @@ mod tests {
         let fen = "4k3/4p3/8/8/8/8/8/8 b - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 7);
+        assert_eq!(state.generate_moves().len(), 6);
     }
 
     #[test]
@@ -121,7 +124,7 @@ mod tests {
         let fen = "8/8/8/8/4k3/8/4P3/4K3 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 6);
+        assert_eq!(state.generate_moves().len(), 5);
     }
 
     #[test]
@@ -129,7 +132,7 @@ mod tests {
         let fen = "8/8/8/8/8/4k3/4P3/4K3 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 5);
+        assert_eq!(state.generate_moves().len(), 4);
     }
 
     #[test]
@@ -158,6 +161,14 @@ mod tests {
         let state: GameState = fen.parse().unwrap();
 
         assert_eq!(state.generate_moves().len(), 5);
+    }
+
+    #[test]
+    fn test_ignore_friendly_piece_captures() {
+        let fen = "8/8/5p2/5P2/3N4/8/8/4K3 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_eq!(state.generate_moves().len(), 12);
     }
 
     #[test]
