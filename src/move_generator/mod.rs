@@ -156,6 +156,18 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_rook_moves() {
+        let fen = "8/3b4/8/8/1n1R4/8/8/4K3 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        let moves = state.generate_moves();
+        let captures = moves.iter().filter(|mv| mv.captured.is_some()).collect::<Vec<&Move>>();
+
+        assert_eq!(moves.len(), 17);
+        assert_eq!(captures.len(), 2);
+    }
+
+    #[test]
     fn test_generate_king_moves() {
         let fen = "8/8/8/8/8/8/8/4K3 w - - 0 1";
         let state: GameState = fen.parse().unwrap();

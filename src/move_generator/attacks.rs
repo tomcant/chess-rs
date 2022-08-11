@@ -115,6 +115,69 @@ lazy_static! {
         rays
     };
 
+    static ref ROOK_ATTACK_RAYS: [[BitBoard; 4]; 64] = {
+        fn up_ray_from(square: Square) -> BitBoard {
+            let mut ray = 0;
+            let mut rank = square.rank() as i8 + 1;
+
+            while rank < 8 {
+                ray += Square::from_file_and_rank(square.file(), rank as u8).u64();
+                rank += 1;
+            }
+
+            ray
+        }
+
+        fn right_ray_from(square: Square) -> BitBoard {
+            let mut ray = 0;
+            let mut file = square.file() as i8 + 1;
+
+            while file < 8 {
+                ray += Square::from_file_and_rank(file as u8, square.rank()).u64();
+                file += 1;
+            }
+
+            ray
+        }
+
+        fn left_ray_from(square: Square) -> BitBoard {
+            let mut ray = 0;
+            let mut file = square.file() as i8 - 1;
+
+            while file >= 0 {
+                ray += Square::from_file_and_rank(file as u8, square.rank()).u64();
+                file -= 1;
+            }
+
+            ray
+        }
+
+        fn down_ray_from(square: Square) -> BitBoard {
+            let mut ray = 0;
+            let mut rank = square.rank() as i8 - 1;
+
+            while rank >= 0 {
+                ray += Square::from_file_and_rank(square.file(), rank as u8).u64();
+                rank -= 1;
+            }
+
+            ray
+        }
+
+        let mut rays = [[0; 4]; 64];
+
+        for square in Square::iter() {
+            rays[square.index()] = [
+                up_ray_from(*square),
+                right_ray_from(*square),
+                left_ray_from(*square),
+                down_ray_from(*square),
+            ];
+        }
+
+        rays
+    };
+
     static ref KING_ATTACKS: [BitBoard; 64] = {
         let mut attacks = [0; 64];
 
@@ -198,7 +261,27 @@ pub fn get_bishop_attacks(square: Square, board: &Board) -> BitBoard {
 }
 
 pub fn get_rook_attacks(square: Square, board: &Board) -> BitBoard {
-    0
+    let mut attacks = 0;
+
+    for direction in 0..4 {
+        let attack_ray = ROOK_ATTACK_RAYS[square.index()][direction];
+        let blockers_on_ray = attack_ray & board.occupancy();
+
+        if blockers_on_ray == 0 {
+            attacks |= attack_ray;
+            continue;
+        }
+
+        let blocker_square_index = if direction < 2 {
+            blockers_on_ray.trailing_zeros()
+        } else {
+            63 - blockers_on_ray.leading_zeros()
+        };
+
+        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[blocker_square_index as usize][direction];
+    }
+
+    attacks
 }
 
 pub fn get_king_attacks(square: Square) -> BitBoard {
@@ -336,6 +419,68 @@ mod tests {
             &state,
             "d5",
             &["a8", "b7", "c6", "e6", "f7", "g8", "c4", "b3", "a2", "e4", "f3"],
+        );
+    }
+
+    #[test]
+    fn test_rook_attacks_on_empty_board() {
+        let fen = "8/8/8/8/3r4/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(
+            &state,
+            "d4",
+            &[
+                "d1", "d2", "d3", "d5", "d6", "d7", "d8", "a4", "b4", "c4", "e4", "f4", "g4", "h4",
+            ],
+        );
+    }
+
+    #[test]
+    fn test_rook_attacks_with_up_blocker() {
+        let fen = "8/8/8/3N4/8/8/8/3r4 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(
+            &state,
+            "d1",
+            &["d2", "d3", "d4", "d5", "a1", "b1", "c1", "e1", "f1", "g1", "h1"],
+        );
+    }
+
+    #[test]
+    fn test_rook_attacks_with_right_blocker() {
+        let fen = "8/8/8/r2N4/8/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(
+            &state,
+            "a5",
+            &["b5", "c5", "d5", "a6", "a7", "a8", "a4", "a3", "a2", "a1"],
+        );
+    }
+
+    #[test]
+    fn test_rook_attacks_with_left_blocker() {
+        let fen = "8/8/8/3N3r/8/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(
+            &state,
+            "h5",
+            &["g5", "f5", "e5", "d5", "h6", "h7", "h8", "h4", "h3", "h2", "h1"],
+        );
+    }
+
+    #[test]
+    fn test_rook_attacks_with_down_blocker() {
+        let fen = "3r4/8/8/3N4/8/8/8/8 b - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_attacks_eq(
+            &state,
+            "d8",
+            &["d7", "d6", "d5", "a8", "b8", "c8", "e8", "f8", "g8", "h8"],
         );
     }
 
