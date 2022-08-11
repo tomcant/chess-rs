@@ -33,7 +33,6 @@ impl MoveGenerator for GameState {
         let mut moves = vec![];
 
         for piece in Piece::iter_colour(self.colour_to_move) {
-            println!("piece = {piece:?}");
             let mut pieces = self.board.get_pieces(*piece);
 
             while pieces > 0 {
@@ -47,15 +46,11 @@ impl MoveGenerator for GameState {
                     attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
                 }
 
-                println!("from_square = {from_square:?} attacks = {attacks}");
-
                 while attacks > 0 {
                     let to_square = Square::from_index(attacks.trailing_zeros() as u8);
                     attacks ^= to_square.u64();
 
                     let captured = self.board.get_piece_at(to_square);
-
-                    println!("to_square = {to_square:?} captured = {captured:?}");
 
                     moves.push(Move {
                         from: from_square,
@@ -102,6 +97,14 @@ mod tests {
         game_state::GameState,
         move_generator::{r#move::Move, MoveGenerator},
     };
+
+    #[test]
+    fn test_generate_moves_from_start_position() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_eq!(state.generate_moves().len(), 20);
+    }
 
     #[test]
     fn test_generate_white_pawn_moves() {

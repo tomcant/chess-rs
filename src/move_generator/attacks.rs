@@ -204,8 +204,8 @@ lazy_static! {
 pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard {
     (board.get_pieces(Piece::make(PieceType::Pawn, colour)) & get_pawn_attacks(square, colour.flip(), board))
         | (board.get_pieces(Piece::make(PieceType::Knight, colour)) & get_knight_attacks(square))
-        | (board.get_pieces(Piece::make(PieceType::Bishop, colour)) & get_bishop_attacks(square, &board))
-        | (board.get_pieces(Piece::make(PieceType::Rook, colour)) & get_rook_attacks(square, &board))
+        | (board.get_pieces(Piece::make(PieceType::Bishop, colour)) & get_bishop_attacks(square, board))
+        | (board.get_pieces(Piece::make(PieceType::Rook, colour)) & get_rook_attacks(square, board))
         | (board.get_pieces(Piece::make(PieceType::King, colour)) & get_king_attacks(square))
 }
 

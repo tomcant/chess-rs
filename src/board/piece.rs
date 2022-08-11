@@ -27,19 +27,28 @@ pub enum Piece {
     BlackKing,
 }
 
+const PIECE_TYPE_TO_COLOUR_MAP: [[Piece; 6]; 2] = [
+    [
+        Piece::WhitePawn,
+        Piece::WhiteKnight,
+        Piece::WhiteBishop,
+        Piece::WhiteRook,
+        Piece::WhiteQueen,
+        Piece::WhiteKing,
+    ],
+    [
+        Piece::BlackPawn,
+        Piece::BlackKnight,
+        Piece::BlackBishop,
+        Piece::BlackRook,
+        Piece::BlackQueen,
+        Piece::BlackKing,
+    ],
+];
+
 impl Piece {
     pub fn make(piece_type: PieceType, colour: Colour) -> Self {
-        let is_white = colour == Colour::White;
-
-        #[rustfmt::skip]
-        return match piece_type {
-            PieceType::Pawn => if is_white { Self::WhitePawn } else { Self::BlackPawn },
-            PieceType::Knight => if is_white { Self::WhiteKnight } else { Self::BlackKnight },
-            PieceType::Bishop => if is_white { Self::WhiteBishop } else { Self::BlackBishop },
-            PieceType::Rook => if is_white { Self::WhiteRook } else { Self::BlackRook },
-            PieceType::Queen => if is_white { Self::WhiteQueen } else { Self::BlackQueen },
-            PieceType::King => if is_white { Self::WhiteKing } else { Self::BlackKing },
-        };
+        PIECE_TYPE_TO_COLOUR_MAP[colour as usize][piece_type as usize]
     }
 
     pub fn index(&self) -> usize {
@@ -88,26 +97,6 @@ impl Piece {
     }
 
     pub fn iter_colour(colour: Colour) -> Iter<'static, Self> {
-        if colour == Colour::White {
-            [
-                Self::WhitePawn,
-                Self::WhiteKnight,
-                Self::WhiteBishop,
-                Self::WhiteRook,
-                Self::WhiteQueen,
-                Self::WhiteKing,
-            ]
-            .iter()
-        } else {
-            [
-                Self::BlackPawn,
-                Self::BlackKnight,
-                Self::BlackBishop,
-                Self::BlackRook,
-                Self::BlackQueen,
-                Self::BlackKing,
-            ]
-            .iter()
-        }
+        PIECE_TYPE_TO_COLOUR_MAP[colour as usize].iter()
     }
 }
