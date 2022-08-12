@@ -4,7 +4,8 @@ mod r#move;
 use crate::board::{BitBoard, Board, Colour, Piece, PieceType, Square};
 use crate::game_state::GameState;
 use crate::move_generator::attacks::{get_attackers, get_attacks};
-use r#move::Move;
+
+pub use r#move::Move;
 
 trait MoveGenerator {
     fn generate_moves(&self) -> Vec<Move>;
@@ -97,6 +98,38 @@ mod tests {
         game_state::GameState,
         move_generator::{r#move::Move, MoveGenerator},
     };
+
+    mod perft {
+        use crate::{game_state::GameState, move_generator::MoveGenerator};
+
+        #[test]
+        fn test_perft_starting_position_depth_3() {
+            let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+            let mut state: GameState = fen.parse().unwrap();
+
+            assert_eq!(perft(&mut state, 3), 8902);
+        }
+
+        pub fn perft(state: &mut GameState, depth: u8) -> u64 {
+            let moves = state.generate_moves();
+
+            if depth == 1 {
+                return moves.len() as u64;
+            }
+
+            let mut nodes = 0;
+
+            for mv in moves {
+                state.do_move(&mv);
+                // if !state.is_check_for(state.colour_to_move.flip()) {
+                nodes += perft(state, depth - 1);
+                // }
+                state.undo_move(&mv);
+            }
+
+            nodes
+        }
+    }
 
     #[test]
     fn test_generate_moves_from_start_position() {

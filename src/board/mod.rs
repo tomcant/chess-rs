@@ -82,6 +82,7 @@ mod tests {
 
         assert!(board.has_piece_at(square));
         assert_eq!(board.get_piece_at(square), Some(piece));
+        assert_eq!(board.get_pieces_by_colour(piece.colour()) & square.u64(), square.u64());
     }
 
     #[test]
