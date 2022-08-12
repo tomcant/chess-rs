@@ -1,5 +1,6 @@
 use super::Colour;
 use lazy_static::lazy_static;
+use std::fmt::{Display, Formatter};
 use std::slice::Iter;
 use std::str::FromStr;
 
@@ -59,6 +60,12 @@ impl Square {
             Colour::White => Self(self.0 + 8),
             _ => Self(self.0 - 8),
         }
+    }
+}
+
+impl Display for Square {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}{}", (b'a' + self.file()) as char, self.rank() + 1)
     }
 }
 

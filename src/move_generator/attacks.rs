@@ -293,7 +293,7 @@ mod tests {
     use crate::{
         board::{BitBoard, Square},
         game_state::GameState,
-        move_generator::attacks::{get_attackers, get_attacks},
+        move_generator::attacks::get_attacks,
     };
 
     #[test]
