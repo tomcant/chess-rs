@@ -14,8 +14,8 @@ trait MoveGenerator {
 impl MoveGenerator for GameState {
     fn generate_moves(&self) -> Vec<Move> {
         let king_square = self.board.get_king_square(self.colour_to_move);
-        let squares_giving_check = get_attackers(king_square, self.colour_to_move.flip(), &self.board);
-        let num_checkers = squares_giving_check.count_ones();
+        let checking_squares = get_attackers(king_square, self.colour_to_move.flip(), &self.board);
+        let num_checkers = checking_squares.count_ones();
 
         if num_checkers > 1 {
             // todo: generate all king moves
@@ -27,8 +27,23 @@ impl MoveGenerator for GameState {
             }];
         }
 
+        let mut capture_mask = 0xFFFFFFFFFFFFFFFFu64;
+        let mut non_capture_mask = 0xFFFFFFFFFFFFFFFFu64;
+
         if num_checkers == 1 {
             // todo: restrict moves to capturing the piece giving check or blocking the check if it's a sliding piece
+
+            capture_mask = checking_squares;
+
+            let checker_square = Square::from_u64(checking_squares);
+            let checker_piece = self.board.get_piece_at(checker_square).unwrap();
+
+            if checker_piece.is_sliding() {
+                // todo: restrict normal moves to squares between checking piece and king
+                // non_capture_mask = ...;
+            } else {
+                non_capture_mask = 0; // restrict to captures
+            }
         }
 
         let mut moves = vec![];
@@ -52,6 +67,14 @@ impl MoveGenerator for GameState {
                     attacks ^= to_square.u64();
 
                     let captured = self.board.get_piece_at(to_square);
+
+                    if captured.is_some() && capture_mask & to_square.u64() == 0 {
+                        continue;
+                    }
+
+                    if captured.is_none() && non_capture_mask & to_square.u64() == 0 {
+                        continue;
+                    }
 
                     moves.push(Move {
                         from: from_square,
@@ -121,9 +144,7 @@ mod tests {
 
             for mv in moves {
                 state.do_move(&mv);
-                // if !state.is_check_for(state.colour_to_move.flip()) {
                 nodes += perft(state, depth - 1);
-                // }
                 state.undo_move(&mv);
             }
 

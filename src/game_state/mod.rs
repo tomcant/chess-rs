@@ -19,18 +19,26 @@ impl GameState {
     pub fn do_move(&mut self, mv: &Move) {
         let piece = self.board.get_piece_at(mv.from).unwrap();
 
-        self.board.put_piece(piece, mv.to);
         self.board.clear_square(mv.from);
 
+        if mv.captured.is_some() {
+            self.board.clear_square(mv.to);
+        }
+
+        self.board.put_piece(piece, mv.to);
         self.colour_to_move = self.colour_to_move.flip();
     }
 
     pub fn undo_move(&mut self, mv: &Move) {
         let piece = self.board.get_piece_at(mv.to).unwrap();
 
-        self.board.put_piece(piece, mv.from);
         self.board.clear_square(mv.to);
 
+        if mv.captured.is_some() {
+            self.board.put_piece(mv.captured.unwrap(), mv.to);
+        }
+
+        self.board.put_piece(piece, mv.from);
         self.colour_to_move = self.colour_to_move.flip();
     }
 }
@@ -38,14 +46,14 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::{Piece, Square},
+        board::{Colour, Piece, Square},
         game_state::GameState,
         move_generator::Move,
     };
 
     #[test]
-    fn test_do_move() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    fn test_do_move_non_capture() {
+        let fen = "8/8/8/8/8/8/4P3/4K3 w - - 0 1";
         let mut state: GameState = fen.parse().unwrap();
 
         let mv = Move {
@@ -54,18 +62,35 @@ mod tests {
             captured: None,
             promoted: None,
         };
-
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
 
         state.do_move(&mv);
 
         assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhitePawn));
         assert!(!state.board.has_piece_at(mv.from));
+        assert_eq!(state.colour_to_move, Colour::Black);
     }
 
     #[test]
-    fn test_undo_move() {
-        let fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1";
+    fn test_do_move_capture() {
+        let fen = "8/8/8/5p2/3N4/8/8/4K3 w - - 0 1";
+        let mut state: GameState = fen.parse().unwrap();
+
+        let mv = Move {
+            from: "d4".parse::<Square>().unwrap(),
+            to: "f5".parse::<Square>().unwrap(),
+            captured: Some(Piece::BlackPawn),
+            promoted: None,
+        };
+
+        state.do_move(&mv);
+
+        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhiteKnight));
+        assert!(!state.board.has_piece_at(mv.from));
+    }
+
+    #[test]
+    fn test_undo_move_non_capture() {
+        let fen = "8/8/8/8/4P3/8/8/4K3 b - - 0 1";
         let mut state: GameState = fen.parse().unwrap();
 
         let mv = Move {
@@ -75,11 +100,28 @@ mod tests {
             promoted: None,
         };
 
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhitePawn));
-
         state.undo_move(&mv);
 
         assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
         assert!(!state.board.has_piece_at(mv.to));
+        assert_eq!(state.colour_to_move, Colour::White);
+    }
+
+    #[test]
+    fn test_undo_move_capture() {
+        let fen = "8/8/8/5N2/8/8/8/4K3 b - - 0 1";
+        let mut state: GameState = fen.parse().unwrap();
+
+        let mv = Move {
+            from: "d4".parse::<Square>().unwrap(),
+            to: "f5".parse::<Square>().unwrap(),
+            captured: Some(Piece::BlackPawn),
+            promoted: None,
+        };
+
+        state.undo_move(&mv);
+
+        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteKnight));
+        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::BlackPawn));
     }
 }

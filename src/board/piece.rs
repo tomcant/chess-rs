@@ -78,6 +78,13 @@ impl Piece {
         }
     }
 
+    pub fn is_sliding(&self) -> bool {
+        match self.get_type() {
+            PieceType::Pawn | PieceType::Knight | PieceType::King => false,
+            _ => true,
+        }
+    }
+
     pub fn iter() -> Iter<'static, Self> {
         [
             Self::WhitePawn,
