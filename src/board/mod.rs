@@ -6,6 +6,8 @@ pub use colour::Colour;
 pub use piece::{Piece, PieceType};
 pub use square::Square;
 
+use crate::move_generator::get_attackers;
+
 pub type BitBoard = u64;
 
 #[derive(Debug)]
@@ -59,8 +61,12 @@ impl Board {
         }
     }
 
-    pub fn get_king_square(&self, colour: Colour) -> Square {
-        Square::from_u64(self.get_pieces(Piece::make(PieceType::King, colour)))
+    pub fn is_in_check(&self, colour: Colour) -> bool {
+        let king_of_colour = Piece::make(PieceType::King, colour);
+        let king_square = Square::from_u64(self.get_pieces(king_of_colour));
+        let attackers = get_attackers(king_square, colour.flip(), &self);
+
+        attackers.count_ones() > 0
     }
 
     pub fn occupancy(&self) -> BitBoard {
@@ -99,14 +105,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_king_square() {
+    fn test_it_can_detect_check() {
         let mut board = Board::empty();
-        let white_king_square = "e1".parse::<Square>().unwrap();
-        let black_king_square = "e8".parse::<Square>().unwrap();
-        board.put_piece(Piece::WhiteKing, white_king_square);
-        board.put_piece(Piece::BlackKing, black_king_square);
+        board.put_piece(Piece::BlackKing, "e8".parse::<Square>().unwrap());
+        board.put_piece(Piece::WhiteKnight, "d6".parse::<Square>().unwrap());
 
-        assert_eq!(board.get_king_square(Colour::White), white_king_square);
-        assert_eq!(board.get_king_square(Colour::Black), black_king_square);
+        assert!(board.is_in_check(Colour::Black));
     }
 }

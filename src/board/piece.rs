@@ -80,8 +80,8 @@ impl Piece {
 
     pub fn is_sliding(&self) -> bool {
         match self.get_type() {
-            PieceType::Pawn | PieceType::Knight | PieceType::King => false,
-            _ => true,
+            PieceType::Bishop | PieceType::Rook | PieceType::Queen => true,
+            _ => false,
         }
     }
 
