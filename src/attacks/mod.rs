@@ -1,4 +1,4 @@
-use crate::board::{BitBoard, Board, Colour, Piece, PieceType, Square};
+use crate::board::{BitBoard, Board, Colour, PieceType, Square};
 use lazy_static::lazy_static;
 
 const FILE_A: BitBoard = 0x0101_0101_0101_0101;
@@ -214,6 +214,15 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard 
         | (board.get_pieces(PieceType::Rook, colour) & rook_attacks)
         | (board.get_pieces(PieceType::Queen, colour) & (bishop_attacks | rook_attacks))
         | (board.get_pieces(PieceType::King, colour) & king_attacks)
+
+    // let attacks = get_attacks(square, board);
+    //
+    // (board.get_pieces(PieceType::Pawn, colour) & attacks)
+    //     | (board.get_pieces(PieceType::Knight, colour) & attacks)
+    //     | (board.get_pieces(PieceType::Bishop, colour) & attacks)
+    //     | (board.get_pieces(PieceType::Rook, colour) & attacks)
+    //     | (board.get_pieces(PieceType::Queen, colour) & attacks)
+    //     | (board.get_pieces(PieceType::King, colour) & attacks)
 }
 
 pub fn get_attacks(square: Square, board: &Board) -> BitBoard {
@@ -235,15 +244,15 @@ pub fn get_attacks(square: Square, board: &Board) -> BitBoard {
     }
 }
 
-pub fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> BitBoard {
+fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> BitBoard {
     PAWN_ATTACKS[colour as usize][square.index()] & board.occupancy()
 }
 
-pub fn get_knight_attacks(square: Square) -> BitBoard {
+fn get_knight_attacks(square: Square) -> BitBoard {
     KNIGHT_ATTACKS[square.index()]
 }
 
-pub fn get_bishop_attacks(square: Square, board: &Board) -> BitBoard {
+fn get_bishop_attacks(square: Square, board: &Board) -> BitBoard {
     let mut attacks = 0;
 
     for direction in 0..4 {
@@ -267,7 +276,7 @@ pub fn get_bishop_attacks(square: Square, board: &Board) -> BitBoard {
     attacks
 }
 
-pub fn get_rook_attacks(square: Square, board: &Board) -> BitBoard {
+fn get_rook_attacks(square: Square, board: &Board) -> BitBoard {
     let mut attacks = 0;
 
     for direction in 0..4 {
@@ -291,16 +300,16 @@ pub fn get_rook_attacks(square: Square, board: &Board) -> BitBoard {
     attacks
 }
 
-pub fn get_king_attacks(square: Square) -> BitBoard {
+fn get_king_attacks(square: Square) -> BitBoard {
     KING_ATTACKS[square.index()]
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
+        attacks::{get_attackers, get_attacks},
         board::{BitBoard, Colour, Square},
         game_state::GameState,
-        move_generator::attacks::{get_attackers, get_attacks},
     };
 
     #[test]

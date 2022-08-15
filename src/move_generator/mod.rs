@@ -1,10 +1,8 @@
-mod attacks;
 mod r#move;
 
-use crate::board::{BitBoard, Board, Colour, Piece, PieceType, Square};
+use crate::attacks::get_attacks;
+use crate::board::{BitBoard, Board, Colour, PieceType, Square};
 use crate::game_state::GameState;
-
-pub use crate::move_generator::attacks::{get_attackers, get_attacks};
 
 pub use r#move::Move;
 
@@ -36,11 +34,15 @@ impl MoveGenerator for GameState {
 
                     let captured = self.board.get_piece_at(to_square);
 
+                    // todo: generate promotions
+                    // todo: generate castling
+                    // todo: generate en-passant
+
                     moves.push(Move {
                         from: from_square,
                         to: to_square,
                         captured,
-                        promoted: None, // todo: generate promotions
+                        promoted: None,
                     });
                 }
             }
@@ -139,65 +141,65 @@ mod tests {
 
     #[test]
     fn test_generate_white_pawn_moves() {
-        let fen = "8/8/8/8/8/8/4P3/4K3 w - - 0 1";
+        let fen = "8/8/8/8/8/8/4P3/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 6);
+        assert_eq!(state.generate_moves().len(), 2);
     }
 
     #[test]
     fn test_generate_black_pawn_moves() {
-        let fen = "4k3/4p3/8/8/8/8/8/8 b - - 0 1";
+        let fen = "8/4p3/8/8/8/8/8/8 b - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 6);
+        assert_eq!(state.generate_moves().len(), 2);
     }
 
     #[test]
     fn test_generate_white_pawn_advance_single() {
-        let fen = "8/8/8/8/4k3/8/4P3/4K3 w - - 0 1";
+        let fen = "8/8/8/8/4p3/8/4P3/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 5);
+        assert_eq!(state.generate_moves().len(), 1);
     }
 
     #[test]
     fn test_generate_white_pawn_advance_double() {
-        let fen = "8/8/8/8/8/4k3/4P3/4K3 w - - 0 1";
+        let fen = "8/8/8/8/8/4p3/4P3/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 4);
+        assert_eq!(state.generate_moves().len(), 0);
     }
 
     #[test]
     fn test_generate_knight_moves() {
-        let fen = "8/8/8/8/3N4/8/8/4K3 w - - 0 1";
+        let fen = "8/8/8/8/3N4/8/8/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 13);
+        assert_eq!(state.generate_moves().len(), 8);
     }
 
     #[test]
     fn test_generate_bishop_moves() {
-        let fen = "8/r7/5n2/8/3B4/8/8/4K3 w - - 0 1";
+        let fen = "8/r7/5n2/8/3B4/8/8/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
         let moves = state.generate_moves();
         let captures = moves.iter().filter(|mv| mv.captured.is_some()).collect::<Vec<&Move>>();
 
-        assert_eq!(moves.len(), 16);
+        assert_eq!(moves.len(), 11);
         assert_eq!(captures.len(), 2);
     }
 
     #[test]
     fn test_generate_rook_moves() {
-        let fen = "8/3b4/8/8/1n1R4/8/8/4K3 w - - 0 1";
+        let fen = "8/3b4/8/8/1n1R4/8/8/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
         let moves = state.generate_moves();
         let captures = moves.iter().filter(|mv| mv.captured.is_some()).collect::<Vec<&Move>>();
 
-        assert_eq!(moves.len(), 17);
+        assert_eq!(moves.len(), 12);
         assert_eq!(captures.len(), 2);
     }
 
@@ -211,9 +213,9 @@ mod tests {
 
     #[test]
     fn test_ignore_friendly_piece_captures() {
-        let fen = "8/8/5p2/5P2/3N4/8/8/4K3 w - - 0 1";
+        let fen = "8/8/5p2/5P2/3N4/8/8/8 w - - 0 1";
         let state: GameState = fen.parse().unwrap();
 
-        assert_eq!(state.generate_moves().len(), 12);
+        assert_eq!(state.generate_moves().len(), 7);
     }
 }

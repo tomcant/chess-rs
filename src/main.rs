@@ -1,3 +1,4 @@
+mod attacks;
 mod board;
 mod game_state;
 mod move_generator;

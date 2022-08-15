@@ -6,7 +6,7 @@ pub use colour::Colour;
 pub use piece::{Piece, PieceType};
 pub use square::Square;
 
-use crate::move_generator::get_attackers;
+use crate::attacks::get_attackers;
 
 pub type BitBoard = u64;
 
@@ -59,7 +59,7 @@ impl Board {
 
     pub fn is_in_check(&self, colour: Colour) -> bool {
         let king_square = Square::from_u64(self.get_pieces(PieceType::King, colour));
-        let attackers = get_attackers(king_square, colour.flip(), &self);
+        let attackers = get_attackers(king_square, colour.flip(), self);
 
         attackers.count_ones() > 0
     }

@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn test_do_move_non_capture() {
-        let fen = "8/8/8/8/8/8/4P3/4K3 w - - 0 1";
+        let fen = "8/8/8/8/8/8/4P3/8 w - - 0 1";
         let mut state: GameState = fen.parse().unwrap();
 
         let mv = Move {
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_do_move_capture() {
-        let fen = "8/8/8/5p2/3N4/8/8/4K3 w - - 0 1";
+        let fen = "8/8/8/5p2/3N4/8/8/8 w - - 0 1";
         let mut state: GameState = fen.parse().unwrap();
 
         let mv = Move {
@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_undo_move_non_capture() {
-        let fen = "8/8/8/8/4P3/8/8/4K3 b - - 0 1";
+        let fen = "8/8/8/8/4P3/8/8/8 b - - 0 1";
         let mut state: GameState = fen.parse().unwrap();
 
         let mv = Move {
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_undo_move_capture() {
-        let fen = "8/8/8/5N2/8/8/8/4K3 b - - 0 1";
+        let fen = "8/8/8/5N2/8/8/8/8 b - - 0 1";
         let mut state: GameState = fen.parse().unwrap();
 
         let mv = Move {
