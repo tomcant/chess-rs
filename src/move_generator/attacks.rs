@@ -206,6 +206,8 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard 
         | (board.get_pieces(Piece::make(PieceType::Knight, colour)) & get_knight_attacks(square))
         | (board.get_pieces(Piece::make(PieceType::Bishop, colour)) & get_bishop_attacks(square, board))
         | (board.get_pieces(Piece::make(PieceType::Rook, colour)) & get_rook_attacks(square, board))
+        | (board.get_pieces(Piece::make(PieceType::Queen, colour))
+            & (get_bishop_attacks(square, board) | get_rook_attacks(square, board)))
         | (board.get_pieces(Piece::make(PieceType::King, colour)) & get_king_attacks(square))
 }
 
@@ -291,10 +293,32 @@ pub fn get_king_attacks(square: Square) -> BitBoard {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board::{BitBoard, Square},
+        board::{BitBoard, Colour, Square},
         game_state::GameState,
-        move_generator::attacks::get_attacks,
+        move_generator::attacks::{get_attackers, get_attacks},
     };
+
+    #[test]
+    fn test_attack_by_queen() {
+        let fen = "4k3/8/8/8/4Q3/8/8/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_eq!(
+            get_attackers("e8".parse::<Square>().unwrap(), Colour::White, &state.board),
+            "e4".parse::<Square>().unwrap().u64()
+        );
+    }
+
+    #[test]
+    fn test_attack_by_queen_diagonal() {
+        let fen = "4k3/8/8/8/Q7/8/8/8 w - - 0 1";
+        let state: GameState = fen.parse().unwrap();
+
+        assert_eq!(
+            get_attackers("e8".parse::<Square>().unwrap(), Colour::White, &state.board),
+            "a4".parse::<Square>().unwrap().u64()
+        );
+    }
 
     #[test]
     fn test_white_pawn_attacks_none() {
@@ -497,24 +521,4 @@ mod tests {
 
         assert_eq!(attacks, get_attacks(attacker.parse().unwrap(), &state.board));
     }
-
-    // #[test]
-    // fn test_attack_by_king() {
-    //     let fen = "8/8/8/8/8/8/8/4K3 w - - 0 1";
-    //     let state: GameState = fen.parse().unwrap();
-
-    //     assert_attackers_eq(&state, "e1", &["d1", "f1", "d2", "e2", "f2"]);
-    // }
-
-    // fn assert_attackers_eq(state: &GameState, square: &str, attackers: &[&str]) {
-    //     let square: Square = square.parse().unwrap();
-    //     let attackers: Vec<Square> = attackers.iter().map(|sq| sq.parse().unwrap()).collect();
-
-    //     for sq in Square::iter() {
-    //         assert_eq!(
-    //             square.u64() & get_attackers(*sq, state.colour_to_move, &state.board),
-    //             if attackers.contains(sq) { square.u64() } else { 0 }
-    //         );
-    //     }
-    // }
 }
