@@ -31,10 +31,6 @@ impl Board {
     }
 
     pub fn get_piece_at(&self, square: Square) -> Option<Piece> {
-        if !self.has_piece_at(square) {
-            return None;
-        }
-
         let square_u64 = square.u64();
 
         Piece::iter()
@@ -46,8 +42,8 @@ impl Board {
         self.occupancy() & square.u64() != 0
     }
 
-    pub fn get_pieces(&self, piece: Piece) -> BitBoard {
-        self.pieces[piece.index()]
+    pub fn get_pieces(&self, piece_type: PieceType, colour: Colour) -> BitBoard {
+        self.pieces[Piece::make(piece_type, colour).index()]
     }
 
     pub fn get_pieces_by_colour(&self, colour: Colour) -> BitBoard {
@@ -62,8 +58,7 @@ impl Board {
     }
 
     pub fn is_in_check(&self, colour: Colour) -> bool {
-        let king_of_colour = Piece::make(PieceType::King, colour);
-        let king_square = Square::from_u64(self.get_pieces(king_of_colour));
+        let king_square = Square::from_u64(self.get_pieces(PieceType::King, colour));
         let attackers = get_attackers(king_square, colour.flip(), &self);
 
         attackers.count_ones() > 0

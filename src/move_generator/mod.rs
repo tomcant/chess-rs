@@ -16,8 +16,8 @@ impl MoveGenerator for GameState {
     fn generate_moves(&self) -> Vec<Move> {
         let mut moves = vec![];
 
-        for piece in Piece::iter_colour(self.colour_to_move) {
-            let mut pieces = self.board.get_pieces(*piece);
+        for pt in PieceType::iter() {
+            let mut pieces = self.board.get_pieces(*pt, self.colour_to_move);
 
             while pieces > 0 {
                 let from_square = Square::from_index(pieces.trailing_zeros() as u8);
@@ -26,7 +26,7 @@ impl MoveGenerator for GameState {
                 let mut attacks =
                     get_attacks(from_square, &self.board) & !self.board.get_pieces_by_colour(self.colour_to_move);
 
-                if piece.get_type() == PieceType::Pawn {
+                if *pt == PieceType::Pawn {
                     attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
                 }
 

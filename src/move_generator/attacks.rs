@@ -202,13 +202,18 @@ lazy_static! {
 }
 
 pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard {
-    (board.get_pieces(Piece::make(PieceType::Pawn, colour)) & get_pawn_attacks(square, colour.flip(), board))
-        | (board.get_pieces(Piece::make(PieceType::Knight, colour)) & get_knight_attacks(square))
-        | (board.get_pieces(Piece::make(PieceType::Bishop, colour)) & get_bishop_attacks(square, board))
-        | (board.get_pieces(Piece::make(PieceType::Rook, colour)) & get_rook_attacks(square, board))
-        | (board.get_pieces(Piece::make(PieceType::Queen, colour))
-            & (get_bishop_attacks(square, board) | get_rook_attacks(square, board)))
-        | (board.get_pieces(Piece::make(PieceType::King, colour)) & get_king_attacks(square))
+    let pawn_attacks = get_pawn_attacks(square, colour.flip(), board);
+    let knight_attacks = get_knight_attacks(square);
+    let bishop_attacks = get_bishop_attacks(square, board);
+    let rook_attacks = get_rook_attacks(square, board);
+    let king_attacks = get_king_attacks(square);
+
+    (board.get_pieces(PieceType::Pawn, colour) & pawn_attacks)
+        | (board.get_pieces(PieceType::Knight, colour) & knight_attacks)
+        | (board.get_pieces(PieceType::Bishop, colour) & bishop_attacks)
+        | (board.get_pieces(PieceType::Rook, colour) & rook_attacks)
+        | (board.get_pieces(PieceType::Queen, colour) & (bishop_attacks | rook_attacks))
+        | (board.get_pieces(PieceType::King, colour) & king_attacks)
 }
 
 pub fn get_attacks(square: Square, board: &Board) -> BitBoard {

@@ -11,6 +11,20 @@ pub enum PieceType {
     King,
 }
 
+impl PieceType {
+    pub fn iter() -> Iter<'static, Self> {
+        [
+            Self::Pawn,
+            Self::Knight,
+            Self::Bishop,
+            Self::Rook,
+            Self::Queen,
+            Self::King,
+        ]
+        .iter()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Piece {
     WhitePawn,
@@ -78,13 +92,6 @@ impl Piece {
         }
     }
 
-    pub fn is_sliding(&self) -> bool {
-        match self.get_type() {
-            PieceType::Bishop | PieceType::Rook | PieceType::Queen => true,
-            _ => false,
-        }
-    }
-
     pub fn iter() -> Iter<'static, Self> {
         [
             Self::WhitePawn,
@@ -101,9 +108,5 @@ impl Piece {
             Self::BlackKing,
         ]
         .iter()
-    }
-
-    pub fn iter_colour(colour: Colour) -> Iter<'static, Self> {
-        PIECE_TYPE_TO_COLOUR_MAP[colour as usize].iter()
     }
 }
