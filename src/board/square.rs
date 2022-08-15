@@ -11,8 +11,8 @@ lazy_static! {
     static ref SQUARES: [Square; 64] = {
         let mut squares = [Square(0); 64];
 
-        for index in 0..64 {
-            squares[index] = Square(index as u8);
+        for (index, sq) in squares.iter_mut().enumerate() {
+            sq.0 = index as u8;
         }
 
         squares
@@ -49,17 +49,15 @@ impl Square {
         self.0 >> 3
     }
 
-    pub fn iter() -> Iter<'static, Self> {
-        SQUARES.iter()
-    }
-}
-
-impl Square {
     pub fn up_for_colour(&self, colour: Colour) -> Self {
         match colour {
             Colour::White => Self(self.0 + 8),
             _ => Self(self.0 - 8),
         }
+    }
+
+    pub fn iter() -> Iter<'static, Self> {
+        SQUARES.iter()
     }
 }
 

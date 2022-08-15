@@ -14,8 +14,8 @@ impl MoveGenerator for GameState {
     fn generate_moves(&self) -> Vec<Move> {
         let mut moves = vec![];
 
-        for pt in PieceType::iter() {
-            let mut pieces = self.board.get_pieces(*pt, self.colour_to_move);
+        for piece_type in PieceType::iter() {
+            let mut pieces = self.board.get_pieces(*piece_type, self.colour_to_move);
 
             while pieces > 0 {
                 let from_square = Square::from_index(pieces.trailing_zeros() as u8);
@@ -24,7 +24,7 @@ impl MoveGenerator for GameState {
                 let mut attacks =
                     get_attacks(from_square, &self.board) & !self.board.get_pieces_by_colour(self.colour_to_move);
 
-                if *pt == PieceType::Pawn {
+                if *piece_type == PieceType::Pawn {
                     attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
                 }
 
@@ -88,8 +88,8 @@ mod tests {
         use crate::{game_state::GameState, move_generator::MoveGenerator};
 
         #[test]
-        fn test_perft_starting_position_depth_3() {
-            assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3, 8902);
+        fn test_perft_starting_position_depth_4() {
+            assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197_281);
         }
 
         fn assert_perft_for_fen(fen: &str, depth: u8, expected_move_count: u64) {
@@ -98,15 +98,13 @@ mod tests {
         }
 
         fn perft(state: &mut GameState, depth: u8) -> u64 {
-            let moves = state.generate_moves();
-
-            if depth == 1 {
-                return moves.len() as u64;
+            if depth == 0 {
+                return 1;
             }
 
             let mut nodes = 0;
 
-            for mv in moves {
+            for mv in state.generate_moves() {
                 state.do_move(&mv);
 
                 if !state.board.is_in_check(state.colour_to_move.flip()) {
@@ -118,6 +116,25 @@ mod tests {
 
             nodes
         }
+    }
+
+    #[test]
+    fn test_legal_move_count_in_checkmate_is_zero() {
+        let fen = "rnb1kbnr/pppp1ppp/4p3/8/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 0 1";
+        let mut state: GameState = fen.parse().unwrap();
+        let mut legal_move_count = 0;
+
+        for mv in state.generate_moves() {
+            state.do_move(&mv);
+
+            if !state.board.is_in_check(state.colour_to_move.flip()) {
+                legal_move_count += 1;
+            }
+
+            state.undo_move(&mv);
+        }
+
+        assert_eq!(legal_move_count, 0);
     }
 
     #[test]
