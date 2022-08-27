@@ -1,5 +1,8 @@
 use super::{castling::CastlingAbility, GameState};
-use crate::board::{Board, Colour, Piece, Square};
+use crate::board::Board;
+use crate::colour::Colour;
+use crate::piece::Piece;
+use crate::square::Square;
 use std::str::FromStr;
 
 impl FromStr for GameState {
@@ -122,11 +125,8 @@ fn parse_en_passant_square(str: &str) -> Option<Square> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::{CastlingAbility, Colour, Square},
-        GameState,
-    };
-    use crate::board::Piece;
+    use super::*;
+    use crate::game_state::{CastlingAbility, GameState};
 
     #[test]
     fn test_board() {

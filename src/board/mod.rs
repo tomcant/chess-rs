@@ -1,12 +1,7 @@
-pub mod colour;
-pub mod piece;
-pub mod square;
-
-pub use colour::Colour;
-pub use piece::{Piece, PieceType};
-pub use square::Square;
-
 use crate::attacks::get_attackers;
+use crate::colour::Colour;
+use crate::piece::{Piece, PieceType};
+use crate::square::Square;
 
 pub type BitBoard = u64;
 
@@ -43,7 +38,7 @@ impl Board {
     }
 
     pub fn get_pieces(&self, piece_type: PieceType, colour: Colour) -> BitBoard {
-        self.pieces[Piece::make(piece_type, colour).index()]
+        self.pieces[Piece::from(piece_type, colour).index()]
     }
 
     pub fn get_pieces_by_colour(&self, colour: Colour) -> BitBoard {
@@ -71,7 +66,7 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use super::{Board, Colour, Piece, Square};
+    use super::*;
 
     #[test]
     fn test_put_piece() {

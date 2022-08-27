@@ -1,4 +1,5 @@
-use crate::board::{Piece, Square};
+use crate::piece::Piece;
+use crate::square::Square;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]

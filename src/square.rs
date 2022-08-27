@@ -1,4 +1,4 @@
-use super::Colour;
+use crate::colour::Colour;
 use lazy_static::lazy_static;
 use std::fmt::{Display, Formatter};
 use std::slice::Iter;
@@ -55,7 +55,7 @@ impl Square {
 
 impl Display for Square {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}{}", (b'a' + self.file()) as char, self.rank() + 1)
+        write!(f, "{}{}", (b'a' + self.file()) as char, 1 + self.rank())
     }
 }
 
@@ -82,7 +82,7 @@ impl FromStr for Square {
 
 #[cfg(test)]
 mod tests {
-    use super::Square;
+    use super::*;
 
     #[test]
     fn test_from_u64() {

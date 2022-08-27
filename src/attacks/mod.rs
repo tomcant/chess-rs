@@ -1,4 +1,7 @@
-use crate::board::{BitBoard, Board, Colour, PieceType, Square};
+use crate::board::{BitBoard, Board};
+use crate::colour::Colour;
+use crate::piece::PieceType;
+use crate::square::Square;
 use lazy_static::lazy_static;
 
 const FILE_A: BitBoard = 0x0101_0101_0101_0101;
@@ -298,11 +301,8 @@ fn get_king_attacks(square: Square) -> BitBoard {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        attacks::{get_attackers, get_attacks},
-        board::{BitBoard, Colour, Square},
-        game_state::GameState,
-    };
+    use super::*;
+    use crate::game_state::GameState;
 
     #[test]
     fn test_attack_by_queen() {

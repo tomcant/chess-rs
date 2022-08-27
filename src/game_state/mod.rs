@@ -1,8 +1,10 @@
 mod castling;
 mod fen;
 
-use crate::board::{Board, Colour, Square};
-use crate::move_generator::Move;
+use crate::board::Board;
+use crate::colour::Colour;
+use crate::r#move::Move;
+use crate::square::Square;
 use castling::CastlingAbility;
 
 #[derive(Debug)]
@@ -45,11 +47,9 @@ impl GameState {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        board::{Colour, Piece, Square},
-        game_state::GameState,
-        move_generator::Move,
-    };
+    use super::*;
+    use crate::game_state::GameState;
+    use crate::piece::Piece;
 
     #[test]
     fn test_do_move_non_capture() {

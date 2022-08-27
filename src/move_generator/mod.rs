@@ -1,10 +1,10 @@
-mod r#move;
-
 use crate::attacks::get_attacks;
-use crate::board::{BitBoard, Board, Colour, PieceType, Square};
+use crate::board::{BitBoard, Board};
+use crate::colour::Colour;
 use crate::game_state::GameState;
-
-pub use r#move::Move;
+use crate::piece::PieceType;
+use crate::r#move::Move;
+use crate::square::Square;
 
 trait MoveGenerator {
     fn generate_moves(&self) -> Vec<Move>;
