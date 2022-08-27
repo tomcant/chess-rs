@@ -21,7 +21,7 @@ impl GameState {
 
         self.board.clear_square(mv.from);
 
-        if mv.captured.is_some() {
+        if mv.is_capture() {
             self.board.clear_square(mv.to);
         }
 
@@ -34,7 +34,7 @@ impl GameState {
 
         self.board.clear_square(mv.to);
 
-        if mv.captured.is_some() {
+        if mv.is_capture() {
             self.board.put_piece(mv.captured.unwrap(), mv.to);
         }
 

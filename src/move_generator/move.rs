@@ -9,13 +9,19 @@ pub struct Move {
     pub promoted: Option<Piece>,
 }
 
+impl Move {
+    pub fn is_capture(&self) -> bool {
+        self.captured.is_some()
+    }
+}
+
 impl Display for Move {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
             f,
             "{}{}{}",
             self.from,
-            if self.captured.is_some() { "x" } else { "" },
+            if self.is_capture() { "x" } else { "" },
             self.to
         )
     }

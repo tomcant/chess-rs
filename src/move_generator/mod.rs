@@ -79,13 +79,11 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        game_state::GameState,
-        move_generator::{r#move::Move, MoveGenerator},
-    };
+    use super::*;
+    use crate::game_state::GameState;
 
     mod perft {
-        use crate::{game_state::GameState, move_generator::MoveGenerator};
+        use super::*;
 
         #[test]
         fn test_perft_starting_position_depth_4() {
@@ -202,10 +200,10 @@ mod tests {
         let state: GameState = fen.parse().unwrap();
 
         let moves = state.generate_moves();
-        let captures = moves.iter().filter(|mv| mv.captured.is_some()).collect::<Vec<&Move>>();
+        let captures = moves.iter().filter(|mv| mv.is_capture());
 
         assert_eq!(moves.len(), 11);
-        assert_eq!(captures.len(), 2);
+        assert_eq!(captures.count(), 2);
     }
 
     #[test]
@@ -214,10 +212,10 @@ mod tests {
         let state: GameState = fen.parse().unwrap();
 
         let moves = state.generate_moves();
-        let captures = moves.iter().filter(|mv| mv.captured.is_some()).collect::<Vec<&Move>>();
+        let captures = moves.iter().filter(|mv| mv.is_capture());
 
         assert_eq!(moves.len(), 12);
-        assert_eq!(captures.len(), 2);
+        assert_eq!(captures.count(), 2);
     }
 
     #[test]
