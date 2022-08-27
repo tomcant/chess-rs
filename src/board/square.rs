@@ -8,15 +8,7 @@ use std::str::FromStr;
 pub struct Square(u8);
 
 lazy_static! {
-    static ref SQUARES: [Square; 64] = {
-        let mut squares = [Square(0); 64];
-
-        for (index, sq) in squares.iter_mut().enumerate() {
-            sq.0 = index as u8;
-        }
-
-        squares
-    };
+    static ref SQUARES: [Square; 64] = (0..64).map(Square).collect::<Vec<_>>().try_into().unwrap();
 }
 
 impl Square {
