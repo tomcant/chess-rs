@@ -1,4 +1,3 @@
-use crate::attacks::get_attackers;
 use crate::colour::Colour;
 use crate::piece::{Piece, PieceType};
 use crate::square::Square;
@@ -52,13 +51,6 @@ impl Board {
         }
     }
 
-    pub fn is_in_check(&self, colour: Colour) -> bool {
-        let king_square = Square::from_u64(self.get_pieces(PieceType::King, colour));
-        let attackers = get_attackers(king_square, colour.flip(), self);
-
-        attackers.count_ones() > 0
-    }
-
     pub fn occupancy(&self) -> BitBoard {
         self.colours.iter().sum()
     }
@@ -92,14 +84,5 @@ mod tests {
         board.clear_square(square);
 
         assert!(!board.has_piece_at(square));
-    }
-
-    #[test]
-    fn test_it_can_detect_check() {
-        let mut board = Board::empty();
-        board.put_piece(Piece::BlackKing, "e8".parse::<Square>().unwrap());
-        board.put_piece(Piece::WhiteKnight, "d6".parse::<Square>().unwrap());
-
-        assert!(board.is_in_check(Colour::Black));
     }
 }

@@ -1,4 +1,4 @@
-use crate::attacks::get_attacks;
+use crate::attacks::{get_attacks, is_in_check};
 use crate::board::{BitBoard, Board};
 use crate::colour::Colour;
 use crate::game_state::GameState;
@@ -105,7 +105,7 @@ mod tests {
             for mv in state.generate_moves() {
                 state.do_move(&mv);
 
-                if !state.board.is_in_check(state.colour_to_move.flip()) {
+                if !is_in_check(&state.board, state.colour_to_move.flip()) {
                     nodes += perft(state, depth - 1);
                 }
 
@@ -125,7 +125,7 @@ mod tests {
         for mv in state.generate_moves() {
             state.do_move(&mv);
 
-            if !state.board.is_in_check(state.colour_to_move.flip()) {
+            if !is_in_check(&state.board, state.colour_to_move.flip()) {
                 legal_move_count += 1;
             }
 
@@ -144,7 +144,7 @@ mod tests {
         for mv in state.generate_moves() {
             state.do_move(&mv);
 
-            if !state.board.is_in_check(state.colour_to_move.flip()) {
+            if !is_in_check(&state.board, state.colour_to_move.flip()) {
                 legal_move_count += 1;
             }
 

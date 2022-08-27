@@ -204,6 +204,13 @@ lazy_static! {
     };
 }
 
+pub fn is_in_check(board: &Board, colour: Colour) -> bool {
+    let king_square = Square::from_u64(board.get_pieces(PieceType::King, colour));
+    let attackers = get_attackers(king_square, colour.flip(), board);
+
+    attackers.count_ones() > 0
+}
+
 pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard {
     let pawn_attacks = get_pawn_attacks(square, colour.flip(), board);
     let knight_attacks = get_knight_attacks(square);
@@ -303,6 +310,16 @@ fn get_king_attacks(square: Square) -> BitBoard {
 mod tests {
     use super::*;
     use crate::game_state::GameState;
+    use crate::piece::Piece;
+
+    #[test]
+    fn test_it_can_detect_check() {
+        let mut board = Board::empty();
+        board.put_piece(Piece::BlackKing, "e8".parse::<Square>().unwrap());
+        board.put_piece(Piece::WhiteKnight, "d6".parse::<Square>().unwrap());
+
+        assert!(is_in_check(&board, Colour::Black));
+    }
 
     #[test]
     fn test_attack_by_queen() {
