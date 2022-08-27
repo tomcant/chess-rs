@@ -1,7 +1,7 @@
-use crate::attacks::{get_attacks, is_in_check};
+use crate::attacks::get_attacks;
 use crate::board::{BitBoard, Board};
 use crate::colour::Colour;
-use crate::game_state::GameState;
+use crate::game::GameState;
 use crate::piece::PieceType;
 use crate::r#move::Move;
 use crate::square::Square;
@@ -80,7 +80,8 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::GameState;
+    use crate::attacks::is_in_check;
+    use crate::game::GameState;
 
     mod perft {
         use super::*;

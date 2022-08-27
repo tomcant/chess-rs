@@ -1,11 +1,20 @@
-mod castling;
-mod fen;
-
 use crate::board::Board;
 use crate::colour::Colour;
 use crate::r#move::Move;
 use crate::square::Square;
-use castling::CastlingAbility;
+
+mod fen;
+
+bitflags::bitflags! {
+    pub struct CastlingAbility: u8 {
+        const NONE = 0;
+        const WHITE_KING = 1;
+        const WHITE_QUEEN = 2;
+        const BLACK_KING = 4;
+        const BLACK_QUEEN = 8;
+        const ALL = 15;
+    }
+}
 
 #[derive(Debug)]
 pub struct GameState {
@@ -48,7 +57,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::GameState;
+    use crate::game::GameState;
     use crate::piece::Piece;
 
     #[test]

@@ -309,7 +309,7 @@ fn get_king_attacks(square: Square) -> BitBoard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::GameState;
+    use crate::game::GameState;
     use crate::piece::Piece;
 
     #[test]

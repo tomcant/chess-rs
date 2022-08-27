@@ -25,10 +25,8 @@ impl Board {
     }
 
     pub fn get_piece_at(&self, square: Square) -> Option<Piece> {
-        let square_u64 = square.u64();
-
         Piece::iter()
-            .find(|&&piece| self.pieces[piece.index()] & square_u64 != 0)
+            .find(|&&piece| self.pieces[piece.index()] & square.u64() != 0)
             .copied()
     }
 
