@@ -85,43 +85,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_can_be_created_from_a_file_and_a_rank() {
+    fn create_from_a_file_and_a_rank() {
         assert_eq!(Square::from_file_and_rank(0, 0), Square::from_index(0));
         assert_eq!(Square::from_file_and_rank(7, 7), Square::from_index(63));
         assert_eq!(Square::from_file_and_rank(1, 4), Square::from_index(33));
     }
 
     #[test]
-    fn it_can_be_created_from_a_square_value_in_a_64_bit_board_arrangement() {
+    fn create_from_a_square_value_in_a_64_bit_board_arrangement() {
         assert_eq!(Square::from_u64(1), Square::from_index(0));
         assert_eq!(Square::from_u64(2u64.pow(63)), Square::from_index(63));
         assert_eq!(Square::from_u64(2u64.pow(33)), Square::from_index(33));
     }
 
     #[test]
-    fn it_can_be_created_from_algebraic_notation() {
-        assert_eq!(parse("a1"), Ok(Square::from_index(0)));
-        assert_eq!(parse("h8"), Ok(Square::from_index(63)));
-        assert_eq!(parse("b5"), Ok(Square::from_index(33)));
+    fn create_from_algebraic_notation() {
+        assert_eq!(parse_square("a1"), Square::from_index(0));
+        assert_eq!(parse_square("h8"), Square::from_index(63));
+        assert_eq!(parse_square("b5"), Square::from_index(33));
     }
 
     #[test]
     fn it_cannot_be_created_from_invalid_algebraic_notation() {
         for str in ["", "a", "a1b", "a9", "i1"] {
-            assert!(parse(str).is_err());
+            assert!(str.parse::<Square>().is_err());
         }
     }
 
     #[test]
-    fn it_can_get_the_next_square_up_the_board_for_a_given_colour() {
-        let square = parse("e4");
-        assert!(square.is_ok());
+    fn get_the_next_square_up_the_board_for_a_given_colour() {
+        let square = parse_square("e4");
 
-        assert_eq!(parse("e5"), Ok(square.unwrap().up_for_colour(Colour::White)));
-        assert_eq!(parse("e3"), Ok(square.unwrap().up_for_colour(Colour::Black)));
+        assert_eq!(parse_square("e5"), square.up_for_colour(Colour::White));
+        assert_eq!(parse_square("e3"), square.up_for_colour(Colour::Black));
     }
 
-    fn parse(str: &str) -> Result<Square, ()> {
-        str.parse::<Square>()
+    fn parse_square(str: &str) -> Square {
+        let square = str.parse();
+        assert!(square.is_ok());
+
+        square.unwrap()
     }
 }

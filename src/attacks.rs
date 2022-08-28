@@ -313,112 +313,110 @@ mod tests {
     use crate::piece::Piece;
 
     #[test]
-    fn test_it_can_detect_check() {
+    fn detect_check() {
         let mut board = Board::empty();
-        board.put_piece(Piece::BlackKing, "e8".parse::<Square>().unwrap());
-        board.put_piece(Piece::WhiteKnight, "d6".parse::<Square>().unwrap());
+        board.put_piece(Piece::BlackKing, parse_square("e8"));
+        board.put_piece(Piece::WhiteKnight, parse_square("d6"));
 
         assert!(is_in_check(&board, Colour::Black));
     }
 
     #[test]
-    fn test_attack_by_queen() {
-        let fen = "4k3/8/8/8/4Q3/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn attack_by_queen_horizontal() {
+        let state = parse_fen("Q3k3/8/8/8/8/8/8/8 w - - 0 1");
 
         assert_eq!(
-            get_attackers("e8".parse::<Square>().unwrap(), Colour::White, &state.board),
-            "e4".parse::<Square>().unwrap().u64()
+            get_attackers(parse_square("e8"), Colour::White, &state.board),
+            parse_square("a8").u64()
         );
     }
 
     #[test]
-    fn test_attack_by_queen_diagonal() {
-        let fen = "4k3/8/8/8/Q7/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn attack_by_queen_vertical() {
+        let state = parse_fen("4k3/8/8/8/4Q3/8/8/8 w - - 0 1");
 
         assert_eq!(
-            get_attackers("e8".parse::<Square>().unwrap(), Colour::White, &state.board),
-            "a4".parse::<Square>().unwrap().u64()
+            get_attackers(parse_square("e8"), Colour::White, &state.board),
+            parse_square("e4").u64()
         );
     }
 
     #[test]
-    fn test_white_pawn_attacks_none() {
-        let fen = "8/8/8/8/8/8/4P3/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn attack_by_queen_diagonal() {
+        let state = parse_fen("4k3/8/8/8/Q7/8/8/8 w - - 0 1");
+
+        assert_eq!(
+            get_attackers(parse_square("e8"), Colour::White, &state.board),
+            parse_square("a4").u64()
+        );
+    }
+
+    #[test]
+    fn white_pawn_attacks_none() {
+        let state = parse_fen("8/8/8/8/8/8/4P3/8 w - - 0 1");
 
         assert_attacks_eq(&state, "e2", &[]);
     }
 
     #[test]
-    fn test_white_pawn_attacks_left() {
-        let fen = "8/8/8/8/8/3p4/4P3/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn white_pawn_attacks_left() {
+        let state = parse_fen("8/8/8/8/8/3p4/4P3/8 w - - 0 1");
 
         assert_attacks_eq(&state, "e2", &["d3"]);
     }
 
     #[test]
-    fn test_white_pawn_attacks_right() {
-        let fen = "8/8/8/8/8/5p2/4P3/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn white_pawn_attacks_right() {
+        let state = parse_fen("8/8/8/8/8/5p2/4P3/8 w - - 0 1");
 
         assert_attacks_eq(&state, "e2", &["f3"]);
     }
 
     #[test]
-    fn test_white_pawn_attacks_left_and_right() {
-        let fen = "8/8/8/8/8/3p1p2/4P3/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn white_pawn_attacks_left_and_right() {
+        let state = parse_fen("8/8/8/8/8/3p1p2/4P3/8 w - - 0 1");
 
         assert_attacks_eq(&state, "e2", &["d3", "f3"]);
     }
 
     #[test]
-    fn test_black_pawn_attacks_none() {
-        let fen = "8/4p3/8/8/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn black_pawn_attacks_none() {
+        let state = parse_fen("8/4p3/8/8/8/8/8/8 b - - 0 1");
 
         assert_attacks_eq(&state, "e7", &[]);
     }
 
     #[test]
-    fn test_black_pawn_attacks_left() {
-        let fen = "8/4p3/3P4/8/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn black_pawn_attacks_left() {
+        let state = parse_fen("8/4p3/3P4/8/8/8/8/8 b - - 0 1");
 
         assert_attacks_eq(&state, "e7", &["d6"]);
     }
 
     #[test]
-    fn test_black_pawn_attacks_right() {
-        let fen = "8/4p3/5P2/8/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn black_pawn_attacks_right() {
+        let state = parse_fen("8/4p3/5P2/8/8/8/8/8 b - - 0 1");
 
         assert_attacks_eq(&state, "e7", &["f6"]);
     }
 
     #[test]
-    fn test_black_pawn_attacks_left_and_right() {
-        let fen = "8/4p3/3P1P2/8/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn black_pawn_attacks_left_and_right() {
+        let state = parse_fen("8/4p3/3P1P2/8/8/8/8/8 b - - 0 1");
 
         assert_attacks_eq(&state, "e7", &["d6", "f6"]);
     }
 
     #[test]
-    fn test_knight_attacks() {
-        let fen = "8/8/8/8/3N4/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn knight_attacks() {
+        let state = parse_fen("8/8/8/8/3N4/8/8/8 w - - 0 1");
 
         assert_attacks_eq(&state, "d4", &["c2", "e2", "b3", "f3", "b5", "f5", "c6", "e6"]);
     }
 
     #[test]
-    fn test_bishop_attacks_on_empty_board() {
-        let fen = "8/8/8/8/3b4/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn bishop_attacks_on_empty_board() {
+        let state = parse_fen("8/8/8/8/3b4/8/8/8 b - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -430,25 +428,22 @@ mod tests {
     }
 
     #[test]
-    fn test_bishop_attacks_with_up_left_blocker() {
-        let fen = "8/8/2n5/8/8/8/6B1/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn bishop_attacks_with_up_left_blocker() {
+        let state = parse_fen("8/8/2n5/8/8/8/6B1/8 w - - 0 1");
 
         assert_attacks_eq(&state, "g2", &["h1", "h3", "f1", "f3", "e4", "d5", "c6"]);
     }
 
     #[test]
-    fn test_bishop_attacks_with_up_right_blocker() {
-        let fen = "8/8/5n2/8/8/8/1B6/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn bishop_attacks_with_up_right_blocker() {
+        let state = parse_fen("8/8/5n2/8/8/8/1B6/8 w - - 0 1");
 
         assert_attacks_eq(&state, "b2", &["a1", "a3", "c1", "c3", "d4", "e5", "f6"]);
     }
 
     #[test]
-    fn test_bishop_attacks_with_down_left_blocker() {
-        let fen = "8/8/8/4B3/3n4/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn bishop_attacks_with_down_left_blocker() {
+        let state = parse_fen("8/8/8/4B3/3n4/8/8/8 w - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -458,9 +453,8 @@ mod tests {
     }
 
     #[test]
-    fn test_bishop_attacks_with_down_right_blocker() {
-        let fen = "8/8/8/3b4/8/5N2/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn bishop_attacks_with_down_right_blocker() {
+        let state = parse_fen("8/8/8/3b4/8/5N2/8/8 w - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -470,9 +464,8 @@ mod tests {
     }
 
     #[test]
-    fn test_rook_attacks_on_empty_board() {
-        let fen = "8/8/8/8/3r4/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn rook_attacks_on_empty_board() {
+        let state = parse_fen("8/8/8/8/3r4/8/8/8 b - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -484,9 +477,8 @@ mod tests {
     }
 
     #[test]
-    fn test_rook_attacks_with_up_blocker() {
-        let fen = "8/8/8/3N4/8/8/8/3r4 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn rook_attacks_with_up_blocker() {
+        let state = parse_fen("8/8/8/3N4/8/8/8/3r4 b - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -496,9 +488,8 @@ mod tests {
     }
 
     #[test]
-    fn test_rook_attacks_with_right_blocker() {
-        let fen = "8/8/8/r2N4/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn rook_attacks_with_right_blocker() {
+        let state = parse_fen("8/8/8/r2N4/8/8/8/8 b - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -508,9 +499,8 @@ mod tests {
     }
 
     #[test]
-    fn test_rook_attacks_with_left_blocker() {
-        let fen = "8/8/8/3N3r/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn rook_attacks_with_left_blocker() {
+        let state = parse_fen("8/8/8/3N3r/8/8/8/8 b - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -520,9 +510,8 @@ mod tests {
     }
 
     #[test]
-    fn test_rook_attacks_with_down_blocker() {
-        let fen = "3r4/8/8/3N4/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn rook_attacks_with_down_blocker() {
+        let state = parse_fen("3r4/8/8/3N4/8/8/8/8 b - - 0 1");
 
         assert_attacks_eq(
             &state,
@@ -532,16 +521,29 @@ mod tests {
     }
 
     #[test]
-    fn test_king_attacks() {
-        let fen = "8/8/8/8/8/8/8/4K3 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn king_attacks() {
+        let state = parse_fen("8/8/8/8/8/8/8/4K3 w - - 0 1");
 
         assert_attacks_eq(&state, "e1", &["d1", "f1", "d2", "e2", "f2"]);
     }
 
     fn assert_attacks_eq(state: &GameState, attacker: &str, squares: &[&str]) {
-        let attacks: BitBoard = squares.iter().map(|sq| sq.parse::<Square>().unwrap().u64()).sum();
+        let attacks: BitBoard = squares.iter().map(|sq| parse_square(sq).u64()).sum();
 
-        assert_eq!(attacks, get_attacks(attacker.parse().unwrap(), &state.board));
+        assert_eq!(attacks, get_attacks(parse_square(attacker), &state.board));
+    }
+
+    fn parse_fen(str: &str) -> GameState {
+        let state = str.parse();
+        assert!(state.is_ok());
+
+        state.unwrap()
+    }
+
+    fn parse_square(str: &str) -> Square {
+        let square = str.parse();
+        assert!(square.is_ok());
+
+        square.unwrap()
     }
 }

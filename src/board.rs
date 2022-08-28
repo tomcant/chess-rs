@@ -59,7 +59,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_put_piece() {
+    fn put_a_piece_on_the_board() {
         let mut board = Board::empty();
         let piece = Piece::WhiteKing;
         let square = "e1".parse::<Square>().unwrap();
@@ -72,7 +72,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clear_square() {
+    fn clear_a_square() {
         let mut board = Board::empty();
         let square = "e1".parse::<Square>().unwrap();
         board.put_piece(Piece::WhiteKing, square);

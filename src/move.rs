@@ -6,13 +6,22 @@ use std::fmt::{Display, Formatter};
 pub struct Move {
     pub from: Square,
     pub to: Square,
-    pub captured: Option<Piece>,
-    pub promoted: Option<Piece>,
+    pub captured_piece: Option<Piece>,
+    pub promotion_piece: Option<Piece>,
+    pub is_en_passant: bool,
 }
 
 impl Move {
     pub fn is_capture(&self) -> bool {
-        self.captured.is_some()
+        self.captured_piece.is_some()
+    }
+
+    pub fn get_capture_square(&self) -> Square {
+        if self.is_en_passant {
+            return self.to.up_for_colour(self.captured_piece.unwrap().colour());
+        }
+
+        self.to
     }
 }
 

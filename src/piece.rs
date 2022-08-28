@@ -16,6 +16,10 @@ impl PieceType {
     pub fn iter() -> Iter<'static, Self> {
         [Pawn, Knight, Bishop, Rook, Queen, King].iter()
     }
+
+    pub fn is_pawn(&self) -> bool {
+        matches!(self, Pawn)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +61,10 @@ impl Piece {
             WhiteQueen | BlackQueen => Queen,
             WhiteKing | BlackKing => King,
         }
+    }
+
+    pub fn is_pawn(&self) -> bool {
+        matches!(self, WhitePawn | BlackPawn)
     }
 
     pub fn colour(&self) -> Colour {

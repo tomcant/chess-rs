@@ -129,87 +129,85 @@ mod tests {
     use crate::game::{CastlingAbility, GameState};
 
     #[test]
-    fn test_board() {
-        let fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn board() {
+        let state = parse_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
-        assert_eq!(
-            state.board.get_piece_at("e4".parse::<Square>().unwrap()),
-            Some(Piece::WhitePawn)
-        );
-        assert!(!state.board.has_piece_at("e2".parse::<Square>().unwrap()));
+        assert_eq!(state.board.get_piece_at(parse_square("e4")), Some(Piece::WhitePawn));
+        assert!(!state.board.has_piece_at(parse_square("e2")));
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_board_too_few_rows() {
-        let fen = "8/8 w - - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn invalid_piece() {
+        parse_fen("8/8/8/8/8/8/8/4a3 w - - 0 1");
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_board_too_many_rows() {
-        let fen = "8/8/8/8/8/8/8/8/1 w - - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn too_few_rows() {
+        parse_fen("8/8 w - - 0 1");
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_board_too_few_squares() {
-        let fen = "8/8/8/8/8/8/8/7 w - - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn too_many_rows() {
+        parse_fen("8/8/8/8/8/8/8/8/1 w - - 0 1");
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_board_too_many_squares() {
-        let fen = "8/8/8/8/8/8/8/9 w - - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn too_few_squares() {
+        parse_fen("8/8/8/8/8/8/8/7 w - - 0 1");
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_board_invalid_piece() {
-        let fen = "8/8/8/8/8/8/8/4a3 w - - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn too_many_squares() {
+        parse_fen("8/8/8/8/8/8/8/9 w - - 0 1");
     }
 
     #[test]
-    fn test_colour_to_move_white() {
-        let fen = "8/8/8/8/8/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    #[should_panic]
+    fn too_few_parts() {
+        parse_fen("w - - 0 1");
+    }
+
+    #[test]
+    #[should_panic]
+    fn too_many_parts() {
+        parse_fen("8/8/8/8/8/8/8/8 w - - 0 1 extra");
+    }
+
+    #[test]
+    fn white_to_move() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
 
         assert_eq!(state.colour_to_move, Colour::White);
     }
 
     #[test]
-    fn test_colour_to_move_black() {
-        let fen = "8/8/8/8/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn black_to_move() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 b - - 0 1");
 
         assert_eq!(state.colour_to_move, Colour::Black);
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_colour_to_move() {
-        let fen = "8/8/8/8/8/8/8/8 W - - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn invalid_colour_to_move() {
+        parse_fen("8/8/8/8/8/8/8/8 W - - 0 1");
     }
 
     #[test]
-    fn test_castling_ability_none() {
-        let fen = "8/8/8/8/8/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn no_castling_ability() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
 
         assert_eq!(state.castling_ability, CastlingAbility::NONE);
     }
 
     #[test]
-    fn test_castling_ability_partial() {
-        let fen = "8/8/8/8/8/8/8/8 w Kq - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn partial_castling_ability() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w Kq - 0 1");
 
         assert_eq!(
             state.castling_ability,
@@ -218,71 +216,64 @@ mod tests {
     }
 
     #[test]
-    fn test_castling_ability_all() {
-        let fen = "8/8/8/8/8/8/8/8 w KQkq - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn all_castling_ability() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w KQkq - 0 1");
 
         assert_eq!(state.castling_ability, CastlingAbility::ALL);
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_castling_ability() {
-        let fen = "8/8/8/8/8/8/8/8 w K- - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn invalid_castling_ability() {
+        parse_fen("8/8/8/8/8/8/8/8 w K- - 0 1");
     }
 
     #[test]
-    fn test_en_passant_square_none() {
-        let fen = "8/8/8/8/8/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn no_en_passant_square() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
 
         assert_eq!(state.en_passant_square, None);
     }
 
     #[test]
-    fn test_en_passant_square_3rd_rank() {
-        let fen = "8/8/8/8/8/8/8/8 w - f3 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn en_passant_square_3rd_rank() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w - f3 0 1");
 
-        assert_eq!(state.en_passant_square, "f3".parse::<Square>().ok());
+        assert_eq!(state.en_passant_square, Some(parse_square("f3")));
     }
 
     #[test]
-    fn test_en_passant_square_6th_rank() {
-        let fen = "8/8/8/8/8/8/8/8 w - f6 0 1";
-        let state: GameState = fen.parse().unwrap();
+    fn en_passant_square_6th_rank() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w - f6 0 1");
 
-        assert_eq!(state.en_passant_square, "f6".parse::<Square>().ok());
+        assert_eq!(state.en_passant_square, Some(parse_square("f6")));
     }
 
     #[test]
     #[should_panic]
-    fn test_invalid_en_passant_square() {
-        let fen = "8/8/8/8/8/8/8/8 w - f4 0 1";
-        let _ = fen.parse::<GameState>();
+    fn invalid_en_passant_square() {
+        parse_fen("8/8/8/8/8/8/8/8 w - f4 0 1");
     }
 
     #[test]
-    fn test_move_counters() {
-        let fen = "8/8/8/8/8/8/8/8 w - - 10 20";
-        let state: GameState = fen.parse().unwrap();
+    fn move_counters() {
+        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 10 20");
 
         assert_eq!(state.half_move_clock, 10);
         assert_eq!(state.full_move_counter, 20);
     }
 
-    #[test]
-    #[should_panic]
-    fn test_invalid_too_few_parts() {
-        let fen = "w - - 0 1";
-        let _ = fen.parse::<GameState>();
+    fn parse_fen(str: &str) -> GameState {
+        let state = str.parse();
+        assert!(state.is_ok());
+
+        state.unwrap()
     }
 
-    #[test]
-    #[should_panic]
-    fn test_invalid_too_many_parts() {
-        let fen = "8/8/8/8/8/8/8/8 w - - 0 1 extra";
-        let _ = fen.parse::<GameState>();
+    fn parse_square(str: &str) -> Square {
+        let square = str.parse();
+        assert!(square.is_ok());
+
+        square.unwrap()
     }
 }

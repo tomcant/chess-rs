@@ -2,7 +2,7 @@ use crate::attacks::get_attacks;
 use crate::board::{BitBoard, Board};
 use crate::colour::Colour;
 use crate::game::GameState;
-use crate::piece::PieceType;
+use crate::piece::{Piece, PieceType};
 use crate::r#move::Move;
 use crate::square::Square;
 
@@ -24,25 +24,35 @@ impl MoveGenerator for GameState {
                 let mut attacks =
                     get_attacks(from_square, &self.board) & !self.board.get_pieces_by_colour(self.colour_to_move);
 
-                if *piece_type == PieceType::Pawn {
+                if piece_type.is_pawn() {
                     attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
+
+                    if self.can_capture_en_passant(from_square) {
+                        moves.push(Move {
+                            from: from_square,
+                            to: self.en_passant_square.unwrap(),
+                            captured_piece: Some(Piece::from(PieceType::Pawn, self.colour_to_move.flip())),
+                            promotion_piece: None,
+                            is_en_passant: true,
+                        });
+                    }
                 }
 
                 while attacks > 0 {
                     let to_square = Square::from_index(attacks.trailing_zeros() as u8);
                     attacks ^= to_square.u64();
 
-                    let captured = self.board.get_piece_at(to_square);
+                    let captured_piece = self.board.get_piece_at(to_square);
 
                     // todo: generate promotions
                     // todo: generate castling
-                    // todo: generate en-passant
 
                     moves.push(Move {
                         from: from_square,
                         to: to_square,
-                        captured,
-                        promoted: None,
+                        captured_piece,
+                        promotion_piece: None,
+                        is_en_passant: false,
                     });
                 }
             }
@@ -83,17 +93,86 @@ mod tests {
     use crate::attacks::is_in_check;
     use crate::game::GameState;
 
+    #[test]
+    fn legal_move_count_in_checkmate_is_zero() {
+        assert_legal_move_count("rnb1kbnr/pppp1ppp/4p3/8/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 0 1", 0);
+    }
+
+    #[test]
+    fn legal_move_count_in_check_is_limited() {
+        assert_legal_move_count("rnbqkbnr/1pp1p1pp/p2p1p2/1B6/8/4P3/PPPP1PPP/RNBQK1NR b KQq - 0 1", 7);
+    }
+
+    #[test]
+    fn white_pawn_moves() {
+        assert_pseudo_legal_move_count("8/8/8/8/8/8/4P3/8 w - - 0 1", 2);
+    }
+
+    #[test]
+    fn black_pawn_moves() {
+        assert_pseudo_legal_move_count("8/4p3/8/8/8/8/8/8 b - - 0 1", 2);
+    }
+
+    #[test]
+    fn single_pawn_advance() {
+        assert_pseudo_legal_move_count("8/8/8/8/4p3/8/4P3/8 w - - 0 1", 1);
+    }
+
+    #[test]
+    fn double_pawn_advance() {
+        assert_pseudo_legal_move_count("8/8/8/8/8/4p3/4P3/8 w - - 0 1", 0);
+    }
+
+    #[test]
+    fn knight_moves() {
+        assert_pseudo_legal_move_count("8/8/8/8/3N4/8/8/8 w - - 0 1", 8);
+    }
+
+    #[test]
+    fn bishop_moves() {
+        assert_pseudo_legal_move_count("8/r7/5n2/8/3B4/8/8/8 w - - 0 1", 11);
+    }
+
+    #[test]
+    fn rook_moves() {
+        assert_pseudo_legal_move_count("8/3b4/8/8/1n1R4/8/8/8 w - - 0 1", 12);
+    }
+
+    #[test]
+    fn king_moves() {
+        assert_pseudo_legal_move_count("8/8/8/8/8/8/8/4K3 w - - 0 1", 5);
+    }
+
+    #[test]
+    fn en_passant_capture() {
+        let state = parse_fen("8/8/8/3PpP2/8/8/8/8 w - e6 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_eq!(moves.iter().filter(|mv| mv.is_en_passant).count(), 2);
+    }
+
+    #[test]
+    fn ignore_friendly_piece_captures() {
+        assert_pseudo_legal_move_count("8/8/5p2/5P2/3N4/8/8/8 w - - 0 1", 7);
+    }
+
     mod perft {
         use super::*;
 
         #[test]
-        fn test_perft_starting_position_depth_4() {
+        fn perft_starting_position_depth_4() {
             assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197_281);
         }
 
+        #[test]
+        #[ignore]
+        fn perft_starting_position_depth_5() {
+            assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 5, 4_865_609);
+        }
+
         fn assert_perft_for_fen(fen: &str, depth: u8, expected_move_count: u64) {
-            let mut state: GameState = fen.parse().unwrap();
-            assert_eq!(perft(&mut state, depth), expected_move_count);
+            assert_eq!(perft(&mut parse_fen(fen), depth), expected_move_count);
         }
 
         fn perft(state: &mut GameState, depth: u8) -> u64 {
@@ -117,10 +196,12 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_legal_move_count_in_checkmate_is_zero() {
-        let fen = "rnb1kbnr/pppp1ppp/4p3/8/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 0 1";
-        let mut state: GameState = fen.parse().unwrap();
+    fn assert_pseudo_legal_move_count(fen: &str, count: usize) {
+        assert_eq!(parse_fen(fen).generate_moves().len(), count);
+    }
+
+    fn assert_legal_move_count(fen: &str, count: usize) {
+        let mut state = parse_fen(fen);
         let mut legal_move_count = 0;
 
         for mv in state.generate_moves() {
@@ -133,105 +214,13 @@ mod tests {
             state.undo_move(&mv);
         }
 
-        assert_eq!(legal_move_count, 0);
+        assert_eq!(legal_move_count, count);
     }
 
-    #[test]
-    fn test_legal_move_count_when_in_check() {
-        let fen = "rnbqkbnr/1pp1p1pp/p2p1p2/1B6/8/4P3/PPPP1PPP/RNBQK1NR b KQq - 0 1";
-        let mut state: GameState = fen.parse().unwrap();
-        let mut legal_move_count = 0;
+    fn parse_fen(str: &str) -> GameState {
+        let state = str.parse();
+        assert!(state.is_ok());
 
-        for mv in state.generate_moves() {
-            state.do_move(&mv);
-
-            if !is_in_check(&state.board, state.colour_to_move.flip()) {
-                legal_move_count += 1;
-            }
-
-            state.undo_move(&mv);
-        }
-
-        assert_eq!(legal_move_count, 7);
-    }
-
-    #[test]
-    fn test_generate_white_pawn_moves() {
-        let fen = "8/8/8/8/8/8/4P3/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        assert_eq!(state.generate_moves().len(), 2);
-    }
-
-    #[test]
-    fn test_generate_black_pawn_moves() {
-        let fen = "8/4p3/8/8/8/8/8/8 b - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        assert_eq!(state.generate_moves().len(), 2);
-    }
-
-    #[test]
-    fn test_generate_white_pawn_advance_single() {
-        let fen = "8/8/8/8/4p3/8/4P3/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        assert_eq!(state.generate_moves().len(), 1);
-    }
-
-    #[test]
-    fn test_generate_white_pawn_advance_double() {
-        let fen = "8/8/8/8/8/4p3/4P3/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        assert_eq!(state.generate_moves().len(), 0);
-    }
-
-    #[test]
-    fn test_generate_knight_moves() {
-        let fen = "8/8/8/8/3N4/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        assert_eq!(state.generate_moves().len(), 8);
-    }
-
-    #[test]
-    fn test_generate_bishop_moves() {
-        let fen = "8/r7/5n2/8/3B4/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        let moves = state.generate_moves();
-        let captures = moves.iter().filter(|mv| mv.is_capture());
-
-        assert_eq!(moves.len(), 11);
-        assert_eq!(captures.count(), 2);
-    }
-
-    #[test]
-    fn test_generate_rook_moves() {
-        let fen = "8/3b4/8/8/1n1R4/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        let moves = state.generate_moves();
-        let captures = moves.iter().filter(|mv| mv.is_capture());
-
-        assert_eq!(moves.len(), 12);
-        assert_eq!(captures.count(), 2);
-    }
-
-    #[test]
-    fn test_generate_king_moves() {
-        let fen = "8/8/8/8/8/8/8/4K3 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        assert_eq!(state.generate_moves().len(), 5);
-    }
-
-    #[test]
-    fn test_ignore_friendly_piece_captures() {
-        let fen = "8/8/5p2/5P2/3N4/8/8/8 w - - 0 1";
-        let state: GameState = fen.parse().unwrap();
-
-        assert_eq!(state.generate_moves().len(), 7);
+        state.unwrap()
     }
 }
