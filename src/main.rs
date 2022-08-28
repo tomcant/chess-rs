@@ -1,6 +1,7 @@
 mod attacks;
 mod board;
 mod colour;
+mod fen;
 mod game;
 mod r#move;
 mod movegen;

@@ -3,8 +3,6 @@ use crate::colour::Colour;
 use crate::r#move::Move;
 use crate::square::Square;
 
-mod fen;
-
 bitflags::bitflags! {
     pub struct CastlingAbility: u8 {
         const NONE = 0;
