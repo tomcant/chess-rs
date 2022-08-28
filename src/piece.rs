@@ -2,7 +2,7 @@ use self::{Piece::*, PieceType::*};
 use crate::colour::Colour;
 use std::slice::Iter;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PieceType {
     Pawn,
     Knight,
@@ -18,7 +18,7 @@ impl PieceType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Piece {
     WhitePawn,
     WhiteKnight,

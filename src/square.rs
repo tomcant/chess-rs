@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use std::slice::Iter;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Square(u8);
 
 lazy_static! {
