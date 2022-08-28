@@ -161,14 +161,36 @@ mod tests {
         use super::*;
 
         #[test]
-        fn perft_starting_position_depth_4() {
+        fn perft_start_position_shallow() {
             assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197_281);
         }
 
         #[test]
         #[ignore]
-        fn perft_starting_position_depth_5() {
+        fn perft_start_position() {
             assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 5, 4_865_609);
+        }
+
+        #[test]
+        #[ignore]
+        fn perft_position_3() {
+            assert_perft_for_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 5, 674_624);
+        }
+
+        #[test]
+        #[ignore]
+        fn perft_position_4() {
+            assert_perft_for_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 1, 6);
+        }
+
+        #[test]
+        #[ignore]
+        fn perft_position_6() {
+            assert_perft_for_fen(
+                "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+                4,
+                3_894_594,
+            );
         }
 
         fn assert_perft_for_fen(fen: &str, depth: u8, expected_move_count: u64) {
