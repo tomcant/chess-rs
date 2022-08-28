@@ -51,10 +51,11 @@ impl GameState {
         if mv.is_capture() {
             self.board
                 .put_piece(mv.captured_piece.unwrap(), mv.get_capture_square());
-        }
 
-        // todo: reset en-passant square if it was previously set
-        self.en_passant_square = None;
+            if mv.is_en_passant {
+                self.en_passant_square = Some(mv.to);
+            }
+        }
 
         self.colour_to_move = self.colour_to_move.flip();
         self.full_move_counter -= 1;
@@ -183,12 +184,10 @@ mod tests {
 
         state.undo_move(&mv);
 
+        assert_eq!(state.en_passant_square, Some(mv.to));
         assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
         assert_eq!(state.board.get_piece_at(parse_square("e5")), Some(Piece::BlackPawn));
         assert!(!state.board.has_piece_at(mv.to));
-
-        // todo: assert the en-passant square is reset
-        // assert_eq!(state.en_passant_square, Some(parse_square("e6")));
     }
 
     #[test]
