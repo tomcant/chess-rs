@@ -1,7 +1,6 @@
 use crate::colour::Colour;
 use lazy_static::lazy_static;
 use std::fmt::{Display, Formatter};
-use std::slice::Iter;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,8 +47,12 @@ impl Square {
         }
     }
 
-    pub fn iter() -> Iter<'static, Self> {
-        SQUARES.iter()
+    pub fn is_promotion_rank(&self) -> bool {
+        self.rank() == 0 || self.rank() == 7
+    }
+
+    pub fn squares() -> &'static [Self; 64] {
+        &SQUARES
     }
 }
 

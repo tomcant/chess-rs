@@ -13,7 +13,7 @@ lazy_static! {
     static ref PAWN_ATTACKS: [[BitBoard; 64]; 2] = {
         let mut attacks = [[0; 64]; 2];
 
-        for square in Square::iter() {
+        for square in Square::squares() {
             let square_u64 = square.u64();
 
             attacks[Colour::White as usize][square.index()] =
@@ -29,7 +29,7 @@ lazy_static! {
     static ref KNIGHT_ATTACKS: [BitBoard; 64] = {
         let mut attacks = [0; 64];
 
-        for square in Square::iter() {
+        for square in Square::squares() {
             let square_u64 = square.u64();
 
             attacks[square.index()] =
@@ -106,7 +106,7 @@ lazy_static! {
 
         let mut rays = [[0; 4]; 64];
 
-        for square in Square::iter() {
+        for square in Square::squares() {
             rays[square.index()] = [
                 up_left_ray_from(*square),
                 up_right_ray_from(*square),
@@ -169,7 +169,7 @@ lazy_static! {
 
         let mut rays = [[0; 4]; 64];
 
-        for square in Square::iter() {
+        for square in Square::squares() {
             rays[square.index()] = [
                 up_ray_from(*square),
                 right_ray_from(*square),
@@ -184,7 +184,7 @@ lazy_static! {
     static ref KING_ATTACKS: [BitBoard; 64] = {
         let mut attacks = [0; 64];
 
-        for square in Square::iter() {
+        for square in Square::squares() {
             let square_u64 = square.u64();
 
             attacks[square.index()] =

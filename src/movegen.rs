@@ -14,7 +14,7 @@ impl MoveGenerator for GameState {
     fn generate_moves(&self) -> Vec<Move> {
         let mut moves = vec![];
 
-        for piece_type in PieceType::iter() {
+        for piece_type in PieceType::types() {
             let mut pieces = self.board.get_pieces(*piece_type, self.colour_to_move);
 
             while pieces > 0 {
@@ -44,8 +44,21 @@ impl MoveGenerator for GameState {
 
                     let captured_piece = self.board.get_piece_at(to_square);
 
-                    // todo: generate promotions
                     // todo: generate castling
+
+                    if piece_type.is_pawn() && to_square.is_promotion_rank() {
+                        for piece in Piece::promotions(self.colour_to_move) {
+                            moves.push(Move {
+                                from: from_square,
+                                to: to_square,
+                                captured_piece,
+                                promotion_piece: Some(*piece),
+                                is_en_passant: false,
+                            });
+                        }
+
+                        continue;
+                    }
 
                     moves.push(Move {
                         from: from_square,
@@ -141,6 +154,21 @@ mod tests {
     #[test]
     fn king_moves() {
         assert_pseudo_legal_move_count("8/8/8/8/8/8/8/4K3 w - - 0 1", 5);
+    }
+
+    #[test]
+    fn pawn_promotion_with_advance() {
+        assert_pseudo_legal_move_count("8/4P3/8/8/8/8/8/8 w - - 0 1", 4);
+    }
+
+    #[test]
+    fn pawn_promotion_with_capture() {
+        assert_pseudo_legal_move_count("3qk3/4P3/8/8/8/8/8/8 w - - 0 1", 4);
+    }
+
+    #[test]
+    fn pawn_promotion_with_advance_or_capture() {
+        assert_pseudo_legal_move_count("3q4/4P3/8/8/8/8/8/8 w - - 0 1", 8);
     }
 
     #[test]

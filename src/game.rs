@@ -1,5 +1,6 @@
 use crate::board::Board;
 use crate::colour::Colour;
+use crate::piece::{Piece, PieceType};
 use crate::r#move::Move;
 use crate::square::Square;
 
@@ -31,7 +32,10 @@ impl GameState {
         }
 
         self.en_passant_square = None;
-        let piece = self.board.get_piece_at(mv.from).unwrap();
+
+        let piece = mv
+            .promotion_piece
+            .unwrap_or_else(|| self.board.get_piece_at(mv.from).unwrap());
 
         if piece.is_pawn() && mv.from.rank().abs_diff(mv.to.rank()) == 2 {
             self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
@@ -45,7 +49,12 @@ impl GameState {
     }
 
     pub fn undo_move(&mut self, mv: &Move) {
-        self.board.put_piece(self.board.get_piece_at(mv.to).unwrap(), mv.from);
+        let piece = match mv.promotion_piece {
+            Some(piece) => Piece::from(PieceType::Pawn, piece.colour()),
+            None => self.board.get_piece_at(mv.to).unwrap(),
+        };
+
+        self.board.put_piece(piece, mv.from);
         self.board.clear_square(mv.to);
 
         self.en_passant_square = None;
@@ -80,12 +89,12 @@ mod tests {
     use crate::piece::Piece;
 
     #[test]
-    fn apply_a_non_capture_move() {
-        let mut state = parse_fen("8/8/8/8/8/8/4P3/8 w - - 0 1");
+    fn move_a_piece() {
+        let mut state = parse_fen("8/8/8/8/8/8/8/5R2 w - - 0 1");
 
         let mv = Move {
-            from: parse_square("e2"),
-            to: parse_square("e4"),
+            from: parse_square("f1"),
+            to: parse_square("f4"),
             captured_piece: None,
             promotion_piece: None,
             is_en_passant: false,
@@ -93,13 +102,32 @@ mod tests {
 
         state.do_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhitePawn));
+        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhiteRook));
         assert!(!state.board.has_piece_at(mv.from));
         assert_eq!(state.colour_to_move, Colour::Black);
     }
 
     #[test]
-    fn apply_a_capture_move() {
+    fn undo_moving_a_piece() {
+        let mut state = parse_fen("8/8/8/8/5R2/8/8/8 b - - 0 1");
+
+        let mv = Move {
+            from: parse_square("f1"),
+            to: parse_square("f4"),
+            captured_piece: None,
+            promotion_piece: None,
+            is_en_passant: false,
+        };
+
+        state.undo_move(&mv);
+
+        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteRook));
+        assert!(!state.board.has_piece_at(mv.to));
+        assert_eq!(state.colour_to_move, Colour::White);
+    }
+
+    #[test]
+    fn capture_a_piece() {
         let mut state = parse_fen("8/8/8/5p2/3N4/8/8/8 w - - 0 1");
 
         let mv = Move {
@@ -117,7 +145,79 @@ mod tests {
     }
 
     #[test]
-    fn apply_an_en_passant_capture_move() {
+    fn undo_capturing_a_piece() {
+        let mut state = parse_fen("8/8/8/5N2/8/8/8/8 b - - 0 1");
+
+        let mv = Move {
+            from: parse_square("d4"),
+            to: parse_square("f5"),
+            captured_piece: Some(Piece::BlackPawn),
+            promotion_piece: None,
+            is_en_passant: false,
+        };
+
+        state.undo_move(&mv);
+
+        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteKnight));
+        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::BlackPawn));
+    }
+
+    #[test]
+    fn promote_a_pawn() {
+        let mut state = parse_fen("8/4P3/8/8/8/8/8/8 w - - 0 1");
+
+        let mv = Move {
+            from: parse_square("e7"),
+            to: parse_square("e8"),
+            captured_piece: None,
+            promotion_piece: Some(Piece::WhiteKnight),
+            is_en_passant: false,
+        };
+
+        state.do_move(&mv);
+
+        assert_eq!(state.board.get_piece_at(mv.to), mv.promotion_piece);
+        assert!(!state.board.has_piece_at(mv.from));
+    }
+
+    #[test]
+    fn undo_promoting_a_pawn() {
+        let mut state = parse_fen("4N3/8/8/8/8/8/8/8 b - - 0 1");
+
+        let mv = Move {
+            from: parse_square("e7"),
+            to: parse_square("e8"),
+            captured_piece: None,
+            promotion_piece: Some(Piece::WhiteKnight),
+            is_en_passant: false,
+        };
+
+        state.undo_move(&mv);
+
+        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
+        assert!(!state.board.has_piece_at(mv.to));
+    }
+
+    #[test]
+    fn undo_promoting_a_pawn_with_capture() {
+        let mut state = parse_fen("3B4/8/8/8/8/8/8/8 b - - 0 1");
+
+        let mv = Move {
+            from: parse_square("e7"),
+            to: parse_square("d8"),
+            captured_piece: Some(Piece::BlackQueen),
+            promotion_piece: Some(Piece::WhiteBishop),
+            is_en_passant: false,
+        };
+
+        state.undo_move(&mv);
+
+        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
+        assert_eq!(state.board.get_piece_at(mv.to), mv.captured_piece);
+    }
+
+    #[test]
+    fn capture_a_pawn_en_passant() {
         let mut state = parse_fen("8/8/8/3Pp3/8/8/8/8 w - e6 0 1");
 
         let mv = Move {
@@ -136,44 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn undo_a_non_capture_move() {
-        let mut state = parse_fen("8/8/8/8/4P3/8/8/8 b - - 0 1");
-
-        let mv = Move {
-            from: parse_square("e2"),
-            to: parse_square("e4"),
-            captured_piece: None,
-            promotion_piece: None,
-            is_en_passant: false,
-        };
-
-        state.undo_move(&mv);
-
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
-        assert!(!state.board.has_piece_at(mv.to));
-        assert_eq!(state.colour_to_move, Colour::White);
-    }
-
-    #[test]
-    fn undo_a_capture_move() {
-        let mut state = parse_fen("8/8/8/5N2/8/8/8/8 b - - 0 1");
-
-        let mv = Move {
-            from: parse_square("d4"),
-            to: parse_square("f5"),
-            captured_piece: Some(Piece::BlackPawn),
-            promotion_piece: None,
-            is_en_passant: false,
-        };
-
-        state.undo_move(&mv);
-
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteKnight));
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::BlackPawn));
-    }
-
-    #[test]
-    fn undo_an_en_passant_capture_move() {
+    fn undo_capturing_a_pawn_en_passant() {
         let mut state = parse_fen("8/8/4P3/8/8/8/8/8 b - - 0 1");
 
         let mv = Move {
