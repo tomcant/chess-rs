@@ -48,6 +48,8 @@ impl GameState {
         self.board.put_piece(self.board.get_piece_at(mv.to).unwrap(), mv.from);
         self.board.clear_square(mv.to);
 
+        self.en_passant_square = None;
+
         if mv.is_capture() {
             self.board
                 .put_piece(mv.captured_piece.unwrap(), mv.get_capture_square());
@@ -226,7 +228,7 @@ mod tests {
 
     #[test]
     fn reset_the_en_passant_square_when_undoing_a_double_pawn_advance() {
-        let mut state = parse_fen("8/8/8/8/4P3/8/8/8 b - - 0 1");
+        let mut state = parse_fen("8/8/8/8/4P3/8/8/8 b - e3 0 1");
 
         let mv = Move {
             from: parse_square("e2"),
