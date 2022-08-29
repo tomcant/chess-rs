@@ -71,15 +71,6 @@ impl GameState {
         self.colour_to_move = self.colour_to_move.flip();
         self.full_move_counter -= 1;
     }
-
-    pub fn can_capture_en_passant(&self, pawn_square: Square) -> bool {
-        if let Some(square) = self.en_passant_square {
-            return pawn_square.file().abs_diff(square.file()) == 1
-                && pawn_square.rank() == square.advance(self.colour_to_move.flip()).rank();
-        }
-
-        false
-    }
 }
 
 #[cfg(test)]

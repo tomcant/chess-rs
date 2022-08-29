@@ -27,7 +27,7 @@ impl MoveGenerator for GameState {
                 if piece_type.is_pawn() {
                     attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
 
-                    if self.can_capture_en_passant(from_square) {
+                    if can_capture_en_passant(from_square, self.en_passant_square, self.colour_to_move) {
                         moves.push(Move {
                             from: from_square,
                             to: self.en_passant_square.unwrap(),
@@ -98,6 +98,15 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
     }
 
     advances
+}
+
+fn can_capture_en_passant(pawn_square: Square, en_passant_square: Option<Square>, colour_to_move: Colour) -> bool {
+    if let Some(square) = en_passant_square {
+        return pawn_square.file().abs_diff(square.file()) == 1
+            && pawn_square.rank() == square.advance(colour_to_move.flip()).rank();
+    }
+
+    false
 }
 
 #[cfg(test)]
