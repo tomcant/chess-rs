@@ -34,7 +34,7 @@ impl GameState {
         let piece = self.board.get_piece_at(mv.from).unwrap();
 
         if piece.is_pawn() && mv.from.rank().abs_diff(mv.to.rank()) == 2 {
-            self.en_passant_square = Some(mv.from.up_for_colour(self.colour_to_move));
+            self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
         }
 
         self.board.put_piece(piece, mv.to);
@@ -64,7 +64,7 @@ impl GameState {
     pub fn can_capture_en_passant(&self, pawn_square: Square) -> bool {
         if let Some(square) = self.en_passant_square {
             return pawn_square.file().abs_diff(square.file()) == 1
-                && pawn_square.rank() == square.up_for_colour(self.colour_to_move.flip()).rank();
+                && pawn_square.rank() == square.advance(self.colour_to_move.flip()).rank();
         }
 
         false

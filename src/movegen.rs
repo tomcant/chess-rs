@@ -63,13 +63,13 @@ impl MoveGenerator for GameState {
 }
 
 fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard {
-    let up_square = square.up_for_colour(colour);
+    let advanced_square = square.advance(colour);
 
-    if board.has_piece_at(up_square) {
+    if board.has_piece_at(advanced_square) {
         return 0;
     }
 
-    let mut advances = up_square.u64();
+    let mut advances = advanced_square.u64();
 
     let start_rank = match colour {
         Colour::White => 1,
@@ -77,10 +77,10 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
     };
 
     if square.rank() == start_rank {
-        let up_up_square = up_square.up_for_colour(colour);
+        let advanced_square = advanced_square.advance(colour);
 
-        if !board.has_piece_at(up_up_square) {
-            advances += up_up_square.u64();
+        if !board.has_piece_at(advanced_square) {
+            advances += advanced_square.u64();
         }
     }
 

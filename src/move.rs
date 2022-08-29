@@ -18,7 +18,7 @@ impl Move {
 
     pub fn get_capture_square(&self) -> Square {
         if self.is_en_passant {
-            return self.to.up_for_colour(self.captured_piece.unwrap().colour());
+            return self.to.advance(self.captured_piece.unwrap().colour());
         }
 
         self.to

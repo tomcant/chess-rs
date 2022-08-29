@@ -41,7 +41,7 @@ impl Square {
         self.0 >> 3
     }
 
-    pub fn up_for_colour(&self, colour: Colour) -> Self {
+    pub fn advance(&self, colour: Colour) -> Self {
         match colour {
             Colour::White => Self(self.0 + 8),
             _ => Self(self.0 - 8),
@@ -113,11 +113,11 @@ mod tests {
     }
 
     #[test]
-    fn get_the_next_square_up_the_board_for_a_given_colour() {
+    fn advance_a_square_given_a_colour() {
         let square = parse_square("e4");
 
-        assert_eq!(parse_square("e5"), square.up_for_colour(Colour::White));
-        assert_eq!(parse_square("e3"), square.up_for_colour(Colour::Black));
+        assert_eq!(parse_square("e5"), square.advance(Colour::White));
+        assert_eq!(parse_square("e3"), square.advance(Colour::Black));
     }
 
     fn parse_square(str: &str) -> Square {
