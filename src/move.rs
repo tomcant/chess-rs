@@ -31,8 +31,12 @@ impl Display for Move {
             f,
             "{}{}{}",
             self.from,
-            if self.is_capture() { "x" } else { "" },
-            self.to
+            self.to,
+            if let Some(piece) = self.promotion_piece {
+                format!("{piece}")
+            } else {
+                String::from("")
+            }
         )
     }
 }

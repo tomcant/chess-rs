@@ -231,10 +231,10 @@ mod tests {
         }
 
         fn assert_perft_for_fen(fen: &str, depth: u8, expected_move_count: u64) {
-            assert_eq!(perft(&mut parse_fen(fen), depth), expected_move_count);
+            assert_eq!(perft(&mut parse_fen(fen), depth, true), expected_move_count);
         }
 
-        fn perft(state: &mut GameState, depth: u8) -> u64 {
+        fn perft(state: &mut GameState, depth: u8, divide: bool) -> u64 {
             if depth == 0 {
                 return 1;
             }
@@ -245,10 +245,20 @@ mod tests {
                 state.do_move(&mv);
 
                 if !is_in_check(&state.board, state.colour_to_move.flip()) {
-                    nodes += perft(state, depth - 1);
+                    let nodes_divide = perft(state, depth - 1, false);
+
+                    if divide {
+                        println!("{mv}: {nodes_divide}");
+                    }
+
+                    nodes += nodes_divide;
                 }
 
                 state.undo_move(&mv);
+            }
+
+            if divide {
+                println!("Nodes: {nodes}");
             }
 
             nodes
