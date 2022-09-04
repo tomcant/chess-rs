@@ -206,9 +206,12 @@ lazy_static! {
 
 pub fn is_in_check(board: &Board, colour: Colour) -> bool {
     let king_square = Square::from_u64(board.get_pieces(PieceType::King, colour));
-    let attackers = get_attackers(king_square, colour.flip(), board);
 
-    attackers.count_ones() > 0
+    is_attacked(king_square, colour.flip(), board)
+}
+
+pub fn is_attacked(square: Square, colour: Colour, board: &Board) -> bool {
+    get_attackers(square, colour, board).count_ones() != 0
 }
 
 pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard {

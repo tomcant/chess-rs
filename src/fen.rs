@@ -103,12 +103,12 @@ fn parse_castling_ability(ability: &str) -> CastlingAbility {
     })
 }
 
-fn parse_en_passant_square(str: &str) -> Option<Square> {
-    if str == "-" {
+fn parse_en_passant_square(square: &str) -> Option<Square> {
+    if square == "-" {
         return None;
     }
 
-    let result = str.parse::<Square>();
+    let result = square.parse::<Square>();
 
     if result.is_err() {
         panic!("error parsing fen: invalid en passant square");
