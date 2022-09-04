@@ -1,5 +1,6 @@
 mod attacks;
 mod board;
+mod castling;
 mod colour;
 mod fen;
 mod game;

@@ -1,25 +1,15 @@
 use crate::board::Board;
+use crate::castling::CastlingRights;
 use crate::colour::Colour;
 use crate::piece::{Piece, PieceType};
 use crate::r#move::Move;
 use crate::square::Square;
 
-bitflags::bitflags! {
-    pub struct CastlingAbility: u8 {
-        const NONE = 0;
-        const WHITE_KING = 1;
-        const WHITE_QUEEN = 2;
-        const BLACK_KING = 4;
-        const BLACK_QUEEN = 8;
-        const ALL = 15;
-    }
-}
-
 #[derive(Debug)]
 pub struct GameState {
     pub board: Board,
     pub colour_to_move: Colour,
-    pub castling_ability: CastlingAbility,
+    pub castling_rights: CastlingRights,
     pub en_passant_square: Option<Square>,
     pub half_move_clock: u8,
     pub full_move_counter: u8,
@@ -41,6 +31,34 @@ impl GameState {
             self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
         }
 
+        if piece.is_king() {
+            self.castling_rights.remove_for_colour(self.colour_to_move);
+
+            if mv.file_diff() > 1 {
+                let rook = Piece::from(PieceType::Rook, self.colour_to_move);
+
+                match mv.to.file() {
+                    2 => {
+                        self.board.put_piece(rook, Square::from_file_and_rank(3, mv.to.rank()));
+                        self.board.clear_square(Square::from_file_and_rank(0, mv.to.rank()));
+                    }
+                    6 => {
+                        self.board.put_piece(rook, Square::from_file_and_rank(5, mv.to.rank()));
+                        self.board.clear_square(Square::from_file_and_rank(7, mv.to.rank()));
+                    }
+                    _ => unreachable!(),
+                };
+            }
+        }
+
+        if mv.from.is_corner() {
+            self.castling_rights.remove_for_square(mv.from);
+        }
+
+        if mv.to.is_corner() {
+            self.castling_rights.remove_for_square(mv.to);
+        }
+
         self.board.put_piece(piece, mv.to);
         self.board.clear_square(mv.from);
 
@@ -54,9 +72,26 @@ impl GameState {
             None => self.board.get_piece_at(mv.to).unwrap(),
         };
 
+        if piece.is_king() && mv.file_diff() > 1 {
+            let rook = Piece::from(PieceType::Rook, self.colour_to_move.flip());
+
+            match mv.to.file() {
+                2 => {
+                    self.board.put_piece(rook, Square::from_file_and_rank(0, mv.to.rank()));
+                    self.board.clear_square(Square::from_file_and_rank(3, mv.to.rank()));
+                }
+                6 => {
+                    self.board.put_piece(rook, Square::from_file_and_rank(7, mv.to.rank()));
+                    self.board.clear_square(Square::from_file_and_rank(5, mv.to.rank()));
+                }
+                _ => unreachable!(),
+            };
+        }
+
         self.board.put_piece(piece, mv.from);
         self.board.clear_square(mv.to);
 
+        self.castling_rights = mv.castling_rights;
         self.en_passant_square = None;
 
         if mv.is_capture() {
@@ -76,6 +111,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::castling::CastlingRight;
     use crate::game::GameState;
     use crate::piece::Piece;
 
@@ -88,6 +124,7 @@ mod tests {
             to: parse_square("f4"),
             captured_piece: None,
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -107,6 +144,7 @@ mod tests {
             to: parse_square("f4"),
             captured_piece: None,
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -126,6 +164,7 @@ mod tests {
             to: parse_square("f5"),
             captured_piece: Some(Piece::BlackPawn),
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -144,6 +183,7 @@ mod tests {
             to: parse_square("f5"),
             captured_piece: Some(Piece::BlackPawn),
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -151,6 +191,93 @@ mod tests {
 
         assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteKnight));
         assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::BlackPawn));
+    }
+
+    #[test]
+    fn castle_king_side() {
+        let mut state = parse_fen("8/8/8/8/8/8/8/4K2R w K - 0 1");
+
+        let mv = Move {
+            from: parse_square("e1"),
+            to: parse_square("g1"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: state.castling_rights,
+            is_en_passant: false,
+        };
+
+        state.do_move(&mv);
+
+        assert_eq!(state.castling_rights, CastlingRights::none());
+
+        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhiteKing));
+        assert_eq!(state.board.get_piece_at(parse_square("f1")), Some(Piece::WhiteRook));
+
+        assert!(!state.board.has_piece_at(mv.from));
+        assert!(!state.board.has_piece_at(parse_square("h1")));
+    }
+
+    #[test]
+    fn undo_castle_king_side() {
+        let mut state = parse_fen("8/8/8/8/8/8/8/5RK1 b - - 0 1");
+
+        let mv = Move {
+            from: parse_square("e1"),
+            to: parse_square("g1"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing]),
+            is_en_passant: false,
+        };
+
+        state.undo_move(&mv);
+
+        assert_eq!(state.castling_rights, CastlingRights::from(&[CastlingRight::WhiteKing]));
+
+        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteKing));
+        assert_eq!(state.board.get_piece_at(parse_square("h1")), Some(Piece::WhiteRook));
+
+        assert!(!state.board.has_piece_at(mv.to));
+        assert!(!state.board.has_piece_at(parse_square("f1")));
+    }
+
+    #[test]
+    fn moving_a_rook_removes_the_relevant_castling_rights() {
+        let mut state = parse_fen("8/8/8/8/8/8/8/R3K2R w KQ - 0 1");
+
+        let mv = Move {
+            from: parse_square("h1"),
+            to: parse_square("g1"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
+            is_en_passant: false,
+        };
+
+        state.do_move(&mv);
+
+        assert_eq!(
+            state.castling_rights,
+            CastlingRights::from(&[CastlingRight::WhiteQueen])
+        );
+    }
+
+    #[test]
+    fn capturing_a_rook_removes_the_relevant_castling_rights() {
+        let mut state = parse_fen("8/8/8/8/3b4/8/8/R3K2R b KQ - 0 1");
+
+        let mv = Move {
+            from: parse_square("d4"),
+            to: parse_square("a1"),
+            captured_piece: Some(Piece::WhiteRook),
+            promotion_piece: None,
+            castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
+            is_en_passant: false,
+        };
+
+        state.do_move(&mv);
+
+        assert_eq!(state.castling_rights, CastlingRights::from(&[CastlingRight::WhiteKing]));
     }
 
     #[test]
@@ -162,6 +289,7 @@ mod tests {
             to: parse_square("e8"),
             captured_piece: None,
             promotion_piece: Some(Piece::WhiteKnight),
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -180,6 +308,7 @@ mod tests {
             to: parse_square("e8"),
             captured_piece: None,
             promotion_piece: Some(Piece::WhiteKnight),
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -198,6 +327,7 @@ mod tests {
             to: parse_square("d8"),
             captured_piece: Some(Piece::BlackQueen),
             promotion_piece: Some(Piece::WhiteBishop),
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -216,6 +346,7 @@ mod tests {
             to: parse_square("e6"),
             captured_piece: Some(Piece::BlackPawn),
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: true,
         };
 
@@ -235,6 +366,7 @@ mod tests {
             to: parse_square("e6"),
             captured_piece: Some(Piece::BlackPawn),
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: true,
         };
 
@@ -255,6 +387,7 @@ mod tests {
             to: parse_square("e4"),
             captured_piece: None,
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -272,6 +405,7 @@ mod tests {
             to: parse_square("e5"),
             captured_piece: None,
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
@@ -289,6 +423,7 @@ mod tests {
             to: parse_square("e4"),
             captured_piece: None,
             promotion_piece: None,
+            castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 

@@ -47,8 +47,12 @@ impl Square {
         }
     }
 
-    pub fn is_promotion_rank(&self) -> bool {
-        self.rank() == 0 || self.rank() == 7
+    pub fn is_back_rank(&self) -> bool {
+        matches!(self.rank(), 0 | 7)
+    }
+
+    pub fn is_corner(&self) -> bool {
+        matches!(self.0, 0 | 7 | 56 | 63)
     }
 
     pub fn squares() -> &'static [Self; 64] {

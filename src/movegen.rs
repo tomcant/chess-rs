@@ -1,5 +1,6 @@
-use crate::attacks::get_attacks;
+use crate::attacks::{get_attacks, is_attacked};
 use crate::board::{BitBoard, Board};
+use crate::castling::{CastlingRight, CastlingRights};
 use crate::colour::Colour;
 use crate::game::GameState;
 use crate::piece::{Piece, PieceType};
@@ -21,11 +22,11 @@ impl MoveGenerator for GameState {
                 let from_square = Square::from_index(pieces.trailing_zeros() as u8);
                 pieces ^= from_square.u64();
 
-                let mut attacks =
-                    get_attacks(from_square, &self.board) & !self.board.get_pieces_by_colour(self.colour_to_move);
+                let mut to_squares = !self.board.get_pieces_by_colour(self.colour_to_move)
+                    & get_attacks(self.board.get_piece_at(from_square).unwrap(), from_square, &self.board);
 
                 if piece_type.is_pawn() {
-                    attacks |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
+                    to_squares |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
 
                     if can_capture_en_passant(from_square, self.en_passant_square, self.colour_to_move) {
                         moves.push(Move {
@@ -33,26 +34,28 @@ impl MoveGenerator for GameState {
                             to: self.en_passant_square.unwrap(),
                             captured_piece: Some(Piece::from(PieceType::Pawn, self.colour_to_move.flip())),
                             promotion_piece: None,
+                            castling_rights: self.castling_rights,
                             is_en_passant: true,
                         });
                     }
+                } else if piece_type.is_king() {
+                    to_squares |= get_castling(self.castling_rights, self.colour_to_move, &self.board);
                 }
 
-                while attacks > 0 {
-                    let to_square = Square::from_index(attacks.trailing_zeros() as u8);
-                    attacks ^= to_square.u64();
+                while to_squares > 0 {
+                    let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
+                    to_squares ^= to_square.u64();
 
                     let captured_piece = self.board.get_piece_at(to_square);
 
-                    // todo: generate castling
-
-                    if piece_type.is_pawn() && to_square.is_promotion_rank() {
+                    if piece_type.is_pawn() && to_square.is_back_rank() {
                         for piece in Piece::promotions(self.colour_to_move) {
                             moves.push(Move {
                                 from: from_square,
                                 to: to_square,
                                 captured_piece,
                                 promotion_piece: Some(*piece),
+                                castling_rights: self.castling_rights,
                                 is_en_passant: false,
                             });
                         }
@@ -65,6 +68,7 @@ impl MoveGenerator for GameState {
                         to: to_square,
                         captured_piece,
                         promotion_piece: None,
+                        castling_rights: self.castling_rights,
                         is_en_passant: false,
                     });
                 }
@@ -107,6 +111,52 @@ fn can_capture_en_passant(pawn_square: Square, en_passant_square: Option<Square>
     }
 
     false
+}
+
+fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: &Board) -> BitBoard {
+    let mut castling = 0;
+
+    if colour_to_move == Colour::White {
+        if castling_rights.has(CastlingRight::WhiteKing)
+            && !board.has_piece_at(Square::from_index(5))
+            && !board.has_piece_at(Square::from_index(6))
+            && !is_attacked(Square::from_index(4), colour_to_move.flip(), board)
+            && !is_attacked(Square::from_index(5), colour_to_move.flip(), board)
+        {
+            castling |= Square::from_index(6).u64();
+        }
+
+        if castling_rights.has(CastlingRight::WhiteQueen)
+            && !board.has_piece_at(Square::from_index(1))
+            && !board.has_piece_at(Square::from_index(2))
+            && !board.has_piece_at(Square::from_index(3))
+            && !is_attacked(Square::from_index(3), colour_to_move.flip(), board)
+            && !is_attacked(Square::from_index(4), colour_to_move.flip(), board)
+        {
+            castling |= Square::from_index(2).u64();
+        }
+    } else {
+        if castling_rights.has(CastlingRight::BlackKing)
+            && !board.has_piece_at(Square::from_index(61))
+            && !board.has_piece_at(Square::from_index(62))
+            && !is_attacked(Square::from_index(60), colour_to_move.flip(), board)
+            && !is_attacked(Square::from_index(61), colour_to_move.flip(), board)
+        {
+            castling |= Square::from_index(62).u64();
+        }
+
+        if castling_rights.has(CastlingRight::BlackQueen)
+            && !board.has_piece_at(Square::from_index(57))
+            && !board.has_piece_at(Square::from_index(58))
+            && !board.has_piece_at(Square::from_index(59))
+            && !is_attacked(Square::from_index(59), colour_to_move.flip(), board)
+            && !is_attacked(Square::from_index(60), colour_to_move.flip(), board)
+        {
+            castling |= Square::from_index(58).u64();
+        }
+    }
+
+    castling
 }
 
 #[cfg(test)]
@@ -181,6 +231,95 @@ mod tests {
     }
 
     #[test]
+    fn castle_king_side_only() {
+        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w K - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 1);
+    }
+
+    #[test]
+    fn castle_queen_side_only() {
+        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w Q - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 1);
+    }
+
+    #[test]
+    fn castle_king_and_queen_side() {
+        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w KQ - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 2);
+    }
+
+    #[test]
+    fn no_castling_when_the_target_square_is_occupied_by_a_friendly_piece() {
+        let state = parse_fen("8/8/8/8/8/8/8/R1B1K1NR w KQ - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 0);
+    }
+
+    #[test]
+    fn no_castling_when_the_target_square_is_occupied_by_an_opponent_piece() {
+        let state = parse_fen("8/8/8/8/8/8/8/R1b1K1nR w KQ - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 0);
+    }
+
+    #[test]
+    fn no_castling_when_a_piece_blocks_the_path() {
+        let state = parse_fen("8/8/8/8/8/8/8/RN2KB1R w KQ - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 0);
+    }
+
+    #[test]
+    fn no_castling_when_the_king_path_is_attacked() {
+        let state = parse_fen("8/8/8/8/8/4n3/8/R3K2R w KQ - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 0);
+    }
+
+    #[test]
+    fn no_castling_when_the_right_was_previously_lost() {
+        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w Q - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 1);
+
+        let castling_move = moves
+            .iter()
+            .filter(|mv| state.board.get_piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
+            .next()
+            .unwrap();
+
+        assert_eq!(castling_move.to, "c1".parse::<Square>().unwrap());
+    }
+
+    #[test]
+    fn no_castling_out_of_check() {
+        let state = parse_fen("8/8/8/8/8/3n4/8/R3K2R w KQ - 0 1");
+
+        let moves = state.generate_moves();
+
+        assert_castling_move_count(&moves, &state.board, 0);
+    }
+
+    #[test]
     fn en_passant_capture() {
         let state = parse_fen("8/8/8/3PpP2/8/8/8/8 w - e6 0 1");
 
@@ -205,19 +344,57 @@ mod tests {
         #[test]
         #[ignore]
         fn perft_start_position() {
-            assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 5, 4_865_609);
+            assert_perft_for_fen(
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                6,
+                119_060_324,
+            );
+        }
+
+        #[test]
+        #[ignore]
+        fn perft_position_2() {
+            assert_perft_for_fen(
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+                5,
+                193_690_690,
+            );
         }
 
         #[test]
         #[ignore]
         fn perft_position_3() {
-            assert_perft_for_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 6, 11_030_083);
+            assert_perft_for_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7, 178_633_661);
         }
 
         #[test]
         #[ignore]
         fn perft_position_4() {
-            assert_perft_for_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 1, 6);
+            assert_perft_for_fen(
+                "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+                6,
+                706_045_033,
+            );
+        }
+
+        #[test]
+        #[ignore]
+        fn perft_position_4_flipped() {
+            assert_perft_for_fen(
+                "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
+                6,
+                706_045_033,
+            );
+        }
+
+        #[test]
+        #[ignore]
+        fn perft_position_5() {
+            assert_perft_for_fen(
+                "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+                5,
+                89_941_194,
+            );
         }
 
         #[test]
@@ -225,8 +402,8 @@ mod tests {
         fn perft_position_6() {
             assert_perft_for_fen(
                 "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
-                4,
-                3_894_594,
+                5,
+                164_075_551,
             );
         }
 
@@ -244,7 +421,7 @@ mod tests {
             for mv in state.generate_moves() {
                 state.do_move(&mv);
 
-                if !is_in_check(&state.board, state.colour_to_move.flip()) {
+                if !is_in_check(state.colour_to_move.flip(), &state.board) {
                     let nodes_divide = perft(state, depth - 1, false);
 
                     if divide {
@@ -276,7 +453,7 @@ mod tests {
         for mv in state.generate_moves() {
             state.do_move(&mv);
 
-            if !is_in_check(&state.board, state.colour_to_move.flip()) {
+            if !is_in_check(state.colour_to_move.flip(), &state.board) {
                 legal_move_count += 1;
             }
 
@@ -284,6 +461,16 @@ mod tests {
         }
 
         assert_eq!(legal_move_count, count);
+    }
+
+    fn assert_castling_move_count(moves: &Vec<Move>, board: &Board, count: usize) {
+        assert_eq!(
+            moves
+                .iter()
+                .filter(|mv| board.get_piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
+                .count(),
+            count
+        );
     }
 
     fn parse_fen(str: &str) -> GameState {

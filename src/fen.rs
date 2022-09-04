@@ -1,6 +1,7 @@
 use crate::board::Board;
+use crate::castling::{CastlingRight, CastlingRights};
 use crate::colour::Colour;
-use crate::game::{CastlingAbility, GameState};
+use crate::game::GameState;
 use crate::piece::Piece;
 use crate::square::Square;
 use std::str::FromStr;
@@ -24,7 +25,7 @@ fn parse_fen(fen: &str) -> GameState {
     GameState {
         board: parse_board(parts[0]),
         colour_to_move: parse_colour_to_move(parts[1]),
-        castling_ability: parse_castling_ability(parts[2]),
+        castling_rights: parse_castling_rights(parts[2]),
         en_passant_square: parse_en_passant_square(parts[3]),
         half_move_clock: parts[4].parse().unwrap(),
         full_move_counter: parts[5].parse().unwrap(),
@@ -87,19 +88,20 @@ fn parse_colour_to_move(colour: &str) -> Colour {
     }
 }
 
-fn parse_castling_ability(ability: &str) -> CastlingAbility {
-    if ability == "-" {
-        return CastlingAbility::NONE;
+fn parse_castling_rights(rights: &str) -> CastlingRights {
+    if rights == "-" {
+        return CastlingRights::none();
     }
 
-    ability.chars().fold(CastlingAbility::NONE, |acc, char| {
-        acc | match char {
-            'K' => CastlingAbility::WHITE_KING,
-            'Q' => CastlingAbility::WHITE_QUEEN,
-            'k' => CastlingAbility::BLACK_KING,
-            'q' => CastlingAbility::BLACK_QUEEN,
-            _ => panic!("error parsing fen: invalid castling ability"),
-        }
+    rights.chars().fold(CastlingRights::none(), |mut acc, char| {
+        acc.add(match char {
+            'K' => CastlingRight::WhiteKing,
+            'Q' => CastlingRight::WhiteQueen,
+            'k' => CastlingRight::BlackKing,
+            'q' => CastlingRight::BlackQueen,
+            _ => panic!("error parsing fen: invalid castling right"),
+        });
+        acc
     })
 }
 
@@ -126,7 +128,7 @@ fn parse_en_passant_square(square: &str) -> Option<Square> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::{CastlingAbility, GameState};
+    use crate::game::GameState;
 
     #[test]
     fn board() {
@@ -199,32 +201,32 @@ mod tests {
     }
 
     #[test]
-    fn no_castling_ability() {
+    fn no_castling_rights() {
         let state = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
 
-        assert_eq!(state.castling_ability, CastlingAbility::NONE);
+        assert_eq!(state.castling_rights, CastlingRights::none());
     }
 
     #[test]
-    fn partial_castling_ability() {
+    fn partial_castling_rights() {
         let state = parse_fen("8/8/8/8/8/8/8/8 w Kq - 0 1");
 
         assert_eq!(
-            state.castling_ability,
-            CastlingAbility::WHITE_KING | CastlingAbility::BLACK_QUEEN
+            state.castling_rights,
+            CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::BlackQueen])
         );
     }
 
     #[test]
-    fn all_castling_ability() {
+    fn all_castling_rights() {
         let state = parse_fen("8/8/8/8/8/8/8/8 w KQkq - 0 1");
 
-        assert_eq!(state.castling_ability, CastlingAbility::ALL);
+        assert_eq!(state.castling_rights, CastlingRights::all());
     }
 
     #[test]
     #[should_panic]
-    fn invalid_castling_ability() {
+    fn invalid_castling_rights() {
         parse_fen("8/8/8/8/8/8/8/8 w K- - 0 1");
     }
 

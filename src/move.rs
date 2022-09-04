@@ -1,3 +1,4 @@
+use crate::castling::CastlingRights;
 use crate::piece::Piece;
 use crate::square::Square;
 use std::fmt::{Display, Formatter};
@@ -8,12 +9,17 @@ pub struct Move {
     pub to: Square,
     pub captured_piece: Option<Piece>,
     pub promotion_piece: Option<Piece>,
+    pub castling_rights: CastlingRights,
     pub is_en_passant: bool,
 }
 
 impl Move {
     pub fn is_capture(&self) -> bool {
         self.captured_piece.is_some()
+    }
+
+    pub fn file_diff(&self) -> u8 {
+        self.from.file().abs_diff(self.to.file())
     }
 
     pub fn get_capture_square(&self) -> Square {

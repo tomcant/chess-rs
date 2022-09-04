@@ -1,6 +1,6 @@
 use crate::board::{BitBoard, Board};
 use crate::colour::Colour;
-use crate::piece::PieceType;
+use crate::piece::{Piece, PieceType};
 use crate::square::Square;
 use lazy_static::lazy_static;
 
@@ -204,7 +204,7 @@ lazy_static! {
     };
 }
 
-pub fn is_in_check(board: &Board, colour: Colour) -> bool {
+pub fn is_in_check(colour: Colour, board: &Board) -> bool {
     let king_square = Square::from_u64(board.get_pieces(PieceType::King, colour));
 
     is_attacked(king_square, colour.flip(), board)
@@ -230,15 +230,7 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard 
         | (board.get_pieces(PieceType::King, colour) & king_attacks)
 }
 
-pub fn get_attacks(square: Square, board: &Board) -> BitBoard {
-    let maybe_piece = board.get_piece_at(square);
-
-    if maybe_piece.is_none() {
-        return 0;
-    }
-
-    let piece = maybe_piece.unwrap();
-
+pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> BitBoard {
     match piece.get_type() {
         PieceType::Pawn => get_pawn_attacks(square, piece.colour(), board),
         PieceType::Knight => get_knight_attacks(square),
@@ -321,7 +313,7 @@ mod tests {
         board.put_piece(Piece::BlackKing, parse_square("e8"));
         board.put_piece(Piece::WhiteKnight, parse_square("d6"));
 
-        assert!(is_in_check(&board, Colour::Black));
+        assert!(is_in_check(Colour::Black, &board));
     }
 
     #[test]
@@ -532,8 +524,12 @@ mod tests {
 
     fn assert_attacks_eq(state: &GameState, attacker: &str, squares: &[&str]) {
         let attacks: BitBoard = squares.iter().map(|sq| parse_square(sq).u64()).sum();
+        let attacker = parse_square(attacker);
 
-        assert_eq!(attacks, get_attacks(parse_square(attacker), &state.board));
+        assert_eq!(
+            attacks,
+            get_attacks(state.board.get_piece_at(attacker).unwrap(), attacker, &state.board)
+        );
     }
 
     fn parse_fen(str: &str) -> GameState {
