@@ -7,7 +7,7 @@ use crate::piece::{Piece, PieceType};
 use crate::r#move::Move;
 use crate::square::Square;
 
-trait MoveGenerator {
+pub trait MoveGenerator {
     fn generate_moves(&self) -> Vec<Move>;
 }
 

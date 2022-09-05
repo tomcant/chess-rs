@@ -2,11 +2,13 @@ mod attacks;
 mod board;
 mod castling;
 mod colour;
+mod eval;
 mod fen;
 mod game;
 mod r#move;
 mod movegen;
 mod piece;
+mod search;
 mod square;
 
 fn main() {
