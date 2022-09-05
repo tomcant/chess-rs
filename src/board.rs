@@ -18,13 +18,21 @@ impl Board {
         }
     }
 
+    pub fn pieces(&self, piece_type: PieceType, colour: Colour) -> BitBoard {
+        self.pieces[Piece::from(piece_type, colour).index()]
+    }
+
+    pub fn pieces_by_colour(&self, colour: Colour) -> BitBoard {
+        self.colours[colour as usize]
+    }
+
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
         let square_u64 = square.u64();
         self.pieces[piece.index()] |= square_u64;
         self.colours[piece.colour() as usize] |= square_u64;
     }
 
-    pub fn get_piece_at(&self, square: Square) -> Option<Piece> {
+    pub fn piece_at(&self, square: Square) -> Option<Piece> {
         Piece::pieces()
             .iter()
             .find(|&&piece| self.pieces[piece.index()] & square.u64() != 0)
@@ -35,16 +43,8 @@ impl Board {
         self.occupancy() & square.u64() != 0
     }
 
-    pub fn get_pieces(&self, piece_type: PieceType, colour: Colour) -> BitBoard {
-        self.pieces[Piece::from(piece_type, colour).index()]
-    }
-
-    pub fn get_pieces_by_colour(&self, colour: Colour) -> BitBoard {
-        self.colours[colour as usize]
-    }
-
     pub fn clear_square(&mut self, square: Square) {
-        if let Some(piece) = self.get_piece_at(square) {
+        if let Some(piece) = self.piece_at(square) {
             self.pieces[piece.index()] ^= square.u64();
             self.colours[piece.colour() as usize] ^= square.u64();
         }
@@ -68,8 +68,8 @@ mod tests {
         board.put_piece(piece, square);
 
         assert!(board.has_piece_at(square));
-        assert_eq!(board.get_piece_at(square), Some(piece));
-        assert_eq!(board.get_pieces_by_colour(piece.colour()) & square.u64(), square.u64());
+        assert_eq!(board.piece_at(square), Some(piece));
+        assert_eq!(board.pieces_by_colour(piece.colour()) & square.u64(), square.u64());
     }
 
     #[test]

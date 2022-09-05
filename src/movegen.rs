@@ -16,14 +16,14 @@ impl MoveGenerator for GameState {
         let mut moves = vec![];
 
         for piece_type in PieceType::types() {
-            let mut pieces = self.board.get_pieces(*piece_type, self.colour_to_move);
+            let mut pieces = self.board.pieces(*piece_type, self.colour_to_move);
 
             while pieces > 0 {
                 let from_square = Square::from_index(pieces.trailing_zeros() as u8);
                 pieces ^= from_square.u64();
 
-                let mut to_squares = !self.board.get_pieces_by_colour(self.colour_to_move)
-                    & get_attacks(self.board.get_piece_at(from_square).unwrap(), from_square, &self.board);
+                let mut to_squares = !self.board.pieces_by_colour(self.colour_to_move)
+                    & get_attacks(self.board.piece_at(from_square).unwrap(), from_square, &self.board);
 
                 if piece_type.is_pawn() {
                     to_squares |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
@@ -46,7 +46,7 @@ impl MoveGenerator for GameState {
                     let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
                     to_squares ^= to_square.u64();
 
-                    let captured_piece = self.board.get_piece_at(to_square);
+                    let captured_piece = self.board.piece_at(to_square);
 
                     if piece_type.is_pawn() && to_square.is_back_rank() {
                         for piece in Piece::promotions(self.colour_to_move) {
@@ -106,7 +106,7 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
 
 fn can_capture_en_passant(pawn_square: Square, en_passant_square: Option<Square>, colour_to_move: Colour) -> bool {
     if let Some(square) = en_passant_square {
-        return pawn_square.file().abs_diff(square.file()) == 1
+        return pawn_square.file_diff(square) == 1
             && pawn_square.rank() == square.advance(colour_to_move.flip()).rank();
     }
 
@@ -303,7 +303,7 @@ mod tests {
 
         let castling_move = moves
             .iter()
-            .filter(|mv| state.board.get_piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
+            .filter(|mv| state.board.piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
             .next()
             .unwrap();
 
@@ -467,7 +467,7 @@ mod tests {
         assert_eq!(
             moves
                 .iter()
-                .filter(|mv| board.get_piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
+                .filter(|mv| board.piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
                 .count(),
             count
         );

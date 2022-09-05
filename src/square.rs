@@ -40,6 +40,14 @@ impl Square {
         self.0 >> 3
     }
 
+    pub fn file_diff(&self, other: Square) -> u8 {
+        self.file().abs_diff(other.file())
+    }
+
+    pub fn rank_diff(&self, other: Square) -> u8 {
+        self.rank().abs_diff(other.rank())
+    }
+
     pub fn advance(&self, colour: Colour) -> Self {
         match colour {
             Colour::White => Self(self.0 + 8),

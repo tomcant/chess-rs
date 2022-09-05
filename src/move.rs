@@ -18,16 +18,20 @@ impl Move {
         self.captured_piece.is_some()
     }
 
-    pub fn file_diff(&self) -> u8 {
-        self.from.file().abs_diff(self.to.file())
-    }
-
-    pub fn get_capture_square(&self) -> Square {
+    pub fn capture_square(&self) -> Square {
         if self.is_en_passant {
             return self.to.advance(self.captured_piece.unwrap().colour());
         }
 
         self.to
+    }
+
+    pub fn file_diff(&self) -> u8 {
+        self.from.file_diff(self.to)
+    }
+
+    pub fn rank_diff(&self) -> u8 {
+        self.from.rank_diff(self.to)
     }
 }
 

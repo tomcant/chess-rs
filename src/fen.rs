@@ -134,7 +134,7 @@ mod tests {
     fn board() {
         let state = parse_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
-        assert_eq!(state.board.get_piece_at(parse_square("e4")), Some(Piece::WhitePawn));
+        assert_eq!(state.board.piece_at(parse_square("e4")), Some(Piece::WhitePawn));
         assert!(!state.board.has_piece_at(parse_square("e2")));
     }
 

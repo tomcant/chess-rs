@@ -205,7 +205,7 @@ lazy_static! {
 }
 
 pub fn is_in_check(colour: Colour, board: &Board) -> bool {
-    let king_square = Square::from_u64(board.get_pieces(PieceType::King, colour));
+    let king_square = Square::from_u64(board.pieces(PieceType::King, colour));
 
     is_attacked(king_square, colour.flip(), board)
 }
@@ -222,12 +222,12 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard 
     let queen_attacks = bishop_attacks | rook_attacks;
     let king_attacks = get_king_attacks(square);
 
-    (board.get_pieces(PieceType::Pawn, colour) & pawn_attacks)
-        | (board.get_pieces(PieceType::Knight, colour) & knight_attacks)
-        | (board.get_pieces(PieceType::Bishop, colour) & bishop_attacks)
-        | (board.get_pieces(PieceType::Rook, colour) & rook_attacks)
-        | (board.get_pieces(PieceType::Queen, colour) & queen_attacks)
-        | (board.get_pieces(PieceType::King, colour) & king_attacks)
+    (board.pieces(PieceType::Pawn, colour) & pawn_attacks)
+        | (board.pieces(PieceType::Knight, colour) & knight_attacks)
+        | (board.pieces(PieceType::Bishop, colour) & bishop_attacks)
+        | (board.pieces(PieceType::Rook, colour) & rook_attacks)
+        | (board.pieces(PieceType::Queen, colour) & queen_attacks)
+        | (board.pieces(PieceType::King, colour) & king_attacks)
 }
 
 pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> BitBoard {
@@ -528,7 +528,7 @@ mod tests {
 
         assert_eq!(
             attacks,
-            get_attacks(state.board.get_piece_at(attacker).unwrap(), attacker, &state.board)
+            get_attacks(state.board.piece_at(attacker).unwrap(), attacker, &state.board)
         );
     }
 

@@ -18,16 +18,16 @@ pub struct GameState {
 impl GameState {
     pub fn do_move(&mut self, mv: &Move) {
         if mv.is_capture() {
-            self.board.clear_square(mv.get_capture_square());
+            self.board.clear_square(mv.capture_square());
         }
 
         self.en_passant_square = None;
 
         let piece = mv
             .promotion_piece
-            .unwrap_or_else(|| self.board.get_piece_at(mv.from).unwrap());
+            .unwrap_or_else(|| self.board.piece_at(mv.from).unwrap());
 
-        if piece.is_pawn() && mv.from.rank().abs_diff(mv.to.rank()) == 2 {
+        if piece.is_pawn() && mv.rank_diff() == 2 {
             self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
         }
 
@@ -69,7 +69,7 @@ impl GameState {
     pub fn undo_move(&mut self, mv: &Move) {
         let piece = match mv.promotion_piece {
             Some(piece) => Piece::from(PieceType::Pawn, piece.colour()),
-            None => self.board.get_piece_at(mv.to).unwrap(),
+            None => self.board.piece_at(mv.to).unwrap(),
         };
 
         if piece.is_king() && mv.file_diff() > 1 {
@@ -95,8 +95,7 @@ impl GameState {
         self.en_passant_square = None;
 
         if mv.is_capture() {
-            self.board
-                .put_piece(mv.captured_piece.unwrap(), mv.get_capture_square());
+            self.board.put_piece(mv.captured_piece.unwrap(), mv.capture_square());
 
             if mv.is_en_passant {
                 self.en_passant_square = Some(mv.to);
@@ -130,7 +129,7 @@ mod tests {
 
         state.do_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhiteRook));
+        assert_eq!(state.board.piece_at(mv.to), Some(Piece::WhiteRook));
         assert!(!state.board.has_piece_at(mv.from));
         assert_eq!(state.colour_to_move, Colour::Black);
     }
@@ -150,7 +149,7 @@ mod tests {
 
         state.undo_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteRook));
+        assert_eq!(state.board.piece_at(mv.from), Some(Piece::WhiteRook));
         assert!(!state.board.has_piece_at(mv.to));
         assert_eq!(state.colour_to_move, Colour::White);
     }
@@ -170,7 +169,7 @@ mod tests {
 
         state.do_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhiteKnight));
+        assert_eq!(state.board.piece_at(mv.to), Some(Piece::WhiteKnight));
         assert!(!state.board.has_piece_at(mv.from));
     }
 
@@ -189,8 +188,8 @@ mod tests {
 
         state.undo_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteKnight));
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::BlackPawn));
+        assert_eq!(state.board.piece_at(mv.from), Some(Piece::WhiteKnight));
+        assert_eq!(state.board.piece_at(mv.to), Some(Piece::BlackPawn));
     }
 
     #[test]
@@ -210,8 +209,8 @@ mod tests {
 
         assert_eq!(state.castling_rights, CastlingRights::none());
 
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhiteKing));
-        assert_eq!(state.board.get_piece_at(parse_square("f1")), Some(Piece::WhiteRook));
+        assert_eq!(state.board.piece_at(mv.to), Some(Piece::WhiteKing));
+        assert_eq!(state.board.piece_at(parse_square("f1")), Some(Piece::WhiteRook));
 
         assert!(!state.board.has_piece_at(mv.from));
         assert!(!state.board.has_piece_at(parse_square("h1")));
@@ -234,8 +233,8 @@ mod tests {
 
         assert_eq!(state.castling_rights, CastlingRights::from(&[CastlingRight::WhiteKing]));
 
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhiteKing));
-        assert_eq!(state.board.get_piece_at(parse_square("h1")), Some(Piece::WhiteRook));
+        assert_eq!(state.board.piece_at(mv.from), Some(Piece::WhiteKing));
+        assert_eq!(state.board.piece_at(parse_square("h1")), Some(Piece::WhiteRook));
 
         assert!(!state.board.has_piece_at(mv.to));
         assert!(!state.board.has_piece_at(parse_square("f1")));
@@ -295,7 +294,7 @@ mod tests {
 
         state.do_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.to), mv.promotion_piece);
+        assert_eq!(state.board.piece_at(mv.to), mv.promotion_piece);
         assert!(!state.board.has_piece_at(mv.from));
     }
 
@@ -314,7 +313,7 @@ mod tests {
 
         state.undo_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
+        assert_eq!(state.board.piece_at(mv.from), Some(Piece::WhitePawn));
         assert!(!state.board.has_piece_at(mv.to));
     }
 
@@ -333,8 +332,8 @@ mod tests {
 
         state.undo_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
-        assert_eq!(state.board.get_piece_at(mv.to), mv.captured_piece);
+        assert_eq!(state.board.piece_at(mv.from), Some(Piece::WhitePawn));
+        assert_eq!(state.board.piece_at(mv.to), mv.captured_piece);
     }
 
     #[test]
@@ -352,7 +351,7 @@ mod tests {
 
         state.do_move(&mv);
 
-        assert_eq!(state.board.get_piece_at(mv.to), Some(Piece::WhitePawn));
+        assert_eq!(state.board.piece_at(mv.to), Some(Piece::WhitePawn));
         assert!(!state.board.has_piece_at(parse_square("e5")));
         assert!(!state.board.has_piece_at(mv.from));
     }
@@ -373,8 +372,8 @@ mod tests {
         state.undo_move(&mv);
 
         assert_eq!(state.en_passant_square, Some(mv.to));
-        assert_eq!(state.board.get_piece_at(mv.from), Some(Piece::WhitePawn));
-        assert_eq!(state.board.get_piece_at(parse_square("e5")), Some(Piece::BlackPawn));
+        assert_eq!(state.board.piece_at(mv.from), Some(Piece::WhitePawn));
+        assert_eq!(state.board.piece_at(parse_square("e5")), Some(Piece::BlackPawn));
         assert!(!state.board.has_piece_at(mv.to));
     }
 
