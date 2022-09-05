@@ -1,14 +1,9 @@
 use crate::colour::Colour;
-use lazy_static::lazy_static;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Square(u8);
-
-lazy_static! {
-    static ref SQUARES: [Square; 64] = (0..64).map(Square).collect::<Vec<_>>().try_into().unwrap();
-}
 
 impl Square {
     pub fn from_index(index: u8) -> Self {
@@ -61,10 +56,6 @@ impl Square {
 
     pub fn is_corner(&self) -> bool {
         matches!(self.0, 0 | 7 | 56 | 63)
-    }
-
-    pub fn squares() -> &'static [Self; 64] {
-        &SQUARES
     }
 }
 

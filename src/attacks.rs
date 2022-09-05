@@ -10,10 +10,12 @@ const FILE_G: BitBoard = 0x4040_4040_4040_4040;
 const FILE_H: BitBoard = 0x8080_8080_8080_8080;
 
 lazy_static! {
+    static ref SQUARES: [Square; 64] = (0..64).map(Square::from_index).collect::<Vec<_>>().try_into().unwrap();
+
     static ref PAWN_ATTACKS: [[BitBoard; 64]; 2] = {
         let mut attacks = [[0; 64]; 2];
 
-        for square in Square::squares() {
+        for square in SQUARES.iter() {
             let square_u64 = square.u64();
 
             attacks[Colour::White as usize][square.index()] =
@@ -29,7 +31,7 @@ lazy_static! {
     static ref KNIGHT_ATTACKS: [BitBoard; 64] = {
         let mut attacks = [0; 64];
 
-        for square in Square::squares() {
+        for square in SQUARES.iter() {
             let square_u64 = square.u64();
 
             attacks[square.index()] =
@@ -106,7 +108,7 @@ lazy_static! {
 
         let mut rays = [[0; 4]; 64];
 
-        for square in Square::squares() {
+        for square in SQUARES.iter() {
             rays[square.index()] = [
                 up_left_ray_from(*square),
                 up_right_ray_from(*square),
@@ -169,7 +171,7 @@ lazy_static! {
 
         let mut rays = [[0; 4]; 64];
 
-        for square in Square::squares() {
+        for square in SQUARES.iter() {
             rays[square.index()] = [
                 up_ray_from(*square),
                 right_ray_from(*square),
@@ -184,7 +186,7 @@ lazy_static! {
     static ref KING_ATTACKS: [BitBoard; 64] = {
         let mut attacks = [0; 64];
 
-        for square in Square::squares() {
+        for square in SQUARES.iter() {
             let square_u64 = square.u64();
 
             attacks[square.index()] =
