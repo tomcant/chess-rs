@@ -11,9 +11,13 @@ mod piece;
 mod search;
 mod square;
 
-fn main() {
-    let start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    let game_state = start_fen.parse::<game::GameState>().unwrap();
+use search::think;
 
-    println!("{game_state:?}");
+fn main() {
+    let fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1";
+    let mut state = fen.parse().unwrap();
+
+    if let Some(best_move) = think(&mut state, 4) {
+        println!("best move: {best_move}");
+    }
 }
