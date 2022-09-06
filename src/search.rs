@@ -1,24 +1,27 @@
+use crate::attacks::is_in_check;
 use crate::eval::Evaluator;
 use crate::game::GameState;
 use crate::movegen::MoveGenerator;
 use crate::r#move::Move;
 
-const EVAL_MIN: i32 = -1024;
+const EVAL_MIN: i32 = -9999;
 
-pub fn think(state: &mut GameState, depth: u8) -> Option<Move> {
+pub fn search(state: &mut GameState, depth: u8) -> Option<Move> {
     let mut best_move = None;
     let mut best_eval = EVAL_MIN;
 
     for mv in state.generate_moves() {
         state.do_move(&mv);
 
-        let eval = -search(state, depth - 1);
+        if !is_in_check(state.colour_to_move.flip(), &state.board) {
+            let eval = -negamax(state, depth - 1);
 
-        if eval > best_eval {
-            best_move = Some(mv);
-            best_eval = eval;
+            if eval > best_eval {
+                best_move = Some(mv);
+                best_eval = eval;
 
-            println!("current best move: {mv}");
+                println!("{mv} eval = {eval}");
+            }
         }
 
         state.undo_move(&mv);
@@ -27,7 +30,7 @@ pub fn think(state: &mut GameState, depth: u8) -> Option<Move> {
     best_move
 }
 
-fn search(state: &mut GameState, depth: u8) -> i32 {
+fn negamax(state: &mut GameState, depth: u8) -> i32 {
     if depth == 0 {
         return state.evaluate();
     }
@@ -37,10 +40,12 @@ fn search(state: &mut GameState, depth: u8) -> i32 {
     for mv in state.generate_moves() {
         state.do_move(&mv);
 
-        let eval = -search(state, depth - 1);
+        if !is_in_check(state.colour_to_move.flip(), &state.board) {
+            let eval = -negamax(state, depth - 1);
 
-        if eval > best_eval {
-            best_eval = eval;
+            if eval > best_eval {
+                best_eval = eval;
+            }
         }
 
         state.undo_move(&mv);

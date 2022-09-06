@@ -3,7 +3,7 @@ use crate::colour::Colour;
 use crate::game::GameState;
 use crate::piece::PieceType;
 
-const PIECE_WEIGHTS: [i32; 6] = [1, 3, 3, 5, 8, 0];
+const PIECE_WEIGHTS: [i32; 6] = [1, 3, 3, 5, 9, 0];
 
 pub trait Evaluator {
     fn evaluate(&self) -> i32;
@@ -31,7 +31,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn evaluate_the_start_position() {
+    fn evaluate_an_even_position() {
         let state = parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
         assert_eq!(state.evaluate(), 0);
