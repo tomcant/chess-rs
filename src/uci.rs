@@ -1,0 +1,101 @@
+use self::UciCommand::*;
+use std::str::FromStr;
+
+const START_POS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum UciCommand {
+    Init,
+    IsReady,
+    NewGame,
+    Position(String, Vec<String>),
+    Stop,
+    Quit,
+}
+
+impl FromStr for UciCommand {
+    type Err = String;
+
+    fn from_str(command: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<_> = command.split_whitespace().collect();
+        let args = &parts[1..];
+
+        match parts[0] {
+            "uci" => Ok(Init),
+            "isready" => Ok(IsReady),
+            "ucinewgame" => Ok(NewGame),
+            "position" => parse_position(args),
+            "stop" => Ok(Stop),
+            "quit" => Ok(Quit),
+            _ => Err(format!("unknown command '{command}'")),
+        }
+    }
+}
+
+fn parse_position(args: &[&str]) -> Result<UciCommand, String> {
+    enum Token {
+        None,
+        Fen,
+        Move,
+    }
+
+    let mut token = Token::None;
+    let mut fen = String::from("");
+    let mut moves = vec![];
+
+    for arg in args {
+        match *arg {
+            "fen" => token = Token::Fen,
+            "moves" => token = Token::Move,
+            "startpos" => fen = START_POS_FEN.to_string(),
+
+            _ => match token {
+                Token::Fen => fen = format!("{fen} {arg}"),
+                Token::Move => moves.push(arg.to_string()),
+                _ => (),
+            },
+        }
+    }
+
+    Ok(Position(fen.trim().to_string(), moves))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_position_command_with_start_pos() {
+        assert_eq!(
+            parse_command("position startpos"),
+            Position(START_POS_FEN.to_string(), vec![])
+        );
+    }
+
+    #[test]
+    fn parse_position_command_with_fen() {
+        let fen = "4k3/8/8/8/8/8/8/4K3 w - - 0 1".to_string();
+
+        assert_eq!(parse_command(&format!("position fen {fen}")), Position(fen, vec![]));
+    }
+
+    #[test]
+    fn parse_position_command_with_moves() {
+        let fen = "4k3/8/8/8/8/8/8/4K3 w - - 0 1".to_string();
+        let moves = vec!["e2e4".to_string(), "e7e5".to_string()];
+
+        assert_eq!(
+            parse_command(&format!("position startpos moves {}", moves.join(" "))),
+            Position(START_POS_FEN.to_string(), moves.clone())
+        );
+
+        assert_eq!(
+            parse_command(&format!("position fen {fen} moves {}", moves.join(" "))),
+            Position(fen, moves.clone())
+        );
+    }
+
+    fn parse_command(command: &str) -> UciCommand {
+        command.parse().unwrap()
+    }
+}

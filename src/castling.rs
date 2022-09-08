@@ -1,4 +1,5 @@
-use crate::{colour::Colour, square::Square};
+use crate::colour::Colour;
+use crate::square::Square;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CastlingRight {

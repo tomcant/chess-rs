@@ -10,6 +10,7 @@ mod movegen;
 mod piece;
 mod search;
 mod square;
+mod uci;
 
 use search::search;
 
