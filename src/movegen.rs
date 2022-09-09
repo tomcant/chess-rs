@@ -7,13 +7,15 @@ use crate::position::Position;
 use crate::r#move::Move;
 use crate::square::Square;
 
+const MAX_MOVES: usize = 256;
+
 pub trait MoveGenerator {
     fn generate_moves(&self) -> Vec<Move>;
 }
 
 impl MoveGenerator for Position {
     fn generate_moves(&self) -> Vec<Move> {
-        let mut moves = vec![];
+        let mut moves = Vec::with_capacity(MAX_MOVES);
 
         for piece_type in PieceType::types() {
             let mut pieces = self.board.pieces(*piece_type, self.colour_to_move);
