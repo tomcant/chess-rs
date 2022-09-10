@@ -1,7 +1,11 @@
 use self::UciCommand::*;
+use crate::fen::START_POS_FEN;
 use std::str::FromStr;
 
-const START_POS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+#[derive(Debug, PartialEq, Eq)]
+pub struct SearchParams {
+    pub depth: u8,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum UciCommand {
@@ -9,12 +13,13 @@ pub enum UciCommand {
     IsReady,
     NewGame,
     Position(String, Vec<String>),
+    Go(SearchParams),
     Stop,
     Quit,
 }
 
 impl FromStr for UciCommand {
-    type Err = String;
+    type Err = ();
 
     fn from_str(command: &str) -> Result<Self, Self::Err> {
         let parts: Vec<_> = command.split_whitespace().collect();
@@ -24,15 +29,16 @@ impl FromStr for UciCommand {
             "uci" => Ok(Init),
             "isready" => Ok(IsReady),
             "ucinewgame" => Ok(NewGame),
-            "position" => parse_position(args),
+            "position" => Ok(parse_position(args)),
+            "go" => Ok(parse_go(args)),
             "stop" => Ok(Stop),
             "quit" => Ok(Quit),
-            _ => Err(format!("unknown command '{command}'")),
+            _ => Err(()),
         }
     }
 }
 
-fn parse_position(args: &[&str]) -> Result<UciCommand, String> {
+fn parse_position(args: &[&str]) -> UciCommand {
     enum Token {
         None,
         Fen,
@@ -57,7 +63,22 @@ fn parse_position(args: &[&str]) -> Result<UciCommand, String> {
         }
     }
 
-    Ok(Position(fen.trim().to_string(), moves))
+    Position(fen.trim().to_string(), moves)
+}
+
+fn parse_go(args: &[&str]) -> UciCommand {
+    let mut params = SearchParams { depth: 1 };
+
+    let mut iter = args.iter();
+
+    while let Some(arg) = iter.next() {
+        match *arg {
+            "depth" => params.depth = iter.next().unwrap().parse().unwrap(),
+            _ => (),
+        }
+    }
+
+    Go(params)
 }
 
 #[cfg(test)]

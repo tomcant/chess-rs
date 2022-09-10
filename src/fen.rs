@@ -6,6 +6,8 @@ use crate::position::Position;
 use crate::square::Square;
 use std::str::FromStr;
 
+pub const START_POS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 impl FromStr for Position {
     type Err = ();
 
@@ -15,7 +17,7 @@ impl FromStr for Position {
 }
 
 fn parse_fen(fen: &str) -> Position {
-    let parts: Vec<&str> = fen.split_whitespace().collect();
+    let parts: Vec<_> = fen.split_whitespace().collect();
     const NUM_PARTS: usize = 6;
 
     if parts.len() != NUM_PARTS {
@@ -132,10 +134,9 @@ mod tests {
 
     #[test]
     fn board() {
-        let pos = parse_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+        let pos = parse_fen(START_POS_FEN);
 
-        assert_eq!(pos.board.piece_at(parse_square("e4")), Some(Piece::WhitePawn));
-        assert!(!pos.board.has_piece_at(parse_square("e2")));
+        assert_eq!(pos.board.piece_at(parse_square("e2")), Some(Piece::WhitePawn));
     }
 
     #[test]
