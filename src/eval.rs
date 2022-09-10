@@ -1,7 +1,7 @@
 use crate::board::Board;
 use crate::colour::Colour;
-use crate::game::GameState;
 use crate::piece::PieceType;
+use crate::position::Position;
 
 const PIECE_WEIGHTS: [i32; 6] = [1, 3, 3, 5, 9, 0];
 
@@ -9,7 +9,7 @@ pub trait Evaluator {
     fn evaluate(&self) -> i32;
 }
 
-impl Evaluator for GameState {
+impl Evaluator for Position {
     fn evaluate(&self) -> i32 {
         let material_diff = count_material(Colour::White, &self.board) - count_material(Colour::Black, &self.board);
 
@@ -32,35 +32,35 @@ mod tests {
 
     #[test]
     fn evaluate_an_even_position() {
-        let state = parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        let pos = parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-        assert_eq!(state.evaluate(), 0);
+        assert_eq!(pos.evaluate(), 0);
     }
 
     #[test]
     fn evaluate_a_material_advantage() {
-        let state = parse_fen("4kbnr/8/8/8/8/8/4P3/3QKBNR w - - 0 1");
+        let pos = parse_fen("4kbnr/8/8/8/8/8/4P3/3QKBNR w - - 0 1");
 
         assert_eq!(
-            state.evaluate(),
+            pos.evaluate(),
             PIECE_WEIGHTS[PieceType::Pawn as usize] + PIECE_WEIGHTS[PieceType::Queen as usize]
         );
     }
 
     #[test]
     fn evaluate_a_material_disadvantage() {
-        let state = parse_fen("3qkbnr/4p3/8/8/8/8/4P3/3QKB2 w - - 0 1");
+        let pos = parse_fen("3qkbnr/4p3/8/8/8/8/4P3/3QKB2 w - - 0 1");
 
         assert_eq!(
-            state.evaluate(),
+            pos.evaluate(),
             -(PIECE_WEIGHTS[PieceType::Knight as usize] + PIECE_WEIGHTS[PieceType::Rook as usize])
         );
     }
 
-    fn parse_fen(str: &str) -> GameState {
-        let state = str.parse();
-        assert!(state.is_ok());
+    fn parse_fen(str: &str) -> Position {
+        let pos = str.parse();
+        assert!(pos.is_ok());
 
-        state.unwrap()
+        pos.unwrap()
     }
 }

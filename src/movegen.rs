@@ -2,8 +2,8 @@ use crate::attacks::{get_attacks, is_attacked};
 use crate::board::{BitBoard, Board};
 use crate::castling::{CastlingRight, CastlingRights};
 use crate::colour::Colour;
-use crate::game::GameState;
 use crate::piece::{Piece, PieceType};
+use crate::position::Position;
 use crate::r#move::Move;
 use crate::square::Square;
 
@@ -11,7 +11,7 @@ pub trait MoveGenerator {
     fn generate_moves(&self) -> Vec<Move>;
 }
 
-impl MoveGenerator for GameState {
+impl MoveGenerator for Position {
     fn generate_moves(&self) -> Vec<Move> {
         let mut moves = vec![];
 
@@ -163,7 +163,6 @@ fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: 
 mod tests {
     use super::*;
     use crate::attacks::is_in_check;
-    use crate::game::GameState;
 
     #[test]
     fn legal_move_count_in_checkmate_is_zero() {
@@ -232,78 +231,78 @@ mod tests {
 
     #[test]
     fn castle_king_side_only() {
-        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w K - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/R3K2R w K - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 1);
+        assert_castling_move_count(&moves, &pos.board, 1);
     }
 
     #[test]
     fn castle_queen_side_only() {
-        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w Q - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/R3K2R w Q - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 1);
+        assert_castling_move_count(&moves, &pos.board, 1);
     }
 
     #[test]
     fn castle_king_and_queen_side() {
-        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w KQ - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/R3K2R w KQ - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 2);
+        assert_castling_move_count(&moves, &pos.board, 2);
     }
 
     #[test]
     fn no_castling_when_the_target_square_is_occupied_by_a_friendly_piece() {
-        let state = parse_fen("8/8/8/8/8/8/8/R1B1K1NR w KQ - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/R1B1K1NR w KQ - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 0);
+        assert_castling_move_count(&moves, &pos.board, 0);
     }
 
     #[test]
     fn no_castling_when_the_target_square_is_occupied_by_an_opponent_piece() {
-        let state = parse_fen("8/8/8/8/8/8/8/R1b1K1nR w KQ - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/R1b1K1nR w KQ - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 0);
+        assert_castling_move_count(&moves, &pos.board, 0);
     }
 
     #[test]
     fn no_castling_when_a_piece_blocks_the_path() {
-        let state = parse_fen("8/8/8/8/8/8/8/RN2KB1R w KQ - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/RN2KB1R w KQ - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 0);
+        assert_castling_move_count(&moves, &pos.board, 0);
     }
 
     #[test]
     fn no_castling_when_the_king_path_is_attacked() {
-        let state = parse_fen("8/8/8/8/8/4n3/8/R3K2R w KQ - 0 1");
+        let pos = parse_fen("8/8/8/8/8/4n3/8/R3K2R w KQ - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 0);
+        assert_castling_move_count(&moves, &pos.board, 0);
     }
 
     #[test]
     fn no_castling_when_the_right_was_previously_lost() {
-        let state = parse_fen("8/8/8/8/8/8/8/R3K2R w Q - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/R3K2R w Q - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 1);
+        assert_castling_move_count(&moves, &pos.board, 1);
 
         let castling_move = moves
             .iter()
-            .filter(|mv| state.board.piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
+            .filter(|mv| pos.board.piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
             .next()
             .unwrap();
 
@@ -312,18 +311,18 @@ mod tests {
 
     #[test]
     fn no_castling_out_of_check() {
-        let state = parse_fen("8/8/8/8/8/3n4/8/R3K2R w KQ - 0 1");
+        let pos = parse_fen("8/8/8/8/8/3n4/8/R3K2R w KQ - 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
-        assert_castling_move_count(&moves, &state.board, 0);
+        assert_castling_move_count(&moves, &pos.board, 0);
     }
 
     #[test]
     fn en_passant_capture() {
-        let state = parse_fen("8/8/8/3PpP2/8/8/8/8 w - e6 0 1");
+        let pos = parse_fen("8/8/8/3PpP2/8/8/8/8 w - e6 0 1");
 
-        let moves = state.generate_moves();
+        let moves = pos.generate_moves();
 
         assert_eq!(moves.iter().filter(|mv| mv.is_en_passant).count(), 2);
     }
@@ -411,18 +410,18 @@ mod tests {
             assert_eq!(perft(&mut parse_fen(fen), depth, true), expected_move_count);
         }
 
-        fn perft(state: &mut GameState, depth: u8, divide: bool) -> u64 {
+        fn perft(pos: &mut Position, depth: u8, divide: bool) -> u64 {
             if depth == 0 {
                 return 1;
             }
 
             let mut nodes = 0;
 
-            for mv in state.generate_moves() {
-                state.do_move(&mv);
+            for mv in pos.generate_moves() {
+                pos.do_move(&mv);
 
-                if !is_in_check(state.colour_to_move.flip(), &state.board) {
-                    let nodes_divide = perft(state, depth - 1, false);
+                if !is_in_check(pos.colour_to_move.flip(), &pos.board) {
+                    let nodes_divide = perft(pos, depth - 1, false);
 
                     if divide {
                         println!("{mv}: {nodes_divide}");
@@ -431,7 +430,7 @@ mod tests {
                     nodes += nodes_divide;
                 }
 
-                state.undo_move(&mv);
+                pos.undo_move(&mv);
             }
 
             if divide {
@@ -447,17 +446,17 @@ mod tests {
     }
 
     fn assert_legal_move_count(fen: &str, count: usize) {
-        let mut state = parse_fen(fen);
+        let mut pos = parse_fen(fen);
         let mut legal_move_count = 0;
 
-        for mv in state.generate_moves() {
-            state.do_move(&mv);
+        for mv in pos.generate_moves() {
+            pos.do_move(&mv);
 
-            if !is_in_check(state.colour_to_move.flip(), &state.board) {
+            if !is_in_check(pos.colour_to_move.flip(), &pos.board) {
                 legal_move_count += 1;
             }
 
-            state.undo_move(&mv);
+            pos.undo_move(&mv);
         }
 
         assert_eq!(legal_move_count, count);
@@ -473,10 +472,10 @@ mod tests {
         );
     }
 
-    fn parse_fen(str: &str) -> GameState {
-        let state = str.parse();
-        assert!(state.is_ok());
+    fn parse_fen(str: &str) -> Position {
+        let pos = str.parse();
+        assert!(pos.is_ok());
 
-        state.unwrap()
+        pos.unwrap()
     }
 }

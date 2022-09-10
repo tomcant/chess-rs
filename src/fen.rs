@@ -1,12 +1,12 @@
 use crate::board::Board;
 use crate::castling::{CastlingRight, CastlingRights};
 use crate::colour::Colour;
-use crate::game::GameState;
 use crate::piece::Piece;
+use crate::position::Position;
 use crate::square::Square;
 use std::str::FromStr;
 
-impl FromStr for GameState {
+impl FromStr for Position {
     type Err = ();
 
     fn from_str(fen: &str) -> Result<Self, Self::Err> {
@@ -14,7 +14,7 @@ impl FromStr for GameState {
     }
 }
 
-fn parse_fen(fen: &str) -> GameState {
+fn parse_fen(fen: &str) -> Position {
     let parts: Vec<&str> = fen.split_whitespace().collect();
     const NUM_PARTS: usize = 6;
 
@@ -22,7 +22,7 @@ fn parse_fen(fen: &str) -> GameState {
         panic!("error parsing fen: must contain {} parts", NUM_PARTS);
     }
 
-    GameState {
+    Position {
         board: parse_board(parts[0]),
         colour_to_move: parse_colour_to_move(parts[1]),
         castling_rights: parse_castling_rights(parts[2]),
@@ -128,14 +128,14 @@ fn parse_en_passant_square(square: &str) -> Option<Square> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::GameState;
+    use crate::position::Position;
 
     #[test]
     fn board() {
-        let state = parse_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
+        let pos = parse_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
-        assert_eq!(state.board.piece_at(parse_square("e4")), Some(Piece::WhitePawn));
-        assert!(!state.board.has_piece_at(parse_square("e2")));
+        assert_eq!(pos.board.piece_at(parse_square("e4")), Some(Piece::WhitePawn));
+        assert!(!pos.board.has_piece_at(parse_square("e2")));
     }
 
     #[test]
@@ -182,16 +182,16 @@ mod tests {
 
     #[test]
     fn white_to_move() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
 
-        assert_eq!(state.colour_to_move, Colour::White);
+        assert_eq!(pos.colour_to_move, Colour::White);
     }
 
     #[test]
     fn black_to_move() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 b - - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 b - - 0 1");
 
-        assert_eq!(state.colour_to_move, Colour::Black);
+        assert_eq!(pos.colour_to_move, Colour::Black);
     }
 
     #[test]
@@ -202,26 +202,26 @@ mod tests {
 
     #[test]
     fn no_castling_rights() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
 
-        assert_eq!(state.castling_rights, CastlingRights::none());
+        assert_eq!(pos.castling_rights, CastlingRights::none());
     }
 
     #[test]
     fn partial_castling_rights() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w Kq - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w Kq - 0 1");
 
         assert_eq!(
-            state.castling_rights,
+            pos.castling_rights,
             CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::BlackQueen])
         );
     }
 
     #[test]
     fn all_castling_rights() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w KQkq - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w KQkq - 0 1");
 
-        assert_eq!(state.castling_rights, CastlingRights::all());
+        assert_eq!(pos.castling_rights, CastlingRights::all());
     }
 
     #[test]
@@ -232,23 +232,23 @@ mod tests {
 
     #[test]
     fn no_en_passant_square() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w - - 0 1");
 
-        assert_eq!(state.en_passant_square, None);
+        assert_eq!(pos.en_passant_square, None);
     }
 
     #[test]
     fn en_passant_square_3rd_rank() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w - f3 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w - f3 0 1");
 
-        assert_eq!(state.en_passant_square, Some(parse_square("f3")));
+        assert_eq!(pos.en_passant_square, Some(parse_square("f3")));
     }
 
     #[test]
     fn en_passant_square_6th_rank() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w - f6 0 1");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w - f6 0 1");
 
-        assert_eq!(state.en_passant_square, Some(parse_square("f6")));
+        assert_eq!(pos.en_passant_square, Some(parse_square("f6")));
     }
 
     #[test]
@@ -259,17 +259,17 @@ mod tests {
 
     #[test]
     fn move_counters() {
-        let state = parse_fen("8/8/8/8/8/8/8/8 w - - 10 20");
+        let pos = parse_fen("8/8/8/8/8/8/8/8 w - - 10 20");
 
-        assert_eq!(state.half_move_clock, 10);
-        assert_eq!(state.full_move_counter, 20);
+        assert_eq!(pos.half_move_clock, 10);
+        assert_eq!(pos.full_move_counter, 20);
     }
 
-    fn parse_fen(str: &str) -> GameState {
-        let state = str.parse();
-        assert!(state.is_ok());
+    fn parse_fen(str: &str) -> Position {
+        let pos = str.parse();
+        assert!(pos.is_ok());
 
-        state.unwrap()
+        pos.unwrap()
     }
 
     fn parse_square(str: &str) -> Square {
