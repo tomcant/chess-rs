@@ -1,12 +1,11 @@
 use crate::attacks::is_in_check;
-use crate::board::Board;
-use crate::colour::Colour;
 use crate::eval::Evaluator;
 use crate::movegen::MoveGenerator;
 use crate::position::Position;
 use crate::r#move::Move;
 
 const EVAL_MIN: i32 = -9999;
+const EVAL_STALEMATE: i32 = 0;
 
 pub fn search(pos: &mut Position, depth: u8) -> Option<Move> {
     let mut best_move = None;
@@ -41,12 +40,15 @@ fn negamax(pos: &mut Position, depth: u8) -> i32 {
         return pos.evaluate();
     }
 
+    let mut has_legal_move = false;
     let mut best_eval = EVAL_MIN;
 
     for mv in pos.generate_moves() {
         pos.do_move(&mv);
 
         if !is_in_check(pos.opponent_colour(), &pos.board) {
+            has_legal_move = true;
+
             let eval = -negamax(pos, depth - 1);
 
             if eval > best_eval {
@@ -57,13 +59,9 @@ fn negamax(pos: &mut Position, depth: u8) -> i32 {
         pos.undo_move(&mv);
     }
 
-    if is_stalemate(pos.colour_to_move, &pos.board, best_eval) {
-        return 0;
+    if !has_legal_move && !is_in_check(pos.colour_to_move, &pos.board) {
+        return EVAL_STALEMATE;
     }
 
-    best_eval
-}
-
-fn is_stalemate(colour_to_move: Colour, board: &Board, eval: i32) -> bool {
-    eval == EVAL_MIN && !is_in_check(colour_to_move, board)
+    best_eval - depth as i32
 }
