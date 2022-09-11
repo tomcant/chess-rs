@@ -1,4 +1,6 @@
 use crate::attacks::is_in_check;
+use crate::board::Board;
+use crate::colour::Colour;
 use crate::eval::Evaluator;
 use crate::movegen::MoveGenerator;
 use crate::position::Position;
@@ -51,5 +53,13 @@ fn negamax(pos: &mut Position, depth: u8) -> i32 {
         pos.undo_move(&mv);
     }
 
+    if is_stalemate(pos.colour_to_move, &pos.board, best_eval) {
+        return 0;
+    }
+
     best_eval
+}
+
+fn is_stalemate(colour_to_move: Colour, board: &Board, eval: i32) -> bool {
+    eval == EVAL_MIN && !is_in_check(colour_to_move, board)
 }
