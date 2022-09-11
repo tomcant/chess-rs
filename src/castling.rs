@@ -17,17 +17,6 @@ impl CastlingRights {
         Self(0)
     }
 
-    pub fn all() -> Self {
-        Self(15)
-    }
-
-    pub fn from(rights: &[CastlingRight]) -> Self {
-        rights.iter().fold(Self::none(), |mut acc, right| {
-            acc.add(*right);
-            acc
-        })
-    }
-
     pub fn has(&self, right: CastlingRight) -> bool {
         self.0 & right as u8 != 0
     }
@@ -135,6 +124,19 @@ mod tests {
 
         for right in not_rights {
             assert!(!rights.has(right));
+        }
+    }
+
+    impl CastlingRights {
+        pub fn all() -> Self {
+            Self(15)
+        }
+
+        pub fn from(rights: &[CastlingRight]) -> Self {
+            rights.iter().fold(Self::none(), |mut acc, right| {
+                acc.add(*right);
+                acc
+            })
         }
     }
 }

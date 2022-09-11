@@ -18,9 +18,12 @@ use crate::uci::UciCommand;
 use std::{io, sync, thread};
 
 fn main() -> io::Result<()> {
-    println!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    let name = format!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    let author = env!("CARGO_PKG_AUTHORS");
 
-    let (tx, rx) = sync::mpsc::channel();
+    println!("{name}");
+
+    let (tx, rx) = sync::mpsc::channel::<UciCommand>();
 
     thread::spawn(move || loop {
         let mut buffer = String::new();
@@ -31,7 +34,7 @@ fn main() -> io::Result<()> {
             continue;
         }
 
-        match command.parse::<UciCommand>() {
+        match command.parse() {
             Ok(parsed) => tx.send(parsed).unwrap(),
             Err(_) => println!("unknown command '{command}'"),
         }
@@ -44,12 +47,14 @@ fn main() -> io::Result<()> {
 
         match command {
             UciCommand::Init => {
-                println!("id name chess-rs");
-                println!("id author Tom Cant");
+                println!("id name {name}");
+                println!("id author {author}");
                 println!("uciok");
             }
             UciCommand::Position(fen, _moves) => {
-                pos = fen.parse().unwrap();
+                if let Ok(parsed) = fen.parse() {
+                    pos = parsed;
+                }
                 // todo: apply moves to position
             }
             UciCommand::Go(params) => {
