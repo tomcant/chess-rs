@@ -15,7 +15,7 @@ pub fn search(pos: &mut Position, depth: u8) -> Option<Move> {
     for mv in pos.generate_moves() {
         pos.do_move(&mv);
 
-        if !is_in_check(pos.colour_to_move.flip(), &pos.board) {
+        if !is_in_check(pos.opponent_colour(), &pos.board) {
             if best_move.is_none() {
                 best_move = Some(mv);
             }
@@ -46,7 +46,7 @@ fn negamax(pos: &mut Position, depth: u8) -> i32 {
     for mv in pos.generate_moves() {
         pos.do_move(&mv);
 
-        if !is_in_check(pos.colour_to_move.flip(), &pos.board) {
+        if !is_in_check(pos.opponent_colour(), &pos.board) {
             let eval = -negamax(pos, depth - 1);
 
             if eval > best_eval {

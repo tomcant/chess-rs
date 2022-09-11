@@ -62,7 +62,7 @@ impl Position {
         self.board.put_piece(piece, mv.to);
         self.board.clear_square(mv.from);
 
-        self.colour_to_move = self.colour_to_move.flip();
+        self.colour_to_move = self.opponent_colour();
         self.full_move_counter += 1;
     }
 
@@ -73,7 +73,7 @@ impl Position {
         };
 
         if piece.is_king() && mv.file_diff() > 1 {
-            let rook = Piece::from(PieceType::Rook, self.colour_to_move.flip());
+            let rook = Piece::from(PieceType::Rook, self.opponent_colour());
 
             match mv.to.file() {
                 2 => {
@@ -102,8 +102,12 @@ impl Position {
             }
         }
 
-        self.colour_to_move = self.colour_to_move.flip();
+        self.colour_to_move = self.opponent_colour();
         self.full_move_counter -= 1;
+    }
+
+    pub fn opponent_colour(&self) -> Colour {
+        self.colour_to_move.flip()
     }
 }
 

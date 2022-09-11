@@ -34,7 +34,7 @@ impl MoveGenerator for Position {
                         moves.push(Move {
                             from: from_square,
                             to: self.en_passant_square.unwrap(),
-                            captured_piece: Some(Piece::from(PieceType::Pawn, self.colour_to_move.flip())),
+                            captured_piece: Some(Piece::from(PieceType::Pawn, self.opponent_colour())),
                             promotion_piece: None,
                             castling_rights: self.castling_rights,
                             is_en_passant: true,
@@ -422,7 +422,7 @@ mod tests {
             for mv in pos.generate_moves() {
                 pos.do_move(&mv);
 
-                if !is_in_check(pos.colour_to_move.flip(), &pos.board) {
+                if !is_in_check(pos.opponent_colour(), &pos.board) {
                     let nodes_divide = perft(pos, depth - 1, false);
 
                     if divide {
@@ -454,7 +454,7 @@ mod tests {
         for mv in pos.generate_moves() {
             pos.do_move(&mv);
 
-            if !is_in_check(pos.colour_to_move.flip(), &pos.board) {
+            if !is_in_check(pos.opponent_colour(), &pos.board) {
                 legal_move_count += 1;
             }
 
