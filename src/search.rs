@@ -16,6 +16,10 @@ pub fn search(pos: &mut Position, depth: u8) -> Option<Move> {
         pos.do_move(&mv);
 
         if !is_in_check(pos.colour_to_move.flip(), &pos.board) {
+            if best_move.is_none() {
+                best_move = Some(mv);
+            }
+
             let eval = -negamax(pos, depth - 1);
 
             if eval > best_eval {

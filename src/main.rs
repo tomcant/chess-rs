@@ -58,8 +58,11 @@ fn main() -> io::Result<()> {
                 // todo: apply moves to position
             }
             UciCommand::Go(params) => {
-                let mv = search(&mut pos, params.depth).unwrap();
-                println!("bestmove {mv}");
+                if let Some(mv) = search(&mut pos, params.depth) {
+                    println!("bestmove {mv}");
+                } else {
+                    println!("bestmove (none)");
+                }
             }
             UciCommand::IsReady => println!("readyok"),
             UciCommand::Quit => break,
