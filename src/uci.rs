@@ -29,7 +29,7 @@ impl FromStr for UciCommand {
             "uci" => Ok(Init),
             "isready" => Ok(IsReady),
             "ucinewgame" => Ok(NewGame),
-            "position" => Ok(parse_position(args)),
+            "position" => Ok(parse_position(args)?),
             "go" => Ok(parse_go(args)),
             "stop" => Ok(Stop),
             "quit" => Ok(Quit),
@@ -38,7 +38,7 @@ impl FromStr for UciCommand {
     }
 }
 
-fn parse_position(args: &[&str]) -> UciCommand {
+fn parse_position(args: &[&str]) -> Result<UciCommand, ()> {
     enum Token {
         None,
         Fen,
@@ -63,12 +63,15 @@ fn parse_position(args: &[&str]) -> UciCommand {
         }
     }
 
-    Position(fen.trim().to_string(), moves)
+    if fen.is_empty() {
+        return Err(());
+    }
+
+    Ok(Position(fen.trim().to_string(), moves))
 }
 
 fn parse_go(args: &[&str]) -> UciCommand {
     let mut params = SearchParams { depth: 1 };
-
     let mut iter = args.iter();
 
     while let Some(arg) = iter.next() {
