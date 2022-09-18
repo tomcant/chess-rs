@@ -4,7 +4,8 @@ use crate::movegen::MoveGenerator;
 use crate::position::Position;
 use crate::r#move::Move;
 
-const EVAL_MIN: i32 = -9999;
+const EVAL_MAX: i32 = 10_000;
+const EVAL_MIN: i32 = -EVAL_MAX;
 const EVAL_STALEMATE: i32 = 0;
 
 pub fn search(pos: &mut Position, depth: u8) -> Option<Move> {
@@ -19,7 +20,7 @@ pub fn search(pos: &mut Position, depth: u8) -> Option<Move> {
                 best_move = Some(mv);
             }
 
-            let eval = -negamax(pos, depth - 1);
+            let eval = -alpha_beta(pos, depth - 1, EVAL_MIN, EVAL_MAX);
 
             if eval > best_eval {
                 best_move = Some(mv);
@@ -35,13 +36,14 @@ pub fn search(pos: &mut Position, depth: u8) -> Option<Move> {
     best_move
 }
 
-fn negamax(pos: &mut Position, depth: u8) -> i32 {
+fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32) -> i32 {
     if depth == 0 {
         return pos.evaluate();
     }
 
     let mut has_legal_move = false;
-    let mut best_eval = EVAL_MIN;
+
+    // todo: sort moves
 
     for mv in pos.generate_moves() {
         pos.do_move(&mv);
@@ -49,10 +51,16 @@ fn negamax(pos: &mut Position, depth: u8) -> i32 {
         if !is_in_check(pos.opponent_colour(), &pos.board) {
             has_legal_move = true;
 
-            let eval = -negamax(pos, depth - 1);
+            let eval = -alpha_beta(pos, depth - 1, -beta, -alpha);
 
-            if eval > best_eval {
-                best_eval = eval;
+            if eval >= beta {
+                alpha = beta;
+                pos.undo_move(&mv);
+                break;
+            }
+
+            if eval > alpha {
+                alpha = eval;
             }
         }
 
@@ -63,5 +71,5 @@ fn negamax(pos: &mut Position, depth: u8) -> i32 {
         return EVAL_STALEMATE;
     }
 
-    best_eval - depth as i32
+    alpha - depth as i32
 }
