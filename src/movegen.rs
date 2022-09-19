@@ -336,20 +336,17 @@ mod tests {
 
     mod perft {
         use super::*;
+        use crate::fen::START_POS_FEN;
 
         #[test]
         fn perft_start_position_shallow() {
-            assert_perft_for_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197_281);
+            assert_perft_for_fen(START_POS_FEN, 4, 197_281);
         }
 
         #[test]
         #[ignore]
         fn perft_start_position() {
-            assert_perft_for_fen(
-                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-                6,
-                119_060_324,
-            );
+            assert_perft_for_fen(START_POS_FEN, 6, 119_060_324);
         }
 
         #[test]

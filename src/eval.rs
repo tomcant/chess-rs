@@ -29,10 +29,11 @@ fn count_material(colour: Colour, board: &Board) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fen::START_POS_FEN;
 
     #[test]
     fn evaluate_an_even_position() {
-        let pos = parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        let pos = parse_fen(START_POS_FEN);
 
         assert_eq!(pos.evaluate(), 0);
     }
