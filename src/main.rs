@@ -51,6 +51,9 @@ fn main() -> io::Result<()> {
                 println!("id author {author}");
                 println!("uciok");
             }
+            UciCommand::NewGame => {
+                pos = START_POS_FEN.parse().unwrap();
+            }
             UciCommand::Position(fen, _moves) => {
                 if let Ok(parsed) = fen.parse() {
                     pos = parsed;
