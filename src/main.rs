@@ -4,6 +4,7 @@ mod castling;
 mod colour;
 mod eval;
 mod fen;
+mod info;
 mod r#move;
 mod movegen;
 mod piece;
@@ -12,16 +13,13 @@ mod search;
 mod square;
 mod uci;
 
-use crate::fen::START_POS_FEN;
-use crate::search::search;
-use crate::uci::UciCommand;
+use crate::info::{info_author, info_name};
+use crate::position::Position;
+use crate::uci::{uci_handle_command, UciCommand};
 use std::{io, sync, thread};
 
 fn main() -> io::Result<()> {
-    let name = format!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    let author = env!("CARGO_PKG_AUTHORS");
-
-    println!("{name}");
+    println!("{}, {}", info_name(), info_author());
 
     let (tx, rx) = sync::mpsc::channel::<UciCommand>();
 
@@ -40,37 +38,16 @@ fn main() -> io::Result<()> {
         }
     });
 
-    let mut pos = START_POS_FEN.parse().unwrap();
+    let mut pos = Position::startpos();
 
     loop {
         let command = rx.recv().unwrap();
 
-        match command {
-            UciCommand::Init => {
-                println!("id name {name}");
-                println!("id author {author}");
-                println!("uciok");
-            }
-            UciCommand::NewGame => {
-                pos = START_POS_FEN.parse().unwrap();
-            }
-            UciCommand::Position(fen, _moves) => {
-                if let Ok(parsed) = fen.parse() {
-                    pos = parsed;
-                }
-                // todo: apply moves to position
-            }
-            UciCommand::Go(params) => {
-                if let Some(mv) = search(&mut pos, params.depth) {
-                    println!("bestmove {mv}");
-                } else {
-                    println!("bestmove (none)");
-                }
-            }
-            UciCommand::IsReady => println!("readyok"),
-            UciCommand::Quit => break,
-            _ => println!("unhandled command: {command:?}"),
+        if command == UciCommand::Quit {
+            break;
         }
+
+        uci_handle_command(&command, &mut pos);
     }
 
     Ok(())

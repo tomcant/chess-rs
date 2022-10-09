@@ -1,5 +1,10 @@
 use self::UciCommand::*;
 use crate::fen::START_POS_FEN;
+use crate::info::{info_author, info_name};
+use crate::position::Position;
+use crate::r#move::Move;
+use crate::search::search;
+use crate::square::Square;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -7,12 +12,29 @@ pub struct SearchParams {
     pub depth: u8,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UciMove {
+    pub from: Square,
+    pub to: Square,
+}
+
+impl FromStr for UciMove {
+    type Err = ();
+
+    fn from_str(mv: &str) -> Result<Self, Self::Err> {
+        let from = mv[0..2].parse()?;
+        let to = mv[2..4].parse()?;
+
+        Ok(UciMove { from, to })
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum UciCommand {
     Init,
     IsReady,
     NewGame,
-    Position(String, Vec<String>),
+    Position(String, Vec<UciMove>),
     Go(SearchParams),
     Stop,
     Quit,
@@ -38,6 +60,44 @@ impl FromStr for UciCommand {
     }
 }
 
+pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
+    match command {
+        UciCommand::Init => {
+            println!("id name {}", info_name());
+            println!("id author {}", info_author());
+            println!("uciok");
+        }
+        UciCommand::NewGame => {
+            *pos = START_POS_FEN.parse().unwrap();
+        }
+        UciCommand::Position(fen, moves) => {
+            if let Ok(parsed) = fen.parse() {
+                *pos = parsed;
+
+                for mv in moves {
+                    pos.do_move(&Move {
+                        from: mv.from,
+                        to: mv.to,
+                        captured_piece: pos.board.piece_at(mv.to),
+                        promotion_piece: None,
+                        castling_rights: pos.castling_rights,
+                        is_en_passant: false,
+                    });
+                }
+            }
+        }
+        UciCommand::Go(params) => {
+            if let Some(mv) = search(pos, params.depth) {
+                println!("bestmove {mv}");
+            } else {
+                println!("bestmove (none)");
+            }
+        }
+        UciCommand::IsReady => println!("readyok"),
+        UciCommand::Stop | UciCommand::Quit => unimplemented!(),
+    }
+}
+
 fn parse_position(args: &[&str]) -> Result<UciCommand, ()> {
     enum Token {
         None,
@@ -57,7 +117,7 @@ fn parse_position(args: &[&str]) -> Result<UciCommand, ()> {
 
             _ => match token {
                 Token::Fen => fen = format!("{fen} {arg}"),
-                Token::Move => moves.push(arg.to_string()),
+                Token::Move => moves.push(arg.parse().unwrap()),
                 _ => (),
             },
         }
@@ -105,17 +165,18 @@ mod tests {
 
     #[test]
     fn parse_position_command_with_moves() {
-        let fen = "4k3/8/8/8/8/8/8/4K3 w - - 0 1".to_string();
-        let moves = vec!["e2e4".to_string(), "e7e5".to_string()];
+        let uci_moves = vec!["e2e4".parse().unwrap(), "e7e5".parse().unwrap()];
 
         assert_eq!(
-            parse_command(&format!("position startpos moves {}", moves.join(" "))),
-            Position(START_POS_FEN.to_string(), moves.clone())
+            parse_command("position startpos moves e2e4 e7e5"),
+            Position(START_POS_FEN.to_string(), uci_moves.clone())
         );
 
+        let fen = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
+
         assert_eq!(
-            parse_command(&format!("position fen {fen} moves {}", moves.join(" "))),
-            Position(fen, moves.clone())
+            parse_command(&format!("position fen {fen} moves e2e4 e7e5")),
+            Position(fen.to_string(), uci_moves.clone())
         );
     }
 

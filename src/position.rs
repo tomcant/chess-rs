@@ -1,6 +1,7 @@
 use crate::board::Board;
 use crate::castling::CastlingRights;
 use crate::colour::Colour;
+use crate::fen::START_POS_FEN;
 use crate::piece::{Piece, PieceType};
 use crate::r#move::Move;
 use crate::square::Square;
@@ -16,6 +17,10 @@ pub struct Position {
 }
 
 impl Position {
+    pub fn startpos() -> Self {
+        START_POS_FEN.parse().unwrap()
+    }
+
     pub fn do_move(&mut self, mv: &Move) {
         if mv.is_capture() {
             self.board.clear_square(mv.capture_square());
