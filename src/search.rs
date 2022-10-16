@@ -1,12 +1,8 @@
 use crate::attacks::is_in_check;
-use crate::eval::Evaluator;
+use crate::eval::{Evaluator, EVAL_MAX, EVAL_MIN, EVAL_STALEMATE};
 use crate::movegen::MoveGenerator;
 use crate::position::Position;
 use crate::r#move::Move;
-
-const EVAL_MAX: i32 = 10_000;
-const EVAL_MIN: i32 = -EVAL_MAX;
-const EVAL_STALEMATE: i32 = 0;
 
 pub fn search(pos: &mut Position, depth: u8) -> Option<Move> {
     let mut best_move = None;
