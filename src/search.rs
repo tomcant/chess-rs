@@ -67,9 +67,13 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32) -> i32 {
         pos.undo_move(&mv);
     }
 
-    if !has_legal_move && !is_in_check(pos.colour_to_move, &pos.board) {
-        return EVAL_STALEMATE;
+    if has_legal_move {
+        return alpha;
     }
 
-    alpha - depth as i32
+    if is_in_check(pos.colour_to_move, &pos.board) {
+        return EVAL_MIN;
+    }
+
+    EVAL_STALEMATE
 }
