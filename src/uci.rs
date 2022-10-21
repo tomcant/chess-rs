@@ -3,9 +3,30 @@ use crate::fen::START_POS_FEN;
 use crate::info::{info_author, info_name};
 use crate::position::Position;
 use crate::r#move::Move;
-use crate::search::search;
+use crate::search::{search, Report};
 use crate::square::Square;
 use std::str::FromStr;
+
+#[derive(Debug)]
+struct UciReport {
+    pub best_move: Option<Move>,
+}
+
+impl UciReport {
+    pub fn new() -> Self {
+        Self { best_move: None }
+    }
+}
+
+impl Report for UciReport {
+    fn best_move(&mut self, mv: Move, eval: i32, depth: u8) {
+        self.best_move = Some(mv);
+
+        // todo: implement `nodes` and `time`
+
+        println!("info pv {mv} depth {depth} score cp {} nodes 1 time 1", eval * 100);
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct SearchParams {
@@ -87,10 +108,12 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
             }
         }
         UciCommand::Go(params) => {
-            if let Some(mv) = search(pos, params.depth) {
-                println!("bestmove {mv}");
-            } else {
-                println!("bestmove (none)");
+            let mut report = UciReport::new();
+            search(pos, params.depth, &mut report);
+
+            match report.best_move {
+                Some(mv) => println!("bestmove {mv}"),
+                None => println!("bestmove (none)"),
             }
         }
         UciCommand::IsReady => println!("readyok"),
