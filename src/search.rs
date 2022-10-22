@@ -3,12 +3,15 @@ use crate::eval::{Evaluator, EVAL_MAX, EVAL_MIN, EVAL_STALEMATE};
 use crate::movegen::MoveGenerator;
 use crate::position::Position;
 use crate::r#move::Move;
+use std::time::{Duration, Instant};
 
 pub trait Report {
     fn best_move(&mut self, mv: Move, eval: i32, depth: u8);
+    fn elapsed_time(&mut self, time: Duration);
 }
 
 pub fn search(pos: &mut Position, depth: u8, report: &mut dyn Report) {
+    let start = Instant::now();
     let mut best_eval = EVAL_MIN;
 
     for mv in pos.generate_moves() {
@@ -24,6 +27,7 @@ pub fn search(pos: &mut Position, depth: u8, report: &mut dyn Report) {
         }
 
         pos.undo_move(&mv);
+        report.elapsed_time(start.elapsed());
     }
 }
 
@@ -72,12 +76,11 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fen::START_POS_FEN;
-    use doubles::*;
+    use doubles::ReportSpy;
 
     #[test]
     fn report_a_best_move() {
-        let mut pos = parse_fen(START_POS_FEN);
+        let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
         search(&mut pos, 1, &mut report);
@@ -85,11 +88,14 @@ mod tests {
         assert!(report.last_best_move.is_some());
     }
 
-    fn parse_fen(str: &str) -> Position {
-        let pos = str.parse();
-        assert!(pos.is_ok());
+    #[test]
+    fn report_an_elapsed_time_greater_than_zero() {
+        let mut pos = Position::startpos();
+        let mut report = ReportSpy::new();
 
-        pos.unwrap()
+        search(&mut pos, 1, &mut report);
+
+        assert!(report.last_elapsed_time.gt(&Duration::ZERO));
     }
 
     mod doubles {
@@ -97,17 +103,25 @@ mod tests {
 
         pub struct ReportSpy {
             pub last_best_move: Option<Move>,
+            pub last_elapsed_time: Duration,
         }
 
         impl ReportSpy {
             pub fn new() -> Self {
-                Self { last_best_move: None }
+                Self {
+                    last_best_move: None,
+                    last_elapsed_time: Duration::ZERO,
+                }
             }
         }
 
         impl Report for ReportSpy {
             fn best_move(&mut self, mv: Move, _eval: i32, _depth: u8) {
                 self.last_best_move = Some(mv);
+            }
+
+            fn elapsed_time(&mut self, time: Duration) {
+                self.last_elapsed_time = time;
             }
         }
     }

@@ -6,15 +6,20 @@ use crate::r#move::Move;
 use crate::search::{search, Report};
 use crate::square::Square;
 use std::str::FromStr;
+use std::time::Duration;
 
 #[derive(Debug)]
 struct UciReport {
     pub best_move: Option<Move>,
+    pub elapsed_ms: u128,
 }
 
 impl UciReport {
     pub fn new() -> Self {
-        Self { best_move: None }
+        Self {
+            best_move: None,
+            elapsed_ms: 0,
+        }
     }
 }
 
@@ -22,9 +27,15 @@ impl Report for UciReport {
     fn best_move(&mut self, mv: Move, eval: i32, depth: u8) {
         self.best_move = Some(mv);
 
-        // todo: implement `nodes` and `time`
+        println!(
+            "info pv {mv} depth {depth} score cp {} time {}",
+            eval * 100,
+            self.elapsed_ms
+        );
+    }
 
-        println!("info pv {mv} depth {depth} score cp {} nodes 1 time 1", eval * 100);
+    fn elapsed_time(&mut self, time: Duration) {
+        self.elapsed_ms = time.as_millis();
     }
 }
 
@@ -89,7 +100,7 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
             println!("uciok");
         }
         UciCommand::NewGame => {
-            *pos = START_POS_FEN.parse().unwrap();
+            *pos = Position::startpos();
         }
         UciCommand::Position(fen, moves) => {
             if let Ok(parsed) = fen.parse() {
