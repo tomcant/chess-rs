@@ -1,6 +1,8 @@
 use self::UciCommand::*;
+use crate::colour::Colour;
 use crate::fen::START_POS_FEN;
 use crate::info::{info_author, info_name};
+use crate::piece::{Piece, PieceType};
 use crate::position::Position;
 use crate::r#move::Move;
 use crate::search::{search, Report};
@@ -54,16 +56,39 @@ pub struct SearchParams {
 pub struct UciMove {
     pub from: Square,
     pub to: Square,
+    pub promotion_piece: Option<Piece>,
 }
 
 impl FromStr for UciMove {
     type Err = ();
 
     fn from_str(mv: &str) -> Result<Self, Self::Err> {
-        let from = mv[0..2].parse()?;
-        let to = mv[2..4].parse()?;
+        let from = mv[0..2].parse::<Square>()?;
+        let to = mv[2..4].parse::<Square>()?;
 
-        Ok(UciMove { from, to })
+        let promotion_piece = if mv.len() > 4 {
+            Some(Piece::from(
+                match mv.chars().nth(4).unwrap() {
+                    'n' => PieceType::Knight,
+                    'b' => PieceType::Bishop,
+                    'r' => PieceType::Rook,
+                    'q' => PieceType::Queen,
+                    _ => return Err(()),
+                },
+                match to.rank() {
+                    0 => Colour::Black,
+                    _ => Colour::White,
+                },
+            ))
+        } else {
+            None
+        };
+
+        Ok(UciMove {
+            from,
+            to,
+            promotion_piece,
+        })
     }
 }
 
@@ -117,7 +142,7 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
                         from: mv.from,
                         to: mv.to,
                         captured_piece: pos.board.piece_at(mv.to),
-                        promotion_piece: None,
+                        promotion_piece: mv.promotion_piece,
                         castling_rights: pos.castling_rights,
                         is_en_passant: false,
                     });
@@ -134,7 +159,8 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
             }
         }
         UciCommand::IsReady => println!("readyok"),
-        UciCommand::Stop | UciCommand::Quit => unimplemented!(),
+        UciCommand::Stop => println!("todo: implement stop command"),
+        _ => (),
     }
 }
 
@@ -198,29 +224,101 @@ mod tests {
 
     #[test]
     fn parse_position_command_with_fen() {
-        let fen = "4k3/8/8/8/8/8/8/4K3 w - - 0 1".to_string();
-
-        assert_eq!(parse_command(&format!("position fen {fen}")), Position(fen, vec![]));
+        assert_eq!(
+            parse_command("position fen 4k3/8/8/8/8/8/8/4K3 w - - 0 1"),
+            Position("4k3/8/8/8/8/8/8/4K3 w - - 0 1".to_string(), vec![])
+        );
     }
 
     #[test]
     fn parse_position_command_with_moves() {
-        let uci_moves = vec!["e2e4".parse().unwrap(), "e7e5".parse().unwrap()];
-
         assert_eq!(
-            parse_command("position startpos moves e2e4 e7e5"),
-            Position(START_POS_FEN.to_string(), uci_moves.clone())
+            parse_command("position startpos moves e2e4"),
+            Position(
+                START_POS_FEN.to_string(),
+                vec![UciMove {
+                    from: parse_square("e2"),
+                    to: parse_square("e4"),
+                    promotion_piece: None
+                }]
+            )
         );
 
-        let fen = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
+        assert_eq!(
+            parse_command("position fen 4k3/8/8/8/8/8/8/4K3 w - - 0 1 moves d2d4 e7e6"),
+            Position(
+                "4k3/8/8/8/8/8/8/4K3 w - - 0 1".to_string(),
+                vec![
+                    UciMove {
+                        from: parse_square("d2"),
+                        to: parse_square("d4"),
+                        promotion_piece: None
+                    },
+                    UciMove {
+                        from: parse_square("e7"),
+                        to: parse_square("e6"),
+                        promotion_piece: None
+                    }
+                ]
+            )
+        );
 
         assert_eq!(
-            parse_command(&format!("position fen {fen} moves e2e4 e7e5")),
-            Position(fen.to_string(), uci_moves.clone())
+            parse_command("position startpos moves e7e8q"),
+            Position(
+                START_POS_FEN.to_string(),
+                vec![UciMove {
+                    from: parse_square("e7"),
+                    to: parse_square("e8"),
+                    promotion_piece: Some(Piece::WhiteQueen)
+                }]
+            )
         );
+
+        assert_eq!(
+            parse_command("position startpos moves e2e1r"),
+            Position(
+                START_POS_FEN.to_string(),
+                vec![UciMove {
+                    from: parse_square("e2"),
+                    to: parse_square("e1"),
+                    promotion_piece: Some(Piece::BlackRook)
+                }]
+            )
+        );
+    }
+
+    #[test]
+    fn handle_position_command_with_moves() {
+        let command = parse_command("position startpos moves e2e4 e7e5");
+        let mut pos = Position::startpos();
+
+        uci_handle_command(&command, &mut pos);
+
+        assert_eq!(pos.board.piece_at(parse_square("e4")), Some(Piece::WhitePawn));
+        assert_eq!(pos.board.piece_at(parse_square("e5")), Some(Piece::BlackPawn));
+    }
+
+    #[test]
+    fn handle_position_command_with_promotion_moves() {
+        let fen = "8/1P2k3/8/8/8/8/4K1p1/8 w - - 0 1";
+        let command = parse_command(&format!("position fen {fen} moves b7b8q g2g1r"));
+        let mut pos = fen.parse().unwrap();
+
+        uci_handle_command(&command, &mut pos);
+
+        assert_eq!(pos.board.piece_at(parse_square("b8")), Some(Piece::WhiteQueen));
+        assert_eq!(pos.board.piece_at(parse_square("g1")), Some(Piece::BlackRook));
     }
 
     fn parse_command(command: &str) -> UciCommand {
         command.parse().unwrap()
+    }
+
+    fn parse_square(str: &str) -> Square {
+        let square = str.parse();
+        assert!(square.is_ok());
+
+        square.unwrap()
     }
 }
