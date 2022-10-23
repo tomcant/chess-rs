@@ -6,39 +6,31 @@ use crate::r#move::Move;
 use std::time::{Duration, Instant};
 
 pub trait Report {
-    fn best_move(&mut self, mv: Move, eval: i32, depth: u8);
+    fn principal_variation(&mut self, moves: Vec<Move>, eval: i32);
     fn elapsed_time(&mut self, time: Duration);
 }
 
-pub fn search(pos: &mut Position, depth: u8, report: &mut dyn Report) {
+pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
     let start = Instant::now();
-    let mut best_eval = EVAL_MIN;
+    let mut pv = vec![];
 
-    for mv in pos.generate_moves() {
-        pos.do_move(&mv);
+    for depth in 1..=max_depth {
+        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv);
 
-        if !is_in_check(pos.opponent_colour(), &pos.board) {
-            let eval = -alpha_beta(pos, depth - 1, EVAL_MIN, EVAL_MAX);
+        // todo: sort moves before next iteration
 
-            if eval > best_eval {
-                best_eval = eval;
-                report.best_move(mv, eval, depth);
-            }
-        }
-
-        pos.undo_move(&mv);
         report.elapsed_time(start.elapsed());
+        report.principal_variation(pv.clone(), eval);
     }
 }
 
-fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32) -> i32 {
+fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut Vec<Move>) -> i32 {
     if depth == 0 {
         return pos.evaluate();
     }
 
     let mut has_legal_move = false;
-
-    // todo: sort moves
+    let mut this_pv = vec![];
 
     for mv in pos.generate_moves() {
         pos.do_move(&mv);
@@ -46,16 +38,19 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32) -> i32 {
         if !is_in_check(pos.opponent_colour(), &pos.board) {
             has_legal_move = true;
 
-            let eval = -alpha_beta(pos, depth - 1, -beta, -alpha);
+            let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut this_pv);
 
             if eval >= beta {
-                alpha = beta;
                 pos.undo_move(&mv);
-                break;
+                return beta;
             }
 
             if eval > alpha {
                 alpha = eval;
+
+                pv.clear();
+                pv.push(mv);
+                pv.append(&mut this_pv);
             }
         }
 
@@ -79,13 +74,13 @@ mod tests {
     use doubles::ReportSpy;
 
     #[test]
-    fn report_a_best_move() {
+    fn report_a_principal_variation() {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
         search(&mut pos, 1, &mut report);
 
-        assert!(report.last_best_move.is_some());
+        assert!(!report.last_pv_moves.is_empty());
     }
 
     #[test]
@@ -102,22 +97,22 @@ mod tests {
         use super::*;
 
         pub struct ReportSpy {
-            pub last_best_move: Option<Move>,
+            pub last_pv_moves: Vec<Move>,
             pub last_elapsed_time: Duration,
         }
 
         impl ReportSpy {
             pub fn new() -> Self {
                 Self {
-                    last_best_move: None,
+                    last_pv_moves: vec![],
                     last_elapsed_time: Duration::ZERO,
                 }
             }
         }
 
         impl Report for ReportSpy {
-            fn best_move(&mut self, mv: Move, _eval: i32, _depth: u8) {
-                self.last_best_move = Some(mv);
+            fn principal_variation(&mut self, moves: Vec<Move>, _eval: i32) {
+                self.last_pv_moves = moves;
             }
 
             fn elapsed_time(&mut self, time: Duration) {

@@ -24,13 +24,19 @@ impl UciReport {
 }
 
 impl Report for UciReport {
-    fn best_move(&mut self, mv: Move, eval: i32, depth: u8) {
-        self.best_move = Some(mv);
+    fn principal_variation(&mut self, moves: Vec<Move>, eval: i32) {
+        self.best_move = Some(moves[0]);
 
         println!(
-            "info pv {mv} depth {depth} score cp {} time {}",
+            "info depth {} score cp {} time {} pv {}",
+            moves.len(),
             eval * 100,
-            self.elapsed_ms
+            self.elapsed_ms,
+            moves
+                .iter()
+                .map(|mv| format!("{mv}"))
+                .collect::<Vec<String>>()
+                .join(" "),
         );
     }
 
