@@ -1,5 +1,5 @@
 use crate::attacks::is_in_check;
-use crate::eval::{Evaluator, EVAL_MAX, EVAL_MIN, EVAL_STALEMATE};
+use crate::eval::{Evaluator, EVAL_CHECKMATE, EVAL_MAX, EVAL_MIN, EVAL_STALEMATE};
 use crate::movegen::MoveGenerator;
 use crate::position::Position;
 use crate::r#move::Move;
@@ -62,7 +62,7 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
     }
 
     if is_in_check(pos.colour_to_move, &pos.board) {
-        return EVAL_MIN;
+        return EVAL_CHECKMATE + depth as i32;
     }
 
     EVAL_STALEMATE
