@@ -17,8 +17,6 @@ pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
     for depth in 1..=max_depth {
         let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv);
 
-        // todo: sort moves before next iteration
-
         report.elapsed_time(start.elapsed());
         report.principal_variation(pv.clone(), eval);
     }
@@ -29,29 +27,35 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
         return pos.evaluate();
     }
 
+    let colour_to_move = pos.colour_to_move;
     let mut has_legal_move = false;
-    let mut this_pv = vec![];
+
+    // todo: order moves by PV move and MVV/LVA
 
     for mv in pos.generate_moves() {
         pos.do_move(&mv);
 
-        if !is_in_check(pos.opponent_colour(), &pos.board) {
-            has_legal_move = true;
+        if is_in_check(colour_to_move, &pos.board) {
+            pos.undo_move(&mv);
+            continue;
+        }
 
-            let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut this_pv);
+        has_legal_move = true;
 
-            if eval >= beta {
-                pos.undo_move(&mv);
-                return beta;
-            }
+        let mut this_pv = vec![];
+        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut this_pv);
 
-            if eval > alpha {
-                alpha = eval;
+        if eval >= beta {
+            pos.undo_move(&mv);
+            return beta;
+        }
 
-                pv.clear();
-                pv.push(mv);
-                pv.append(&mut this_pv);
-            }
+        if eval > alpha {
+            alpha = eval;
+
+            pv.clear();
+            pv.push(mv);
+            pv.append(&mut this_pv);
         }
 
         pos.undo_move(&mv);
