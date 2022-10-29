@@ -12,6 +12,7 @@ use std::time::Duration;
 
 #[derive(Debug)]
 struct UciReport {
+    pub depth: u8,
     pub best_move: Option<Move>,
     pub elapsed_ms: u128,
 }
@@ -19,6 +20,7 @@ struct UciReport {
 impl UciReport {
     pub fn new() -> Self {
         Self {
+            depth: 0,
             best_move: None,
             elapsed_ms: 0,
         }
@@ -26,12 +28,16 @@ impl UciReport {
 }
 
 impl Report for UciReport {
+    fn depth(&mut self, depth: u8) {
+        self.depth = depth;
+    }
+
     fn principal_variation(&mut self, moves: Vec<Move>, eval: i32) {
         self.best_move = Some(moves[0]);
 
         println!(
             "info depth {} score cp {} time {} pv {}",
-            moves.len(),
+            self.depth,
             eval * 100,
             self.elapsed_ms,
             moves

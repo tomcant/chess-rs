@@ -6,6 +6,7 @@ use crate::r#move::Move;
 use std::time::{Duration, Instant};
 
 pub trait Report {
+    fn depth(&mut self, depth: u8);
     fn principal_variation(&mut self, moves: Vec<Move>, eval: i32);
     fn elapsed_time(&mut self, time: Duration);
 }
@@ -17,6 +18,7 @@ pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
     for depth in 1..=max_depth {
         let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv);
 
+        report.depth(depth);
         report.elapsed_time(start.elapsed());
         report.principal_variation(pv.clone(), eval);
     }
@@ -78,6 +80,16 @@ mod tests {
     use doubles::ReportSpy;
 
     #[test]
+    fn report_the_depth() {
+        let mut pos = Position::startpos();
+        let mut report = ReportSpy::new();
+
+        search(&mut pos, 3, &mut report);
+
+        assert_eq!(vec![1, 2, 3], report.depths);
+    }
+
+    #[test]
     fn report_a_principal_variation() {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
@@ -101,6 +113,7 @@ mod tests {
         use super::*;
 
         pub struct ReportSpy {
+            pub depths: Vec<u8>,
             pub last_pv_moves: Vec<Move>,
             pub last_elapsed_time: Duration,
         }
@@ -108,6 +121,7 @@ mod tests {
         impl ReportSpy {
             pub fn new() -> Self {
                 Self {
+                    depths: vec![],
                     last_pv_moves: vec![],
                     last_elapsed_time: Duration::ZERO,
                 }
@@ -115,6 +129,10 @@ mod tests {
         }
 
         impl Report for ReportSpy {
+            fn depth(&mut self, depth: u8) {
+                self.depths.push(depth);
+            }
+
             fn principal_variation(&mut self, moves: Vec<Move>, _eval: i32) {
                 self.last_pv_moves = moves;
             }
