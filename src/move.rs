@@ -3,7 +3,7 @@ use crate::piece::Piece;
 use crate::square::Square;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Move {
     pub from: Square,
     pub to: Square,

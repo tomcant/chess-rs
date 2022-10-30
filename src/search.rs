@@ -29,12 +29,16 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
         return pos.evaluate();
     }
 
+    let (pv_move, mut next_ply_pv) = if let Some((head, tail)) = pv.split_first() {
+        (Some(*head), tail.to_vec())
+    } else {
+        (None, vec![])
+    };
+
     let colour_to_move = pos.colour_to_move;
     let mut has_legal_move = false;
 
-    // todo: order moves by PV move and MVV/LVA
-
-    for mv in pos.generate_moves() {
+    for mv in order_moves(&pos.generate_moves(), pv_move) {
         pos.do_move(&mv);
 
         if is_in_check(colour_to_move, &pos.board) {
@@ -44,8 +48,7 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
 
         has_legal_move = true;
 
-        let mut this_pv = vec![];
-        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut this_pv);
+        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut next_ply_pv);
 
         if eval >= beta {
             pos.undo_move(&mv);
@@ -56,8 +59,8 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
             alpha = eval;
 
             pv.clear();
-            pv.push(mv);
-            pv.append(&mut this_pv);
+            pv.push(*mv);
+            pv.append(&mut next_ply_pv);
         }
 
         pos.undo_move(&mv);
@@ -74,9 +77,49 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
     EVAL_STALEMATE
 }
 
+struct OrderedMove {
+    mv: Move,
+    order: u8,
+}
+
+impl std::ops::Deref for OrderedMove {
+    type Target = Move;
+
+    fn deref(&self) -> &Self::Target {
+        &self.mv
+    }
+}
+
+const ORDER_PV_MOVE: u8 = 0;
+const ORDER_NON_PV_MOVE: u8 = 1;
+
+fn order_moves(moves: &[Move], pv_move: Option<Move>) -> Vec<OrderedMove> {
+    let has_pv_move = pv_move.is_some();
+
+    let mut moves = moves
+        .iter()
+        .map(|mv| OrderedMove {
+            mv: *mv,
+            order: if has_pv_move && *mv == pv_move.unwrap() {
+                ORDER_PV_MOVE
+            } else {
+                ORDER_NON_PV_MOVE
+            },
+        })
+        .collect::<Vec<OrderedMove>>();
+
+    if has_pv_move {
+        moves.sort_unstable_by_key(|mv| mv.order);
+    }
+
+    moves
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::castling::CastlingRights;
+    use crate::square::Square;
     use doubles::ReportSpy;
 
     #[test]
@@ -107,6 +150,32 @@ mod tests {
         search(&mut pos, 1, &mut report);
 
         assert!(report.last_elapsed_time.gt(&Duration::ZERO));
+    }
+
+    #[test]
+    fn order_pv_move_to_front() {
+        fn make_move(from: Square, to: Square) -> Move {
+            Move {
+                from,
+                to,
+                captured_piece: None,
+                promotion_piece: None,
+                castling_rights: CastlingRights::none(),
+                is_en_passant: false,
+            }
+        }
+
+        let pv_move = make_move(Square::from_index(0), Square::from_index(1));
+
+        let moves = [
+            make_move(Square::from_index(2), Square::from_index(3)),
+            make_move(Square::from_index(4), Square::from_index(5)),
+            pv_move,
+        ];
+
+        let ordered_moves = order_moves(&moves, Some(pv_move));
+
+        assert_eq!(ordered_moves[0].mv, pv_move);
     }
 
     mod doubles {
