@@ -9,7 +9,7 @@ A UCI compatible chess engine written in Rust.
 - Bitboards for pseudo-legal move generation
 - Alpha/beta optimised Negamax search
 - Iterative deepening with PV move ordering
-- Material based static evaluation
+- Material and piece-square table evaluation
 - Play via any UCI compatible GUI
 
 ## To-do List
@@ -18,5 +18,4 @@ A UCI compatible chess engine written in Rust.
 - PVS (principal variation search)
 - Transposition table
 - Move ordering with MVV/LVA and TT
-- Evaluation using piece square tables
 - Time management/pondering
