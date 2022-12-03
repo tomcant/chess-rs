@@ -165,7 +165,6 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
             }
         }
         UciCommand::IsReady => println!("readyok"),
-        UciCommand::Stop => println!("todo: implement stop command"),
         _ => (),
     }
 }
