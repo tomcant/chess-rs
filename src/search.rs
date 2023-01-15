@@ -26,7 +26,7 @@ pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
 
 fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut Vec<Move>) -> i32 {
     if depth == 0 {
-        return pos.evaluate();
+        return quiescence(pos, alpha, beta, &mut vec![]);
     }
 
     let (pv_move, mut next_ply_pv) = if let Some((head, tail)) = pv.split_first() {
@@ -70,11 +70,59 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
         return alpha;
     }
 
-    if is_in_check(pos.colour_to_move, &pos.board) {
+    if is_in_check(colour_to_move, &pos.board) {
         return EVAL_CHECKMATE + depth as i32;
     }
 
     EVAL_STALEMATE
+}
+
+fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>) -> i32 {
+    let eval = pos.evaluate();
+
+    if eval >= beta {
+        return beta;
+    }
+
+    if eval > alpha {
+        alpha = eval;
+    }
+
+    let (pv_move, mut next_ply_pv) = if let Some((head, tail)) = pv.split_first() {
+        (Some(*head), tail.to_vec())
+    } else {
+        (None, vec![])
+    };
+
+    let colour_to_move = pos.colour_to_move;
+
+    for mv in order_moves(&pos.generate_capture_moves(), pv_move) {
+        pos.do_move(&mv);
+
+        if is_in_check(colour_to_move, &pos.board) {
+            pos.undo_move(&mv);
+            continue;
+        }
+
+        let eval = -quiescence(pos, -beta, -alpha, &mut next_ply_pv);
+
+        if eval >= beta {
+            pos.undo_move(&mv);
+            return beta;
+        }
+
+        if eval > alpha {
+            alpha = eval;
+
+            pv.clear();
+            pv.push(*mv);
+            pv.append(&mut next_ply_pv);
+        }
+
+        pos.undo_move(&mv);
+    }
+
+    alpha
 }
 
 struct OrderedMove {
