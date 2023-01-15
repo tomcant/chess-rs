@@ -38,7 +38,7 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
     let colour_to_move = pos.colour_to_move;
     let mut has_legal_move = false;
 
-    for mv in order_moves(&pos.generate_moves(), pv_move) {
+    for mv in order_moves(&pos.generate_all_moves(), pv_move) {
         pos.do_move(&mv);
 
         if is_in_check(colour_to_move, &pos.board) {
