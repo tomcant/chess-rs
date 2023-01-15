@@ -25,7 +25,7 @@ impl MoveGenerator for Position {
                 pieces ^= from_square.u64();
 
                 let mut to_squares = !self.board.pieces_by_colour(self.colour_to_move)
-                    & get_attacks(self.board.piece_at(from_square).unwrap(), from_square, &self.board);
+                    & get_attacks(Piece::from(*piece_type, self.colour_to_move), from_square, &self.board);
 
                 if piece_type.is_pawn() {
                     to_squares |= get_pawn_advances(from_square, self.colour_to_move, &self.board);
