@@ -15,6 +15,7 @@ struct UciReport {
     pub depth: u8,
     pub best_move: Option<Move>,
     pub elapsed_ms: u128,
+    pub nodes: u128,
 }
 
 impl UciReport {
@@ -23,6 +24,7 @@ impl UciReport {
             depth: 0,
             best_move: None,
             elapsed_ms: 0,
+            nodes: 0,
         }
     }
 }
@@ -36,10 +38,11 @@ impl Report for UciReport {
         self.best_move = Some(moves[0]);
 
         println!(
-            "info depth {} score cp {} time {} pv {}",
+            "info depth {} score cp {} time {} nodes {} pv {}",
             self.depth,
             eval * 100,
             self.elapsed_ms,
+            self.nodes,
             moves
                 .iter()
                 .map(|mv| format!("{mv}"))
@@ -50,6 +53,10 @@ impl Report for UciReport {
 
     fn elapsed_time(&mut self, time: Duration) {
         self.elapsed_ms = time.as_millis();
+    }
+
+    fn node(&mut self) {
+        self.nodes += 1;
     }
 }
 

@@ -9,6 +9,7 @@ pub trait Report {
     fn depth(&mut self, depth: u8);
     fn principal_variation(&mut self, moves: Vec<Move>, eval: i32);
     fn elapsed_time(&mut self, time: Duration);
+    fn node(&mut self);
 }
 
 pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
@@ -16,7 +17,7 @@ pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
     let mut pv = vec![];
 
     for depth in 1..=max_depth {
-        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv);
+        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, report);
 
         report.depth(depth);
         report.elapsed_time(start.elapsed());
@@ -24,9 +25,18 @@ pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
     }
 }
 
-fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut Vec<Move>) -> i32 {
+fn alpha_beta(
+    pos: &mut Position,
+    depth: u8,
+    mut alpha: i32,
+    beta: i32,
+    pv: &mut Vec<Move>,
+    report: &mut dyn Report,
+) -> i32 {
+    report.node();
+
     if depth == 0 {
-        return quiescence(pos, alpha, beta, &mut vec![]);
+        return quiescence(pos, alpha, beta, &mut vec![], report);
     }
 
     let (pv_move, mut next_ply_pv) = if let Some((head, tail)) = pv.split_first() {
@@ -48,7 +58,7 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
 
         has_legal_move = true;
 
-        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut next_ply_pv);
+        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut next_ply_pv, report);
 
         if eval >= beta {
             pos.undo_move(&mv);
@@ -77,7 +87,9 @@ fn alpha_beta(pos: &mut Position, depth: u8, mut alpha: i32, beta: i32, pv: &mut
     EVAL_STALEMATE
 }
 
-fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>) -> i32 {
+fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut dyn Report) -> i32 {
+    report.node();
+
     let eval = pos.evaluate();
 
     if eval >= beta {
@@ -104,7 +116,7 @@ fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>)
             continue;
         }
 
-        let eval = -quiescence(pos, -beta, -alpha, &mut next_ply_pv);
+        let eval = -quiescence(pos, -beta, -alpha, &mut next_ply_pv, report);
 
         if eval >= beta {
             pos.undo_move(&mv);
@@ -201,6 +213,22 @@ mod tests {
     }
 
     #[test]
+    fn report_node_count() {
+        let mut pos = Position::startpos();
+        let mut report = ReportSpy::new();
+
+        search(&mut pos, 1, &mut report);
+
+        #[rustfmt::skip]
+        let expected_nodes =
+            1  + // initial pos
+            20 + // depth one
+            20 ; // quiescence
+
+        assert_eq!(expected_nodes, report.nodes);
+    }
+
+    #[test]
     fn order_pv_move_to_front() {
         fn make_move(from: Square, to: Square) -> Move {
             Move {
@@ -233,6 +261,7 @@ mod tests {
             pub depths: Vec<u8>,
             pub last_pv_moves: Vec<Move>,
             pub last_elapsed_time: Duration,
+            pub nodes: u128,
         }
 
         impl ReportSpy {
@@ -241,6 +270,7 @@ mod tests {
                     depths: vec![],
                     last_pv_moves: vec![],
                     last_elapsed_time: Duration::ZERO,
+                    nodes: 0,
                 }
             }
         }
@@ -256,6 +286,10 @@ mod tests {
 
             fn elapsed_time(&mut self, time: Duration) {
                 self.last_elapsed_time = time;
+            }
+
+            fn node(&mut self) {
+                self.nodes += 1;
             }
         }
     }
