@@ -39,12 +39,7 @@ fn alpha_beta(
         return quiescence(pos, alpha, beta, &mut vec![], report);
     }
 
-    let (pv_move, mut next_ply_pv) = if let Some((head, tail)) = pv.split_first() {
-        (Some(*head), tail.to_vec())
-    } else {
-        (None, vec![])
-    };
-
+    let (pv_move, mut next_ply_pv) = split_pv(pv);
     let colour_to_move = pos.colour_to_move;
     let mut has_legal_move = false;
 
@@ -100,12 +95,7 @@ fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>,
         alpha = eval;
     }
 
-    let (pv_move, mut next_ply_pv) = if let Some((head, tail)) = pv.split_first() {
-        (Some(*head), tail.to_vec())
-    } else {
-        (None, vec![])
-    };
-
+    let (pv_move, mut next_ply_pv) = split_pv(pv);
     let colour_to_move = pos.colour_to_move;
 
     for mv in order_moves(&pos.generate_capture_moves(), pv_move) {
@@ -135,6 +125,14 @@ fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>,
     }
 
     alpha
+}
+
+fn split_pv(pv: &mut [Move]) -> (Option<Move>, Vec<Move>) {
+    if let Some((head, tail)) = pv.split_first() {
+        (Some(*head), tail.to_vec())
+    } else {
+        (None, vec![])
+    }
 }
 
 struct OrderedMove {
