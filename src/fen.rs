@@ -21,7 +21,7 @@ fn parse_fen(fen: &str) -> Position {
     const NUM_PARTS: usize = 6;
 
     if parts.len() != NUM_PARTS {
-        panic!("error parsing fen: must contain {} parts", NUM_PARTS);
+        panic!("error parsing fen: must contain {NUM_PARTS} parts");
     }
 
     Position {
