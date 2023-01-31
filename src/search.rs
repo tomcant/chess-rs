@@ -7,8 +7,8 @@ use std::time::{Duration, Instant};
 
 pub trait Report {
     fn depth(&mut self, depth: u8);
-    fn principal_variation(&mut self, moves: Vec<Move>, eval: i32);
-    fn elapsed_time(&mut self, time: Duration);
+    fn pv(&mut self, moves: Vec<Move>, eval: i32);
+    fn elapsed(&mut self, time: Duration);
     fn node(&mut self);
 }
 
@@ -20,8 +20,8 @@ pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
         let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, report);
 
         report.depth(depth);
-        report.elapsed_time(start.elapsed());
-        report.principal_variation(pv.clone(), eval);
+        report.elapsed(start.elapsed());
+        report.pv(pv.clone(), eval);
     }
 }
 
@@ -191,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn report_a_principal_variation() {
+    fn report_a_pv() {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
@@ -207,7 +207,7 @@ mod tests {
 
         search(&mut pos, 1, &mut report);
 
-        assert!(report.last_elapsed_time.gt(&Duration::ZERO));
+        assert!(report.last_elapsed.gt(&Duration::ZERO));
     }
 
     #[test]
@@ -258,7 +258,7 @@ mod tests {
         pub struct ReportSpy {
             pub depths: Vec<u8>,
             pub last_pv_moves: Vec<Move>,
-            pub last_elapsed_time: Duration,
+            pub last_elapsed: Duration,
             pub nodes: u128,
         }
 
@@ -267,7 +267,7 @@ mod tests {
                 Self {
                     depths: vec![],
                     last_pv_moves: vec![],
-                    last_elapsed_time: Duration::ZERO,
+                    last_elapsed: Duration::ZERO,
                     nodes: 0,
                 }
             }
@@ -278,12 +278,12 @@ mod tests {
                 self.depths.push(depth);
             }
 
-            fn principal_variation(&mut self, moves: Vec<Move>, _eval: i32) {
+            fn pv(&mut self, moves: Vec<Move>, _eval: i32) {
                 self.last_pv_moves = moves;
             }
 
-            fn elapsed_time(&mut self, time: Duration) {
-                self.last_elapsed_time = time;
+            fn elapsed(&mut self, time: Duration) {
+                self.last_elapsed = time;
             }
 
             fn node(&mut self) {

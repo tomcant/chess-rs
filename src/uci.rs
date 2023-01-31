@@ -10,11 +10,13 @@ use crate::square::Square;
 use std::str::FromStr;
 use std::time::Duration;
 
+const NANOS_PER_SEC: u128 = 1_000_000_000;
+
 #[derive(Debug)]
 struct UciReport {
     pub depth: u8,
     pub best_move: Option<Move>,
-    pub elapsed_ms: u128,
+    pub elapsed: Duration,
     pub nodes: u128,
 }
 
@@ -23,7 +25,7 @@ impl UciReport {
         Self {
             depth: 0,
             best_move: None,
-            elapsed_ms: 0,
+            elapsed: Duration::ZERO,
             nodes: 0,
         }
     }
@@ -34,15 +36,16 @@ impl Report for UciReport {
         self.depth = depth;
     }
 
-    fn principal_variation(&mut self, moves: Vec<Move>, eval: i32) {
+    fn pv(&mut self, moves: Vec<Move>, eval: i32) {
         self.best_move = Some(moves[0]);
 
         println!(
-            "info depth {} score cp {} time {} nodes {} pv {}",
+            "info depth {} score cp {} nodes {} nps {} time {} pv {}",
             self.depth,
             eval * 100,
-            self.elapsed_ms,
             self.nodes,
+            self.nodes * NANOS_PER_SEC / (self.elapsed.as_nanos() + 1),
+            self.elapsed.as_millis(),
             moves
                 .iter()
                 .map(|mv| format!("{mv}"))
@@ -51,8 +54,8 @@ impl Report for UciReport {
         );
     }
 
-    fn elapsed_time(&mut self, time: Duration) {
-        self.elapsed_ms = time.as_millis();
+    fn elapsed(&mut self, time: Duration) {
+        self.elapsed = time;
     }
 
     fn node(&mut self) {
