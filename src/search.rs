@@ -10,6 +10,7 @@ pub trait Report {
     fn pv(&mut self, moves: Vec<Move>, eval: i32);
     fn elapsed(&mut self, time: Duration);
     fn node(&mut self);
+    fn send(&mut self);
 }
 
 pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
@@ -22,6 +23,7 @@ pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
         report.depth(depth);
         report.elapsed(start.elapsed());
         report.pv(pv.clone(), eval);
+        report.send();
     }
 }
 
@@ -191,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn report_a_pv() {
+    fn report_the_principal_variation() {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
@@ -211,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn report_node_count() {
+    fn report_the_node_count() {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
@@ -224,6 +226,16 @@ mod tests {
             20 ; // quiescence
 
         assert_eq!(expected_nodes, report.nodes);
+    }
+
+    #[test]
+    fn send_a_report_for_each_depth_reached() {
+        let mut pos = Position::startpos();
+        let mut report = ReportSpy::new();
+
+        search(&mut pos, 3, &mut report);
+
+        assert_eq!(vec![1, 2, 3], report.sent_at_depths);
     }
 
     #[test]
@@ -257,6 +269,7 @@ mod tests {
 
         pub struct ReportSpy {
             pub depths: Vec<u8>,
+            pub sent_at_depths: Vec<u8>,
             pub last_pv_moves: Vec<Move>,
             pub last_elapsed: Duration,
             pub nodes: u128,
@@ -266,6 +279,7 @@ mod tests {
             pub fn new() -> Self {
                 Self {
                     depths: vec![],
+                    sent_at_depths: vec![],
                     last_pv_moves: vec![],
                     last_elapsed: Duration::ZERO,
                     nodes: 0,
@@ -288,6 +302,11 @@ mod tests {
 
             fn node(&mut self) {
                 self.nodes += 1;
+            }
+
+            fn send(&mut self) {
+                let depth = *self.depths.last().unwrap();
+                self.sent_at_depths.push(depth);
             }
         }
     }

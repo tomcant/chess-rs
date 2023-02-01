@@ -15,7 +15,7 @@ const NANOS_PER_SEC: u128 = 1_000_000_000;
 #[derive(Debug)]
 struct UciReport {
     pub depth: u8,
-    pub best_move: Option<Move>,
+    pub pv: Option<(i32, Vec<Move>)>,
     pub elapsed: Duration,
     pub nodes: u128,
 }
@@ -24,9 +24,17 @@ impl UciReport {
     pub fn new() -> Self {
         Self {
             depth: 0,
-            best_move: None,
+            pv: None,
             elapsed: Duration::ZERO,
             nodes: 0,
+        }
+    }
+
+    pub fn best_move(&self) -> Option<Move> {
+        if let Some((_, moves)) = &self.pv {
+            Some(moves[0])
+        } else {
+            None
         }
     }
 }
@@ -37,21 +45,7 @@ impl Report for UciReport {
     }
 
     fn pv(&mut self, moves: Vec<Move>, eval: i32) {
-        self.best_move = Some(moves[0]);
-
-        println!(
-            "info depth {} score cp {} nodes {} nps {} time {} pv {}",
-            self.depth,
-            eval * 100,
-            self.nodes,
-            self.nodes * NANOS_PER_SEC / (self.elapsed.as_nanos() + 1),
-            self.elapsed.as_millis(),
-            moves
-                .iter()
-                .map(|mv| format!("{mv}"))
-                .collect::<Vec<String>>()
-                .join(" "),
-        );
+        self.pv = Some((eval * 100, moves));
     }
 
     fn elapsed(&mut self, time: Duration) {
@@ -60,6 +54,28 @@ impl Report for UciReport {
 
     fn node(&mut self) {
         self.nodes += 1;
+    }
+
+    fn send(&mut self) {
+        let mut info = vec![
+            format!("depth {}", self.depth),
+            format!("nodes {}", self.nodes),
+            format!("nps {}", self.nodes * NANOS_PER_SEC / (self.elapsed.as_nanos() + 1)),
+            format!("time {}", self.elapsed.as_millis()),
+        ];
+
+        if let Some((score, moves)) = &self.pv {
+            info.push(format!(
+                "score cp {score} pv {}",
+                moves
+                    .iter()
+                    .map(|mv| format!("{mv}"))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            ));
+        }
+
+        println!("info {}", info.join(" "));
     }
 }
 
@@ -169,7 +185,7 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
             let mut report = UciReport::new();
             search(pos, params.depth, &mut report);
 
-            match report.best_move {
+            match report.best_move() {
                 Some(mv) => println!("bestmove {mv}"),
                 None => println!("bestmove (none)"),
             }

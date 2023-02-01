@@ -14,7 +14,6 @@ A UCI compatible chess engine written in Rust.
 
 ## To-do List
 
-- Quiescence search
 - PVS (principal variation search)
 - Transposition table
 - Move ordering with MVV/LVA and TT
