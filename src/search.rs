@@ -10,7 +10,7 @@ pub trait Report {
     fn pv(&mut self, moves: Vec<Move>, eval: i32);
     fn elapsed(&mut self, time: Duration);
     fn node(&mut self);
-    fn send(&mut self);
+    fn send(&self);
 }
 
 pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
@@ -235,7 +235,7 @@ mod tests {
 
         search(&mut pos, 3, &mut report);
 
-        assert_eq!(vec![1, 2, 3], report.sent_at_depths);
+        assert_eq!(vec![1, 2, 3], *report.sent_at_depths.borrow());
     }
 
     #[test]
@@ -266,10 +266,11 @@ mod tests {
 
     mod doubles {
         use super::*;
+        use std::cell::RefCell;
 
         pub struct ReportSpy {
             pub depths: Vec<u8>,
-            pub sent_at_depths: Vec<u8>,
+            pub sent_at_depths: RefCell<Vec<u8>>,
             pub last_pv_moves: Vec<Move>,
             pub last_elapsed: Duration,
             pub nodes: u128,
@@ -279,7 +280,7 @@ mod tests {
             pub fn new() -> Self {
                 Self {
                     depths: vec![],
-                    sent_at_depths: vec![],
+                    sent_at_depths: RefCell::new(vec![]),
                     last_pv_moves: vec![],
                     last_elapsed: Duration::ZERO,
                     nodes: 0,
@@ -304,9 +305,9 @@ mod tests {
                 self.nodes += 1;
             }
 
-            fn send(&mut self) {
-                let depth = *self.depths.last().unwrap();
-                self.sent_at_depths.push(depth);
+            fn send(&self) {
+                let depth = *self.depths.last().unwrap_or(&0);
+                self.sent_at_depths.borrow_mut().push(depth);
             }
         }
     }

@@ -56,7 +56,7 @@ impl Report for UciReport {
         self.nodes += 1;
     }
 
-    fn send(&mut self) {
+    fn send(&self) {
         let mut info = vec![
             format!("depth {}", self.depth),
             format!("nodes {}", self.nodes),
