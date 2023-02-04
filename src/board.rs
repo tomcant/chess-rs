@@ -26,6 +26,10 @@ impl Board {
         self.colours[colour as usize]
     }
 
+    pub fn count_pieces(&self, piece_type: PieceType, colour: Colour) -> u32 {
+        self.pieces(piece_type, colour).count_ones()
+    }
+
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
         let square_u64 = square.u64();
         self.pieces[piece.index()] |= square_u64;
@@ -69,6 +73,7 @@ mod tests {
 
         assert!(board.has_piece_at(square));
         assert_eq!(board.piece_at(square), Some(piece));
+        assert_eq!(board.count_pieces(PieceType::King, Colour::White), 1);
         assert_eq!(board.pieces_by_colour(piece.colour()) & square.u64(), square.u64());
     }
 

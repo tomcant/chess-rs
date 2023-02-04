@@ -31,8 +31,7 @@ mod material {
 
     pub fn evaluate(colour: Colour, board: &Board) -> i32 {
         PieceType::types().iter().fold(0, |acc, piece_type| {
-            // board.count_pieces(*piece_type, colour) as i32
-            acc + PIECE_WEIGHTS[*piece_type as usize] * board.pieces(*piece_type, colour).count_ones() as i32
+            acc + PIECE_WEIGHTS[*piece_type as usize] * board.count_pieces(*piece_type, colour) as i32
         })
     }
 

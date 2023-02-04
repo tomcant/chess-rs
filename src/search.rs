@@ -91,15 +91,15 @@ fn alpha_beta(
         pos.undo_move(&mv);
     }
 
-    if has_legal_move {
-        return alpha;
+    if !has_legal_move {
+        return if is_in_check(colour_to_move, &pos.board) {
+            EVAL_CHECKMATE
+        } else {
+            EVAL_STALEMATE
+        };
     }
 
-    if is_in_check(colour_to_move, &pos.board) {
-        return EVAL_CHECKMATE + depth as i32;
-    }
-
-    EVAL_STALEMATE
+    alpha
 }
 
 fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut dyn Report) -> i32 {
