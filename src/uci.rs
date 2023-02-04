@@ -5,7 +5,7 @@ use crate::info::{info_author, info_name};
 use crate::piece::{Piece, PieceType};
 use crate::position::Position;
 use crate::r#move::Move;
-use crate::search::{search, Report};
+use crate::search::{search, Report, Stopper};
 use crate::square::Square;
 use std::str::FromStr;
 use std::time::Duration;
@@ -183,7 +183,7 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
         }
         UciCommand::Go(params) => {
             let mut report = UciReport::new();
-            search(pos, params.depth, &mut report);
+            search(pos, &mut report, &Stopper::new(params.depth));
 
             match report.best_move() {
                 Some(mv) => println!("bestmove {mv}"),

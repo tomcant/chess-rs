@@ -13,11 +13,29 @@ pub trait Report {
     fn send(&self);
 }
 
-pub fn search(pos: &mut Position, max_depth: u8, report: &mut dyn Report) {
+pub struct Stopper {
+    max_depth: u8,
+}
+
+impl Stopper {
+    pub fn new(max_depth: u8) -> Self {
+        Self { max_depth }
+    }
+
+    pub fn should_stop(&self, depth: u8) -> bool {
+        depth > self.max_depth
+    }
+}
+
+pub fn search(pos: &mut Position, report: &mut dyn Report, stopper: &Stopper) {
     let start = Instant::now();
     let mut pv = vec![];
 
-    for depth in 1..=max_depth {
+    for depth in 1.. {
+        if stopper.should_stop(depth) {
+            break;
+        }
+
         let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, report);
 
         report.depth(depth);
@@ -187,7 +205,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
-        search(&mut pos, 3, &mut report);
+        search(&mut pos, &mut report, &Stopper::new(3));
 
         assert_eq!(vec![1, 2, 3], report.depths);
     }
@@ -197,7 +215,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
-        search(&mut pos, 1, &mut report);
+        search(&mut pos, &mut report, &Stopper::new(1));
 
         assert!(!report.last_pv_moves.is_empty());
     }
@@ -207,7 +225,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
-        search(&mut pos, 1, &mut report);
+        search(&mut pos, &mut report, &Stopper::new(1));
 
         assert!(report.last_elapsed.gt(&Duration::ZERO));
     }
@@ -217,7 +235,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
-        search(&mut pos, 1, &mut report);
+        search(&mut pos, &mut report, &Stopper::new(1));
 
         #[rustfmt::skip]
         let expected_nodes =
@@ -233,7 +251,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut report = ReportSpy::new();
 
-        search(&mut pos, 3, &mut report);
+        search(&mut pos, &mut report, &Stopper::new(3));
 
         assert_eq!(vec![1, 2, 3], *report.sent_at_depths.borrow());
     }
