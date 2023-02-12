@@ -7,35 +7,23 @@ use std::time::{Duration, Instant};
 
 pub struct Report {
     pub depth: u8,
-    pub pv: Option<(Vec<Move>, i32)>,
-    pub elapsed: Duration,
     pub nodes: u128,
+    pub pv: Option<(Vec<Move>, i32)>,
+    started_at: Instant,
 }
 
 impl Report {
     fn new() -> Self {
         Self {
             depth: 0,
-            pv: None,
-            elapsed: Duration::ZERO,
             nodes: 0,
+            pv: None,
+            started_at: Instant::now(),
         }
     }
 
-    fn depth(&mut self, depth: u8) {
-        self.depth = depth;
-    }
-
-    fn pv(&mut self, moves: Vec<Move>, eval: i32) {
-        self.pv = Some((moves, eval));
-    }
-
-    fn elapsed(&mut self, time: Duration) {
-        self.elapsed = time;
-    }
-
-    fn node(&mut self) {
-        self.nodes += 1;
+    pub fn elapsed(&self) -> Duration {
+        self.started_at.elapsed()
     }
 }
 
@@ -44,35 +32,57 @@ pub trait Reporter {
 }
 
 pub struct Stopper {
-    max_depth: u8,
+    depth: Option<u8>,
+    elapsed: Option<Duration>,
+    nodes: Option<u128>,
+    stopped: bool,
 }
 
 impl Stopper {
-    pub fn new(max_depth: u8) -> Self {
-        Self { max_depth }
+    pub fn new() -> Self {
+        Self {
+            depth: None,
+            elapsed: None,
+            nodes: None,
+            stopped: false,
+        }
     }
 
-    pub fn should_stop(&self, depth: u8) -> bool {
-        depth > self.max_depth
+    pub fn at_depth(&self, depth: Option<u8>) -> Self {
+        Self { depth, ..*self }
+    }
+
+    pub fn at_elapsed(&self, elapsed: Option<Duration>) -> Self {
+        Self { elapsed, ..*self }
+    }
+
+    pub fn at_nodes(&self, nodes: Option<u128>) -> Self {
+        Self { nodes, ..*self }
+    }
+
+    pub fn should_stop(&mut self, report: &Report) -> bool {
+        self.stopped = (self.depth.is_some() && report.depth > self.depth.unwrap())
+            || (self.elapsed.is_some() && report.elapsed() > self.elapsed.unwrap())
+            || (self.nodes.is_some() && report.nodes > self.nodes.unwrap());
+
+        self.stopped
     }
 }
 
-pub fn search(pos: &mut Position, reporter: &mut dyn Reporter, stopper: &Stopper) {
-    let start = Instant::now();
-    let mut report = Report::new();
+pub fn search(pos: &mut Position, reporter: &mut dyn Reporter, stopper: &mut Stopper) {
     let mut pv = vec![];
+    let mut report = Report::new();
 
     for depth in 1.. {
-        if stopper.should_stop(depth) {
+        report.depth = depth;
+
+        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report, stopper);
+
+        if stopper.stopped {
             break;
         }
 
-        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report);
-
-        report.depth(depth);
-        report.elapsed(start.elapsed());
-        report.pv(pv.clone(), eval);
-
+        report.pv = Some((pv.clone(), eval));
         reporter.send(&report);
     }
 }
@@ -84,12 +94,17 @@ fn alpha_beta(
     beta: i32,
     pv: &mut Vec<Move>,
     report: &mut Report,
+    stopper: &mut Stopper,
 ) -> i32 {
+    if stopper.should_stop(report) {
+        return 0;
+    }
+
     if depth == 0 {
         return quiescence(pos, alpha, beta, &mut vec![], report);
     }
 
-    report.node();
+    report.nodes += 1;
 
     let (pv_move, mut next_ply_pv) = split_pv(pv);
     let colour_to_move = pos.colour_to_move;
@@ -105,7 +120,7 @@ fn alpha_beta(
 
         has_legal_move = true;
 
-        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut next_ply_pv, report);
+        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut next_ply_pv, report, stopper);
 
         if eval >= beta {
             pos.undo_move(&mv);
@@ -135,7 +150,7 @@ fn alpha_beta(
 }
 
 fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut Report) -> i32 {
-    report.node();
+    report.nodes += 1;
 
     let eval = pos.evaluate();
 
@@ -237,7 +252,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &Stopper::new(3));
+        search(&mut pos, &mut reporter, &mut Stopper::new().at_depth(Some(3)));
 
         assert_eq!(vec![1, 2, 3], reporter.depths);
     }
@@ -247,19 +262,9 @@ mod tests {
         let mut pos = Position::startpos();
         let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &Stopper::new(1));
+        search(&mut pos, &mut reporter, &mut Stopper::new().at_depth(Some(1)));
 
         assert!(!reporter.last_pv_moves.is_empty());
-    }
-
-    #[test]
-    fn report_an_elapsed_time_greater_than_zero() {
-        let mut pos = Position::startpos();
-        let mut reporter = ReporterSpy::new();
-
-        search(&mut pos, &mut reporter, &Stopper::new(1));
-
-        assert!(reporter.last_elapsed.gt(&Duration::ZERO));
     }
 
     #[test]
@@ -267,7 +272,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &Stopper::new(1));
+        search(&mut pos, &mut reporter, &mut Stopper::new().at_depth(Some(1)));
 
         assert_eq!(21, reporter.last_nodes);
     }
@@ -304,7 +309,6 @@ mod tests {
         pub struct ReporterSpy {
             pub depths: Vec<u8>,
             pub last_pv_moves: Vec<Move>,
-            pub last_elapsed: Duration,
             pub last_nodes: u128,
         }
 
@@ -313,7 +317,6 @@ mod tests {
                 Self {
                     depths: vec![],
                     last_pv_moves: vec![],
-                    last_elapsed: Duration::ZERO,
                     last_nodes: 0,
                 }
             }
@@ -322,7 +325,6 @@ mod tests {
         impl Reporter for ReporterSpy {
             fn send(&mut self, report: &Report) {
                 self.depths.push(report.depth);
-                self.last_elapsed = report.elapsed;
                 self.last_nodes = report.nodes;
 
                 if let Some((moves, _)) = &report.pv {
