@@ -5,74 +5,43 @@ use crate::info::{info_author, info_name};
 use crate::piece::{Piece, PieceType};
 use crate::position::Position;
 use crate::r#move::Move;
-use crate::search::{search, Report, Stopper};
+use crate::search::{search, Report, Reporter, Stopper};
 use crate::square::Square;
 use std::str::FromStr;
-use std::time::Duration;
 
 const NANOS_PER_SEC: u128 = 1_000_000_000;
 
-#[derive(Debug)]
-struct UciReport {
-    pub depth: u8,
-    pub pv: Option<(i32, Vec<Move>)>,
-    pub elapsed: Duration,
-    pub nodes: u128,
+struct UciReporter {
+    best_move: Option<Move>,
 }
 
-impl UciReport {
-    pub fn new() -> Self {
-        Self {
-            depth: 0,
-            pv: None,
-            elapsed: Duration::ZERO,
-            nodes: 0,
-        }
-    }
-
-    pub fn best_move(&self) -> Option<Move> {
-        if let Some((_, moves)) = &self.pv {
-            Some(moves[0])
-        } else {
-            None
-        }
+impl UciReporter {
+    fn new() -> Self {
+        Self { best_move: None }
     }
 }
 
-impl Report for UciReport {
-    fn depth(&mut self, depth: u8) {
-        self.depth = depth;
-    }
-
-    fn pv(&mut self, moves: Vec<Move>, eval: i32) {
-        self.pv = Some((eval * 100, moves));
-    }
-
-    fn elapsed(&mut self, time: Duration) {
-        self.elapsed = time;
-    }
-
-    fn node(&mut self) {
-        self.nodes += 1;
-    }
-
-    fn send(&self) {
+impl Reporter for UciReporter {
+    fn send(&mut self, report: &Report) {
         let mut info = vec![
-            format!("depth {}", self.depth),
-            format!("nodes {}", self.nodes),
-            format!("nps {}", self.nodes * NANOS_PER_SEC / (self.elapsed.as_nanos() + 1)),
-            format!("time {}", self.elapsed.as_millis()),
+            format!("depth {}", report.depth),
+            format!("nodes {}", report.nodes),
+            format!("nps {}", report.nodes * NANOS_PER_SEC / (report.elapsed.as_nanos() + 1)),
+            format!("time {}", report.elapsed.as_millis()),
         ];
 
-        if let Some((score, moves)) = &self.pv {
+        if let Some((moves, score)) = &report.pv {
             info.push(format!(
-                "score cp {score} pv {}",
+                "score cp {} pv {}",
+                score * 100,
                 moves
                     .iter()
                     .map(|mv| format!("{mv}"))
                     .collect::<Vec<String>>()
                     .join(" ")
             ));
+
+            self.best_move = Some(moves[0]);
         }
 
         println!("info {}", info.join(" "));
@@ -182,10 +151,10 @@ pub fn uci_handle_command(command: &UciCommand, pos: &mut Position) {
             }
         }
         UciCommand::Go(params) => {
-            let mut report = UciReport::new();
-            search(pos, &mut report, &Stopper::new(params.depth));
+            let mut reporter = UciReporter::new();
+            search(pos, &mut reporter, &Stopper::new(params.depth));
 
-            match report.best_move() {
+            match reporter.best_move {
                 Some(mv) => println!("bestmove {mv}"),
                 None => println!("bestmove (none)"),
             }

@@ -5,12 +5,42 @@ use crate::position::Position;
 use crate::r#move::Move;
 use std::time::{Duration, Instant};
 
-pub trait Report {
-    fn depth(&mut self, depth: u8);
-    fn pv(&mut self, moves: Vec<Move>, eval: i32);
-    fn elapsed(&mut self, time: Duration);
-    fn node(&mut self);
-    fn send(&self);
+pub struct Report {
+    pub depth: u8,
+    pub pv: Option<(Vec<Move>, i32)>,
+    pub elapsed: Duration,
+    pub nodes: u128,
+}
+
+impl Report {
+    fn new() -> Self {
+        Self {
+            depth: 0,
+            pv: None,
+            elapsed: Duration::ZERO,
+            nodes: 0,
+        }
+    }
+
+    fn depth(&mut self, depth: u8) {
+        self.depth = depth;
+    }
+
+    fn pv(&mut self, moves: Vec<Move>, eval: i32) {
+        self.pv = Some((moves, eval));
+    }
+
+    fn elapsed(&mut self, time: Duration) {
+        self.elapsed = time;
+    }
+
+    fn node(&mut self) {
+        self.nodes += 1;
+    }
+}
+
+pub trait Reporter {
+    fn send(&mut self, report: &Report);
 }
 
 pub struct Stopper {
@@ -27,8 +57,9 @@ impl Stopper {
     }
 }
 
-pub fn search(pos: &mut Position, report: &mut dyn Report, stopper: &Stopper) {
+pub fn search(pos: &mut Position, reporter: &mut dyn Reporter, stopper: &Stopper) {
     let start = Instant::now();
+    let mut report = Report::new();
     let mut pv = vec![];
 
     for depth in 1.. {
@@ -36,12 +67,13 @@ pub fn search(pos: &mut Position, report: &mut dyn Report, stopper: &Stopper) {
             break;
         }
 
-        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, report);
+        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report);
 
         report.depth(depth);
         report.elapsed(start.elapsed());
         report.pv(pv.clone(), eval);
-        report.send();
+
+        reporter.send(&report);
     }
 }
 
@@ -51,13 +83,13 @@ fn alpha_beta(
     mut alpha: i32,
     beta: i32,
     pv: &mut Vec<Move>,
-    report: &mut dyn Report,
+    report: &mut Report,
 ) -> i32 {
-    report.node();
-
     if depth == 0 {
         return quiescence(pos, alpha, beta, &mut vec![], report);
     }
+
+    report.node();
 
     let (pv_move, mut next_ply_pv) = split_pv(pv);
     let colour_to_move = pos.colour_to_move;
@@ -102,7 +134,7 @@ fn alpha_beta(
     alpha
 }
 
-fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut dyn Report) -> i32 {
+fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut Report) -> i32 {
     report.node();
 
     let eval = pos.evaluate();
@@ -198,62 +230,46 @@ mod tests {
     use super::*;
     use crate::castling::CastlingRights;
     use crate::square::Square;
-    use doubles::ReportSpy;
+    use doubles::ReporterSpy;
 
     #[test]
     fn report_the_depth() {
         let mut pos = Position::startpos();
-        let mut report = ReportSpy::new();
+        let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut report, &Stopper::new(3));
+        search(&mut pos, &mut reporter, &Stopper::new(3));
 
-        assert_eq!(vec![1, 2, 3], report.depths);
+        assert_eq!(vec![1, 2, 3], reporter.depths);
     }
 
     #[test]
     fn report_the_principal_variation() {
         let mut pos = Position::startpos();
-        let mut report = ReportSpy::new();
+        let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut report, &Stopper::new(1));
+        search(&mut pos, &mut reporter, &Stopper::new(1));
 
-        assert!(!report.last_pv_moves.is_empty());
+        assert!(!reporter.last_pv_moves.is_empty());
     }
 
     #[test]
     fn report_an_elapsed_time_greater_than_zero() {
         let mut pos = Position::startpos();
-        let mut report = ReportSpy::new();
+        let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut report, &Stopper::new(1));
+        search(&mut pos, &mut reporter, &Stopper::new(1));
 
-        assert!(report.last_elapsed.gt(&Duration::ZERO));
+        assert!(reporter.last_elapsed.gt(&Duration::ZERO));
     }
 
     #[test]
     fn report_the_node_count() {
         let mut pos = Position::startpos();
-        let mut report = ReportSpy::new();
+        let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut report, &Stopper::new(1));
+        search(&mut pos, &mut reporter, &Stopper::new(1));
 
-        #[rustfmt::skip]
-        let expected_nodes =
-            1  + // initial pos
-            20 + // depth one
-            20 ; // quiescence
-
-        assert_eq!(expected_nodes, report.nodes);
-    }
-
-    #[test]
-    fn send_a_report_for_each_depth_reached() {
-        let mut pos = Position::startpos();
-        let mut report = ReportSpy::new();
-
-        search(&mut pos, &mut report, &Stopper::new(3));
-
-        assert_eq!(vec![1, 2, 3], *report.sent_at_depths.borrow());
+        assert_eq!(21, reporter.last_nodes);
     }
 
     #[test]
@@ -284,48 +300,34 @@ mod tests {
 
     mod doubles {
         use super::*;
-        use std::cell::RefCell;
 
-        pub struct ReportSpy {
+        pub struct ReporterSpy {
             pub depths: Vec<u8>,
-            pub sent_at_depths: RefCell<Vec<u8>>,
             pub last_pv_moves: Vec<Move>,
             pub last_elapsed: Duration,
-            pub nodes: u128,
+            pub last_nodes: u128,
         }
 
-        impl ReportSpy {
+        impl ReporterSpy {
             pub fn new() -> Self {
                 Self {
                     depths: vec![],
-                    sent_at_depths: RefCell::new(vec![]),
                     last_pv_moves: vec![],
                     last_elapsed: Duration::ZERO,
-                    nodes: 0,
+                    last_nodes: 0,
                 }
             }
         }
 
-        impl Report for ReportSpy {
-            fn depth(&mut self, depth: u8) {
-                self.depths.push(depth);
-            }
+        impl Reporter for ReporterSpy {
+            fn send(&mut self, report: &Report) {
+                self.depths.push(report.depth);
+                self.last_elapsed = report.elapsed;
+                self.last_nodes = report.nodes;
 
-            fn pv(&mut self, moves: Vec<Move>, _eval: i32) {
-                self.last_pv_moves = moves;
-            }
-
-            fn elapsed(&mut self, time: Duration) {
-                self.last_elapsed = time;
-            }
-
-            fn node(&mut self) {
-                self.nodes += 1;
-            }
-
-            fn send(&self) {
-                let depth = *self.depths.last().unwrap_or(&0);
-                self.sent_at_depths.borrow_mut().push(depth);
+                if let Some((moves, _)) = &report.pv {
+                    self.last_pv_moves = moves.clone();
+                }
             }
         }
     }
