@@ -112,7 +112,7 @@ impl FromStr for UciCommand {
             "isready" => Ok(IsReady),
             "ucinewgame" => Ok(NewGame),
             "position" => Ok(parse_position(args)?),
-            "go" => Ok(parse_go(args)),
+            "go" => Ok(parse_go(args)?),
             "stop" => Ok(Stop),
             "quit" => Ok(Quit),
             _ => Err(()),
@@ -198,26 +198,28 @@ fn parse_position(args: &[&str]) -> Result<UciCommand, ()> {
     Ok(Position(fen.trim().to_string(), moves))
 }
 
-fn parse_go(args: &[&str]) -> UciCommand {
+fn parse_go(args: &[&str]) -> Result<UciCommand, ()> {
     let mut params = GoParams::new();
     let mut iter = args.iter();
 
     while let Some(control) = iter.next() {
         if *control == "infinite" {
-            return Go(GoParams::new());
+            return Ok(Go(GoParams::new()));
         }
 
-        let arg = iter.next().unwrap();
+        let Some(arg) = iter.next() else {
+            return Err(());
+        };
 
         match *control {
             "depth" => params.depth = arg.parse().ok(),
             "movetime" => params.movetime = arg.parse().map(Duration::from_millis).ok(),
             "nodes" => params.nodes = arg.parse().ok(),
-            _ => (),
+            _ => return Err(()),
         }
     }
 
-    Go(params)
+    Ok(Go(params))
 }
 
 #[derive(Debug, PartialEq, Eq)]

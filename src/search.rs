@@ -61,7 +61,8 @@ impl Stopper {
     }
 
     pub fn should_stop(&mut self, report: &Report) -> bool {
-        self.stopped = (self.depth.is_some() && report.depth > self.depth.unwrap())
+        self.stopped = self.stopped
+            || (self.depth.is_some() && report.depth > self.depth.unwrap())
             || (self.elapsed.is_some() && report.elapsed() > self.elapsed.unwrap())
             || (self.nodes.is_some() && report.nodes > self.nodes.unwrap());
 
