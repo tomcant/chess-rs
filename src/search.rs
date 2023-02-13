@@ -35,7 +35,6 @@ pub struct Stopper {
     depth: Option<u8>,
     elapsed: Option<Duration>,
     nodes: Option<u128>,
-    stopped: bool,
 }
 
 impl Stopper {
@@ -44,7 +43,6 @@ impl Stopper {
             depth: None,
             elapsed: None,
             nodes: None,
-            stopped: false,
         }
     }
 
@@ -60,13 +58,10 @@ impl Stopper {
         Self { nodes, ..*self }
     }
 
-    pub fn should_stop(&mut self, report: &Report) -> bool {
-        self.stopped = self.stopped
-            || (self.depth.is_some() && report.depth > self.depth.unwrap())
+    pub fn should_stop(&self, report: &Report) -> bool {
+        (self.depth.is_some() && report.depth > self.depth.unwrap())
             || (self.elapsed.is_some() && report.elapsed() > self.elapsed.unwrap())
-            || (self.nodes.is_some() && report.nodes > self.nodes.unwrap());
-
-        self.stopped
+            || (self.nodes.is_some() && report.nodes > self.nodes.unwrap())
     }
 }
 
@@ -79,7 +74,7 @@ pub fn search(pos: &mut Position, reporter: &mut dyn Reporter, stopper: &mut Sto
 
         let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report, stopper);
 
-        if stopper.stopped {
+        if stopper.should_stop(&report) {
             break;
         }
 
