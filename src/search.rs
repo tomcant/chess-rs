@@ -37,6 +37,8 @@ pub struct Stopper {
     nodes: Option<u128>,
 }
 
+const STOPPER_NODES_MASK: u128 = 255;
+
 impl Stopper {
     pub fn new() -> Self {
         Self {
@@ -59,8 +61,11 @@ impl Stopper {
     }
 
     pub fn should_stop(&self, report: &Report) -> bool {
-        (self.depth.is_some() && report.depth > self.depth.unwrap())
-            || (self.elapsed.is_some() && report.elapsed() > self.elapsed.unwrap())
+        if report.nodes & STOPPER_NODES_MASK != 0 {
+            return false;
+        }
+
+        (self.elapsed.is_some() && report.elapsed() > self.elapsed.unwrap())
             || (self.nodes.is_some() && report.nodes > self.nodes.unwrap())
     }
 }
@@ -69,7 +74,12 @@ pub fn search(pos: &mut Position, reporter: &mut dyn Reporter, stopper: &mut Sto
     let mut pv = vec![];
     let mut report = Report::new();
 
-    for depth in 1.. {
+    let max_depth = match stopper.depth {
+        Some(depth) => depth,
+        None => u8::MAX,
+    };
+
+    for depth in 1..=max_depth {
         report.depth = depth;
 
         let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report, stopper);
