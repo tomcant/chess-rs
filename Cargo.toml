@@ -6,3 +6,6 @@ edition = "2021"
 
 [dependencies]
 lazy_static = "1.4.0"
+
+[profile.release]
+strip = true

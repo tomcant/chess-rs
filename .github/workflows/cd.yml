@@ -41,7 +41,6 @@ jobs:
           args: --release --target ${{ matrix.target }}
       - name: Package
         run: |
-          strip ./target/${{ matrix.target }}/release/chess-rs
           mv ./target/${{ matrix.target }}/release/chess-rs .
           tar -czvf chess-rs-${{ matrix.build }}.tar.gz ./chess-rs
       - name: Release
