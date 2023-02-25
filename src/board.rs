@@ -55,7 +55,7 @@ impl Board {
     }
 
     pub fn occupancy(&self) -> BitBoard {
-        self.colours.iter().sum()
+        self.colours[Colour::White as usize] + self.colours[Colour::Black as usize]
     }
 }
 

@@ -31,50 +31,16 @@ pub trait Reporter {
     fn send(&mut self, report: &Report);
 }
 
-pub struct Stopper {
-    depth: Option<u8>,
-    elapsed: Option<Duration>,
-    nodes: Option<u128>,
+pub trait Stopper {
+    fn should_stop(&mut self, report: &Report) -> bool;
+    fn max_depth(&self) -> Option<u8>;
 }
 
-const STOPPER_NODES_MASK: u128 = 255;
-
-impl Stopper {
-    pub fn new() -> Self {
-        Self {
-            depth: None,
-            elapsed: None,
-            nodes: None,
-        }
-    }
-
-    pub fn at_depth(&self, depth: Option<u8>) -> Self {
-        Self { depth, ..*self }
-    }
-
-    pub fn at_elapsed(&self, elapsed: Option<Duration>) -> Self {
-        Self { elapsed, ..*self }
-    }
-
-    pub fn at_nodes(&self, nodes: Option<u128>) -> Self {
-        Self { nodes, ..*self }
-    }
-
-    pub fn should_stop(&self, report: &Report) -> bool {
-        if report.nodes & STOPPER_NODES_MASK != 0 {
-            return false;
-        }
-
-        (self.elapsed.is_some() && report.elapsed() > self.elapsed.unwrap())
-            || (self.nodes.is_some() && report.nodes > self.nodes.unwrap())
-    }
-}
-
-pub fn search(pos: &mut Position, reporter: &mut dyn Reporter, stopper: &mut Stopper) {
+pub fn search(pos: &mut Position, reporter: &mut impl Reporter, stopper: &mut impl Stopper) {
     let mut pv = vec![];
     let mut report = Report::new();
 
-    let max_depth = match stopper.depth {
+    let max_depth = match stopper.max_depth() {
         Some(depth) => depth,
         None => u8::MAX,
     };
@@ -100,7 +66,7 @@ fn alpha_beta(
     beta: i32,
     pv: &mut Vec<Move>,
     report: &mut Report,
-    stopper: &mut Stopper,
+    stopper: &mut impl Stopper,
 ) -> i32 {
     if stopper.should_stop(report) {
         return 0;
@@ -251,14 +217,14 @@ mod tests {
     use super::*;
     use crate::castling::CastlingRights;
     use crate::square::Square;
-    use doubles::ReporterSpy;
+    use doubles::*;
 
     #[test]
     fn report_the_depth() {
         let mut pos = Position::startpos();
         let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &mut Stopper::new().at_depth(Some(3)));
+        search(&mut pos, &mut reporter, &mut StopperStub(3));
 
         assert_eq!(vec![1, 2, 3], reporter.depths);
     }
@@ -268,7 +234,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &mut Stopper::new().at_depth(Some(1)));
+        search(&mut pos, &mut reporter, &mut StopperStub(1));
 
         assert!(!reporter.last_pv_moves.is_empty());
     }
@@ -278,7 +244,7 @@ mod tests {
         let mut pos = Position::startpos();
         let mut reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &mut Stopper::new().at_depth(Some(1)));
+        search(&mut pos, &mut reporter, &mut StopperStub(1));
 
         assert_eq!(21, reporter.last_nodes);
     }
@@ -336,6 +302,18 @@ mod tests {
                 if let Some((moves, _)) = &report.pv {
                     self.last_pv_moves = moves.clone();
                 }
+            }
+        }
+
+        pub struct StopperStub(pub u8);
+
+        impl Stopper for StopperStub {
+            fn should_stop(&mut self, report: &Report) -> bool {
+                report.depth > self.0
+            }
+
+            fn max_depth(&self) -> Option<u8> {
+                Some(self.0)
             }
         }
     }
