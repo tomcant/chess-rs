@@ -41,8 +41,20 @@ pub fn uci_main() {
         match uci_rx.recv().unwrap() {
             UciCommand::Init => handle::init(),
             UciCommand::IsReady => handle::is_ready(),
-            UciCommand::NewGame => handle::new_game(&mut pos.lock().unwrap()),
-            UciCommand::Position(fen, moves) => handle::position(fen, moves, &mut pos.lock().unwrap()),
+            UciCommand::NewGame => {
+                let pos = Arc::clone(&pos);
+
+                thread::spawn(move || {
+                    handle::new_game(&mut pos.lock().unwrap());
+                });
+            }
+            UciCommand::Position(fen, moves) => {
+                let pos = Arc::clone(&pos);
+
+                thread::spawn(move || {
+                    handle::position(fen, moves, &mut pos.lock().unwrap());
+                });
+            }
             UciCommand::Go(params) => {
                 let stopper_rx = Arc::clone(&stopper_rx);
                 let pos = Arc::clone(&pos);
