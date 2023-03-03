@@ -1,4 +1,5 @@
 use crate::search::{Report, Stopper};
+use std::cell::RefCell;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
@@ -9,7 +10,7 @@ pub struct UciStopper<'a> {
     elapsed: Option<Duration>,
     nodes: Option<u128>,
     stop_signal_recv: &'a Receiver<bool>,
-    has_stop_signal: bool,
+    has_stop_signal: RefCell<bool>,
 }
 
 impl<'a> UciStopper<'a> {
@@ -19,30 +20,31 @@ impl<'a> UciStopper<'a> {
             elapsed: None,
             nodes: None,
             stop_signal_recv,
-            has_stop_signal: false,
+            has_stop_signal: RefCell::new(false),
         }
     }
 
-    pub fn at_depth(&self, depth: Option<u8>) -> Self {
-        Self { depth, ..*self }
+    pub fn at_depth(&mut self, depth: Option<u8>) {
+        self.depth = depth;
     }
 
-    pub fn at_elapsed(&self, elapsed: Option<Duration>) -> Self {
-        Self { elapsed, ..*self }
+    pub fn at_elapsed(&mut self, elapsed: Option<Duration>) {
+        self.elapsed = elapsed;
     }
 
-    pub fn at_nodes(&self, nodes: Option<u128>) -> Self {
-        Self { nodes, ..*self }
+    pub fn at_nodes(&mut self, nodes: Option<u128>) {
+        self.nodes = nodes;
     }
 
     pub fn clear_stop_signal(&self) {
+        *self.has_stop_signal.borrow_mut() = false;
         while self.stop_signal_recv.try_recv().is_ok() {}
     }
 }
 
 impl<'a> Stopper for UciStopper<'a> {
-    fn should_stop(&mut self, report: &Report) -> bool {
-        if self.has_stop_signal {
+    fn should_stop(&self, report: &Report) -> bool {
+        if *self.has_stop_signal.borrow() {
             return true;
         }
 
@@ -51,7 +53,7 @@ impl<'a> Stopper for UciStopper<'a> {
         }
 
         if self.stop_signal_recv.try_recv().is_ok() {
-            self.has_stop_signal = true;
+            *self.has_stop_signal.borrow_mut() = true;
             return true;
         }
 

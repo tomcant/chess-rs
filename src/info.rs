@@ -1,7 +1,7 @@
-pub fn info_name() -> String {
+pub fn name() -> String {
     format!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
 }
 
-pub fn info_author() -> String {
+pub fn author() -> String {
     env!("CARGO_PKG_AUTHORS").to_string()
 }

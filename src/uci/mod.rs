@@ -3,7 +3,6 @@ use crate::uci::{
     command::{handle, UciCommand},
     stopper::UciStopper,
 };
-
 use std::{
     io,
     sync::{mpsc, Arc, Mutex},
@@ -16,7 +15,7 @@ pub mod stopper;
 mod r#move;
 mod reporter;
 
-pub fn uci_main() {
+pub fn main() {
     let (uci_tx, uci_rx) = mpsc::channel();
     let (stopper_tx, stopper_rx) = mpsc::channel();
     let stopper_rx = Arc::new(Mutex::new(stopper_rx));
@@ -61,13 +60,14 @@ pub fn uci_main() {
 
                 thread::spawn(move || {
                     let rx_lock = stopper_rx.lock().unwrap();
-                    let mut stopper = UciStopper::new(&rx_lock)
-                        .at_depth(params.depth)
-                        .at_elapsed(params.movetime)
-                        .at_nodes(params.nodes);
+                    let mut stopper = UciStopper::new(&rx_lock);
 
+                    stopper.at_depth(params.depth);
+                    stopper.at_elapsed(params.movetime);
+                    stopper.at_nodes(params.nodes);
                     stopper.clear_stop_signal();
-                    handle::go(&mut pos.lock().unwrap(), &mut stopper);
+
+                    handle::go(&mut pos.lock().unwrap(), &stopper);
                 });
             }
             UciCommand::Stop => stopper_tx.send(true).unwrap(),

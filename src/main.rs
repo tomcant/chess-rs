@@ -13,10 +13,7 @@ mod search;
 mod square;
 mod uci;
 
-use crate::info::{info_author, info_name};
-use crate::uci::uci_main;
-
 fn main() {
-    println!("{}, {}", info_name(), info_author());
-    uci_main();
+    println!("{}, {}", info::name(), info::author());
+    uci::main();
 }

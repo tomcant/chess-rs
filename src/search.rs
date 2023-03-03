@@ -32,11 +32,11 @@ pub trait Reporter {
 }
 
 pub trait Stopper {
-    fn should_stop(&mut self, report: &Report) -> bool;
+    fn should_stop(&self, report: &Report) -> bool;
     fn max_depth(&self) -> Option<u8>;
 }
 
-pub fn search(pos: &mut Position, reporter: &mut impl Reporter, stopper: &mut impl Stopper) {
+pub fn search(pos: &mut Position, reporter: &mut impl Reporter, stopper: &impl Stopper) {
     let mut pv = vec![];
     let mut report = Report::new();
 
@@ -66,7 +66,7 @@ fn alpha_beta(
     beta: i32,
     pv: &mut Vec<Move>,
     report: &mut Report,
-    stopper: &mut impl Stopper,
+    stopper: &impl Stopper,
 ) -> i32 {
     if stopper.should_stop(report) {
         return 0;
@@ -308,7 +308,7 @@ mod tests {
         pub struct StopperStub(pub u8);
 
         impl Stopper for StopperStub {
-            fn should_stop(&mut self, report: &Report) -> bool {
+            fn should_stop(&self, report: &Report) -> bool {
                 report.depth > self.0
             }
 

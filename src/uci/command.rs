@@ -113,15 +113,15 @@ mod parse {
 
 pub mod handle {
     use super::*;
-    use crate::info::{info_author, info_name};
+    use crate::info;
     use crate::position::Position;
     use crate::r#move::Move;
     use crate::search::search;
     use crate::uci::{reporter::UciReporter, stopper::UciStopper};
 
     pub fn init() {
-        println!("id name {}", info_name());
-        println!("id author {}", info_author());
+        println!("id name {}", info::name());
+        println!("id author {}", info::author());
         println!("uciok");
     }
 
@@ -152,7 +152,7 @@ pub mod handle {
         }
     }
 
-    pub fn go(pos: &mut Position, stopper: &mut UciStopper) {
+    pub fn go(pos: &mut Position, stopper: &UciStopper) {
         let mut reporter = UciReporter::new();
         search(pos, &mut reporter, stopper);
 
