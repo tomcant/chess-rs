@@ -153,10 +153,10 @@ pub mod handle {
     }
 
     pub fn go(pos: &mut Position, stopper: &UciStopper) {
-        let mut reporter = UciReporter::new();
-        search(pos, &mut reporter, stopper);
+        let reporter = UciReporter::new();
+        search(pos, &reporter, stopper);
 
-        match reporter.best_move {
+        match reporter.best_move() {
             Some(mv) => println!("bestmove {mv}"),
             None => println!("bestmove (none)"),
         }

@@ -1,8 +1,6 @@
+use self::command::{handle, UciCommand};
+use self::stopper::UciStopper;
 use crate::position::Position;
-use crate::uci::{
-    command::{handle, UciCommand},
-    stopper::UciStopper,
-};
 use std::{
     io,
     sync::{mpsc, Arc, Mutex},

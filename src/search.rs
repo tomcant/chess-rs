@@ -28,7 +28,7 @@ impl Report {
 }
 
 pub trait Reporter {
-    fn send(&mut self, report: &Report);
+    fn send(&self, report: &Report);
 }
 
 pub trait Stopper {
@@ -36,7 +36,7 @@ pub trait Stopper {
     fn max_depth(&self) -> Option<u8>;
 }
 
-pub fn search(pos: &mut Position, reporter: &mut impl Reporter, stopper: &impl Stopper) {
+pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopper) {
     let mut pv = vec![];
     let mut report = Report::new();
 
@@ -221,32 +221,29 @@ mod tests {
 
     #[test]
     fn report_the_depth() {
-        let mut pos = Position::startpos();
-        let mut reporter = ReporterSpy::new();
+        let reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &mut StopperStub(3));
+        search(&mut Position::startpos(), &reporter, &StopperStub(3));
 
-        assert_eq!(vec![1, 2, 3], reporter.depths);
+        assert_eq!(vec![1, 2, 3], reporter.depths());
     }
 
     #[test]
     fn report_the_principal_variation() {
-        let mut pos = Position::startpos();
-        let mut reporter = ReporterSpy::new();
+        let reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &mut StopperStub(1));
+        search(&mut Position::startpos(), &reporter, &StopperStub(1));
 
-        assert!(!reporter.last_pv_moves.is_empty());
+        assert!(!reporter.last_pv_moves().is_empty());
     }
 
     #[test]
     fn report_the_node_count() {
-        let mut pos = Position::startpos();
-        let mut reporter = ReporterSpy::new();
+        let reporter = ReporterSpy::new();
 
-        search(&mut pos, &mut reporter, &mut StopperStub(1));
+        search(&mut Position::startpos(), &reporter, &StopperStub(1));
 
-        assert_eq!(21, reporter.last_nodes);
+        assert_eq!(21, reporter.last_nodes());
     }
 
     #[test]
@@ -277,30 +274,43 @@ mod tests {
 
     mod doubles {
         use super::*;
+        use std::cell::{Cell, RefCell};
 
         pub struct ReporterSpy {
-            pub depths: Vec<u8>,
-            pub last_pv_moves: Vec<Move>,
-            pub last_nodes: u128,
+            depths: RefCell<Vec<u8>>,
+            last_pv_moves: RefCell<Vec<Move>>,
+            last_nodes: Cell<u128>,
         }
 
         impl ReporterSpy {
             pub fn new() -> Self {
                 Self {
-                    depths: vec![],
-                    last_pv_moves: vec![],
-                    last_nodes: 0,
+                    depths: RefCell::new(vec![]),
+                    last_pv_moves: RefCell::new(vec![]),
+                    last_nodes: Cell::new(0),
                 }
+            }
+
+            pub fn depths(&self) -> Vec<u8> {
+                self.depths.borrow().clone()
+            }
+
+            pub fn last_pv_moves(&self) -> Vec<Move> {
+                self.last_pv_moves.borrow().clone()
+            }
+
+            pub fn last_nodes(&self) -> u128 {
+                self.last_nodes.get()
             }
         }
 
         impl Reporter for ReporterSpy {
-            fn send(&mut self, report: &Report) {
-                self.depths.push(report.depth);
-                self.last_nodes = report.nodes;
+            fn send(&self, report: &Report) {
+                self.depths.borrow_mut().push(report.depth);
+                self.last_nodes.set(report.nodes);
 
                 if let Some((moves, _)) = &report.pv {
-                    self.last_pv_moves = moves.clone();
+                    *self.last_pv_moves.borrow_mut() = moves.clone();
                 }
             }
         }
