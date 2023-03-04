@@ -1,5 +1,5 @@
 use crate::search::{Report, Stopper};
-use std::cell::RefCell;
+use std::cell::Cell;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
@@ -10,7 +10,7 @@ pub struct UciStopper<'a> {
     elapsed: Option<Duration>,
     nodes: Option<u128>,
     stop_signal_recv: &'a Receiver<bool>,
-    has_stop_signal: RefCell<bool>,
+    has_stop_signal: Cell<bool>,
 }
 
 impl<'a> UciStopper<'a> {
@@ -20,7 +20,7 @@ impl<'a> UciStopper<'a> {
             elapsed: None,
             nodes: None,
             stop_signal_recv,
-            has_stop_signal: RefCell::new(false),
+            has_stop_signal: Cell::new(false),
         }
     }
 
@@ -37,14 +37,14 @@ impl<'a> UciStopper<'a> {
     }
 
     pub fn clear_stop_signal(&self) {
-        *self.has_stop_signal.borrow_mut() = false;
+        self.has_stop_signal.set(false);
         while self.stop_signal_recv.try_recv().is_ok() {}
     }
 }
 
 impl<'a> Stopper for UciStopper<'a> {
     fn should_stop(&self, report: &Report) -> bool {
-        if *self.has_stop_signal.borrow() {
+        if self.has_stop_signal.get() {
             return true;
         }
 
@@ -53,7 +53,7 @@ impl<'a> Stopper for UciStopper<'a> {
         }
 
         if self.stop_signal_recv.try_recv().is_ok() {
-            *self.has_stop_signal.borrow_mut() = true;
+            self.has_stop_signal.set(true);
             return true;
         }
 
