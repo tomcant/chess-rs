@@ -1,5 +1,7 @@
-use self::command::{handle, UciCommand};
-use self::stopper::UciStopper;
+use self::{
+    command::{handle, UciCommand::*},
+    stopper::UciStopper,
+};
 use crate::position::Position;
 use std::{
     io,
@@ -36,23 +38,23 @@ pub fn main() {
 
     loop {
         match uci_rx.recv().unwrap() {
-            UciCommand::Init => handle::init(),
-            UciCommand::IsReady => handle::is_ready(),
-            UciCommand::NewGame => {
+            Init => handle::init(),
+            IsReady => handle::is_ready(),
+            NewGame => {
                 let pos = Arc::clone(&pos);
 
                 thread::spawn(move || {
                     handle::new_game(&mut pos.lock().unwrap());
                 });
             }
-            UciCommand::Position(fen, moves) => {
+            Position(fen, moves) => {
                 let pos = Arc::clone(&pos);
 
                 thread::spawn(move || {
                     handle::position(fen, moves, &mut pos.lock().unwrap());
                 });
             }
-            UciCommand::Go(params) => {
+            Go(params) => {
                 let stopper_rx = Arc::clone(&stopper_rx);
                 let pos = Arc::clone(&pos);
 
@@ -68,8 +70,8 @@ pub fn main() {
                     handle::go(&mut pos.lock().unwrap(), &stopper);
                 });
             }
-            UciCommand::Stop => stopper_tx.send(true).unwrap(),
-            UciCommand::Quit => break,
+            Stop => stopper_tx.send(true).unwrap(),
+            Quit => break,
         }
     }
 }
