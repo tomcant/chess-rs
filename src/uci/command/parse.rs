@@ -46,7 +46,7 @@ fn parse_position(args: &[&str]) -> Result<UciCommand, String> {
 
             _ => match token {
                 Token::Fen => fen = format!("{fen} {arg}"),
-                Token::Move => moves.push(arg.parse().unwrap()),
+                Token::Move => moves.push(arg.parse()?),
                 _ => (),
             },
         }

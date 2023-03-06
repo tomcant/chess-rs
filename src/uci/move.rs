@@ -11,9 +11,13 @@ pub struct UciMove {
 }
 
 impl FromStr for UciMove {
-    type Err = ();
+    type Err = String;
 
     fn from_str(mv: &str) -> Result<Self, Self::Err> {
+        if mv.len() != 4 && mv.len() != 5 {
+            return Err("invalid UCI move".to_string());
+        }
+
         let from = mv[0..2].parse::<Square>()?;
         let to = mv[2..4].parse::<Square>()?;
 
@@ -24,7 +28,7 @@ impl FromStr for UciMove {
                     'b' => PieceType::Bishop,
                     'r' => PieceType::Rook,
                     'q' => PieceType::Queen,
-                    _ => return Err(()),
+                    _ => return Err("invalid promotion piece in UCI move".to_string()),
                 },
                 match to.rank() {
                     0 => Colour::Black,

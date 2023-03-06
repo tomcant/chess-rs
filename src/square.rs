@@ -66,11 +66,11 @@ impl Display for Square {
 }
 
 impl FromStr for Square {
-    type Err = ();
+    type Err = String;
 
     fn from_str(square: &str) -> Result<Self, Self::Err> {
         if square.len() != 2 {
-            return Err(());
+            return Err(format!("invalid square '{square}'"));
         }
 
         let chars: Vec<_> = square.chars().collect();
@@ -79,7 +79,7 @@ impl FromStr for Square {
         let rank = chars[1] as u8;
 
         if !(b'a'..=b'h').contains(&file) || !(b'1'..=b'8').contains(&rank) {
-            return Err(());
+            return Err(format!("invalid square '{square}'"));
         }
 
         Ok(Self::from_file_and_rank(file - b'a', rank - b'1'))
