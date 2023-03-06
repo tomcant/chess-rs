@@ -32,7 +32,7 @@ pub fn main() {
 
         match command.parse() {
             Ok(parsed) => uci_tx.send(parsed).unwrap(),
-            Err(_) => println!("unknown command '{command}'"),
+            Err(err) => println!("error: {err}"),
         }
     });
 
