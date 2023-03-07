@@ -1,6 +1,6 @@
 use super::*;
 use crate::attacks::is_in_check;
-use crate::movegen::MoveGenerator;
+use crate::movegen::generate_all_moves;
 
 pub fn search(
     pos: &mut Position,
@@ -25,7 +25,7 @@ pub fn search(
     let colour_to_move = pos.colour_to_move;
     let mut has_legal_move = false;
 
-    for mv in order_moves(&pos.generate_all_moves(), pv_move) {
+    for mv in order_moves(&generate_all_moves(pos), pv_move) {
         pos.do_move(&mv);
 
         if is_in_check(colour_to_move, &pos.board) {
