@@ -1,5 +1,5 @@
 use crate::attacks::is_in_check;
-use crate::eval::{Evaluator, EVAL_CHECKMATE, EVAL_MAX, EVAL_MIN, EVAL_STALEMATE};
+use crate::eval::{eval, EVAL_CHECKMATE, EVAL_MAX, EVAL_MIN, EVAL_STALEMATE};
 use crate::movegen::MoveGenerator;
 use crate::position::Position;
 use crate::r#move::Move;
@@ -124,7 +124,7 @@ fn alpha_beta(
 fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut Report) -> i32 {
     report.nodes += 1;
 
-    let eval = pos.evaluate();
+    let eval = eval(pos);
 
     if eval >= beta {
         return beta;
