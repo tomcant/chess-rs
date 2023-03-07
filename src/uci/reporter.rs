@@ -1,5 +1,5 @@
 use crate::r#move::Move;
-use crate::search::{Report, Reporter};
+use crate::search::report::{Report, Reporter};
 use std::cell::Cell;
 
 const NANOS_PER_SEC: u128 = 1_000_000_000;

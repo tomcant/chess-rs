@@ -1,4 +1,4 @@
-use crate::search::{Report, Stopper};
+use crate::search::{report::Report, stopper::Stopper};
 use std::cell::Cell;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;

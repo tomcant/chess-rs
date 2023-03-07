@@ -1,40 +1,16 @@
-use crate::attacks::is_in_check;
-use crate::eval::{eval, EVAL_CHECKMATE, EVAL_MAX, EVAL_MIN, EVAL_STALEMATE};
-use crate::movegen::MoveGenerator;
+use self::{
+    report::{Report, Reporter},
+    stopper::Stopper,
+};
+use crate::eval::*;
 use crate::position::Position;
 use crate::r#move::Move;
-use std::time::{Duration, Instant};
 
-pub struct Report {
-    pub depth: u8,
-    pub nodes: u128,
-    pub pv: Option<(Vec<Move>, i32)>,
-    started_at: Instant,
-}
+pub mod report;
+pub mod stopper;
 
-impl Report {
-    fn new() -> Self {
-        Self {
-            depth: 0,
-            nodes: 0,
-            pv: None,
-            started_at: Instant::now(),
-        }
-    }
-
-    pub fn elapsed(&self) -> Duration {
-        self.started_at.elapsed()
-    }
-}
-
-pub trait Reporter {
-    fn send(&self, report: &Report);
-}
-
-pub trait Stopper {
-    fn should_stop(&self, report: &Report) -> bool;
-    fn max_depth(&self) -> Option<u8>;
-}
+mod alphabeta;
+mod quiescence;
 
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopper) {
     let mut pv = vec![];
@@ -48,7 +24,7 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
     for depth in 1..=max_depth {
         report.depth = depth;
 
-        let eval = alpha_beta(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report, stopper);
+        let eval = alphabeta::search(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report, stopper);
 
         if stopper.should_stop(&report) {
             break;
@@ -57,113 +33,6 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
         report.pv = Some((pv.clone(), eval));
         reporter.send(&report);
     }
-}
-
-fn alpha_beta(
-    pos: &mut Position,
-    depth: u8,
-    mut alpha: i32,
-    beta: i32,
-    pv: &mut Vec<Move>,
-    report: &mut Report,
-    stopper: &impl Stopper,
-) -> i32 {
-    if stopper.should_stop(report) {
-        return 0;
-    }
-
-    if depth == 0 {
-        return quiescence(pos, alpha, beta, &mut vec![], report);
-    }
-
-    report.nodes += 1;
-
-    let (pv_move, mut next_ply_pv) = split_pv(pv);
-    let colour_to_move = pos.colour_to_move;
-    let mut has_legal_move = false;
-
-    for mv in order_moves(&pos.generate_all_moves(), pv_move) {
-        pos.do_move(&mv);
-
-        if is_in_check(colour_to_move, &pos.board) {
-            pos.undo_move(&mv);
-            continue;
-        }
-
-        has_legal_move = true;
-
-        let eval = -alpha_beta(pos, depth - 1, -beta, -alpha, &mut next_ply_pv, report, stopper);
-
-        if eval >= beta {
-            pos.undo_move(&mv);
-            return beta;
-        }
-
-        if eval > alpha {
-            alpha = eval;
-
-            pv.clear();
-            pv.push(*mv);
-            pv.append(&mut next_ply_pv);
-        }
-
-        pos.undo_move(&mv);
-    }
-
-    if !has_legal_move {
-        return if is_in_check(colour_to_move, &pos.board) {
-            EVAL_CHECKMATE
-        } else {
-            EVAL_STALEMATE
-        };
-    }
-
-    alpha
-}
-
-fn quiescence(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut Report) -> i32 {
-    report.nodes += 1;
-
-    let eval = eval(pos);
-
-    if eval >= beta {
-        return beta;
-    }
-
-    if eval > alpha {
-        alpha = eval;
-    }
-
-    let (pv_move, mut next_ply_pv) = split_pv(pv);
-    let colour_to_move = pos.colour_to_move;
-
-    for mv in order_moves(&pos.generate_capture_moves(), pv_move) {
-        pos.do_move(&mv);
-
-        if is_in_check(colour_to_move, &pos.board) {
-            pos.undo_move(&mv);
-            continue;
-        }
-
-        let eval = -quiescence(pos, -beta, -alpha, &mut next_ply_pv, report);
-
-        if eval >= beta {
-            pos.undo_move(&mv);
-            return beta;
-        }
-
-        if eval > alpha {
-            alpha = eval;
-
-            pv.clear();
-            pv.push(*mv);
-            pv.append(&mut next_ply_pv);
-        }
-
-        pos.undo_move(&mv);
-    }
-
-    alpha
 }
 
 fn split_pv(pv: &mut [Move]) -> (Option<Move>, Vec<Move>) {
