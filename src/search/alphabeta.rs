@@ -34,8 +34,11 @@ pub fn search(
         }
 
         has_legal_move = true;
+        report.ply += 1;
 
         let eval = -search(pos, depth - 1, -beta, -alpha, &mut next_ply_pv, report, stopper);
+
+        report.ply -= 1;
 
         if eval >= beta {
             pos.undo_move(&mv);
@@ -55,7 +58,7 @@ pub fn search(
 
     if !has_legal_move {
         return if is_in_check(colour_to_move, &pos.board) {
-            EVAL_CHECKMATE
+            -EVAL_CHECKMATE + report.ply as i32
         } else {
             EVAL_STALEMATE
         };

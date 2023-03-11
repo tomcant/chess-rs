@@ -12,13 +12,15 @@ pub mod stopper;
 mod alphabeta;
 mod quiescence;
 
+const MAX_DEPTH: u8 = u8::MAX;
+
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopper) {
     let mut pv = vec![];
     let mut report = Report::new();
 
     let max_depth = match stopper.max_depth() {
         Some(depth) => depth,
-        None => u8::MAX,
+        None => MAX_DEPTH,
     };
 
     for depth in 1..=max_depth {
