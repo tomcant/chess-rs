@@ -1,10 +1,15 @@
-use crate::board::Board;
-use crate::castling::CastlingRights;
 use crate::colour::Colour;
-use crate::fen::START_POS_FEN;
 use crate::piece::{Piece, PieceType};
 use crate::r#move::Move;
 use crate::square::Square;
+
+mod board;
+mod castling;
+mod fen;
+
+pub use board::Board;
+pub use castling::{CastlingRight, CastlingRights};
+pub use fen::START_POS_FEN;
 
 #[derive(Debug)]
 pub struct Position {
@@ -119,9 +124,7 @@ impl Position {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::castling::CastlingRight;
     use crate::piece::Piece;
-    use crate::position::Position;
 
     #[test]
     fn move_a_piece() {

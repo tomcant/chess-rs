@@ -86,7 +86,7 @@ fn order_moves(moves: &[Move], pv_move: Option<Move>) -> Vec<OrderedMove> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::castling::CastlingRights;
+    use crate::position::CastlingRights;
     use crate::square::Square;
     use doubles::*;
 

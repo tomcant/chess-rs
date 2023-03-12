@@ -1,9 +1,6 @@
 mod attacks;
-mod board;
-mod castling;
 mod colour;
 mod eval;
-mod fen;
 mod info;
 mod r#move;
 mod movegen;

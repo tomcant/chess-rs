@@ -2,12 +2,10 @@ use crate::colour::Colour;
 use crate::piece::{Piece, PieceType};
 use crate::square::Square;
 
-pub type BitBoard = u64;
-
 #[derive(Debug)]
 pub struct Board {
-    pieces: [BitBoard; 12],
-    colours: [BitBoard; 2],
+    pieces: [u64; 12],
+    colours: [u64; 2],
 }
 
 impl Board {
@@ -18,11 +16,11 @@ impl Board {
         }
     }
 
-    pub fn pieces(&self, piece_type: PieceType, colour: Colour) -> BitBoard {
+    pub fn pieces(&self, piece_type: PieceType, colour: Colour) -> u64 {
         self.pieces[Piece::from(piece_type, colour).index()]
     }
 
-    pub fn pieces_by_colour(&self, colour: Colour) -> BitBoard {
+    pub fn pieces_by_colour(&self, colour: Colour) -> u64 {
         self.colours[colour as usize]
     }
 
@@ -54,7 +52,7 @@ impl Board {
         }
     }
 
-    pub fn occupancy(&self) -> BitBoard {
+    pub fn occupancy(&self) -> u64 {
         self.colours[Colour::White as usize] + self.colours[Colour::Black as usize]
     }
 }

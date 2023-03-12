@@ -1,8 +1,6 @@
-use crate::board::Board;
-use crate::castling::{CastlingRight, CastlingRights};
+use super::*;
 use crate::colour::Colour;
 use crate::piece::Piece;
-use crate::position::Position;
 use crate::square::Square;
 use std::str::FromStr;
 
@@ -129,7 +127,6 @@ fn parse_en_passant_square(square: &str) -> Result<Option<Square>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::position::Position;
 
     #[test]
     fn parse_a_valid_fen() {

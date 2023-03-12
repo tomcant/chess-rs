@@ -2,8 +2,7 @@ use super::{
     GoParams,
     UciCommand::{self, *},
 };
-use crate::fen::START_POS_FEN;
-use crate::position::Position;
+use crate::position::{Position, START_POS_FEN};
 use std::str::FromStr;
 use std::time::Duration;
 

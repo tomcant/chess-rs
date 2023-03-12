@@ -1,7 +1,6 @@
-use crate::board::Board;
 use crate::colour::Colour;
 use crate::piece::PieceType;
-use crate::position::Position;
+use crate::position::{Board, Position};
 
 mod material;
 mod psqt;

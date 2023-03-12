@@ -1,9 +1,7 @@
 use crate::attacks::{get_attacks, is_attacked};
-use crate::board::{BitBoard, Board};
-use crate::castling::{CastlingRight, CastlingRights};
 use crate::colour::Colour;
 use crate::piece::{Piece, PieceType};
-use crate::position::Position;
+use crate::position::{Board, CastlingRight, CastlingRights, Position};
 use crate::r#move::Move;
 use crate::square::Square;
 
@@ -137,7 +135,7 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
     moves
 }
 
-fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard {
+fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> u64 {
     let advanced_square = square.advance(colour);
 
     if board.has_piece_at(advanced_square) {
@@ -163,15 +161,14 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> BitBoard 
 }
 
 fn can_capture_en_passant(pawn_square: Square, en_passant_square: Option<Square>, colour_to_move: Colour) -> bool {
-    if let Some(square) = en_passant_square {
-        return pawn_square.file_diff(square) == 1
-            && pawn_square.rank() == square.advance(colour_to_move.flip()).rank();
-    }
+    let Some(square) = en_passant_square else {
+        return false;
+    };
 
-    false
+    return pawn_square.file_diff(square) == 1 && pawn_square.advance(colour_to_move).rank() == square.rank();
 }
 
-fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: &Board) -> BitBoard {
+fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: &Board) -> u64 {
     let mut castling = 0;
 
     if colour_to_move == Colour::White {
@@ -392,7 +389,7 @@ mod tests {
 
     mod perft {
         use super::*;
-        use crate::fen::START_POS_FEN;
+        use crate::position::START_POS_FEN;
 
         #[test]
         fn perft_start_position_shallow() {

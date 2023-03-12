@@ -1,5 +1,5 @@
-use crate::castling::CastlingRights;
 use crate::piece::Piece;
+use crate::position::CastlingRights;
 use crate::square::Square;
 use std::fmt::{Display, Formatter};
 

@@ -1,18 +1,18 @@
-use crate::board::{BitBoard, Board};
 use crate::colour::Colour;
 use crate::piece::{Piece, PieceType};
+use crate::position::Board;
 use crate::square::Square;
 use lazy_static::lazy_static;
 
-const FILE_A: BitBoard = 0x0101_0101_0101_0101;
-const FILE_B: BitBoard = 0x0202_0202_0202_0202;
-const FILE_G: BitBoard = 0x4040_4040_4040_4040;
-const FILE_H: BitBoard = 0x8080_8080_8080_8080;
+const FILE_A: u64 = 0x0101_0101_0101_0101;
+const FILE_B: u64 = 0x0202_0202_0202_0202;
+const FILE_G: u64 = 0x4040_4040_4040_4040;
+const FILE_H: u64 = 0x8080_8080_8080_8080;
 
 lazy_static! {
     static ref SQUARES: [Square; 64] = (0..64).map(Square::from_index).collect::<Vec<_>>().try_into().unwrap();
 
-    static ref PAWN_ATTACKS: [[BitBoard; 64]; 2] = {
+    static ref PAWN_ATTACKS: [[u64; 64]; 2] = {
         let mut attacks = [[0; 64]; 2];
 
         for square in SQUARES.iter() {
@@ -28,7 +28,7 @@ lazy_static! {
         attacks
     };
 
-    static ref KNIGHT_ATTACKS: [BitBoard; 64] = {
+    static ref KNIGHT_ATTACKS: [u64; 64] = {
         let mut attacks = [0; 64];
 
         for square in SQUARES.iter() {
@@ -49,8 +49,8 @@ lazy_static! {
         attacks
     };
 
-    static ref BISHOP_ATTACK_RAYS: [[BitBoard; 4]; 64] = {
-        fn up_right_ray_from(square: Square) -> BitBoard {
+    static ref BISHOP_ATTACK_RAYS: [[u64; 4]; 64] = {
+        fn up_right_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut file = square.file() as i8 + 1;
             let mut rank = square.rank() as i8 + 1;
@@ -64,7 +64,7 @@ lazy_static! {
             ray
         }
 
-        fn up_left_ray_from(square: Square) -> BitBoard {
+        fn up_left_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut file = square.file() as i8 - 1;
             let mut rank = square.rank() as i8 + 1;
@@ -78,7 +78,7 @@ lazy_static! {
             ray
         }
 
-        fn down_right_ray_from(square: Square) -> BitBoard {
+        fn down_right_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut file = square.file() as i8 + 1;
             let mut rank = square.rank() as i8 - 1;
@@ -92,7 +92,7 @@ lazy_static! {
             ray
         }
 
-        fn down_left_ray_from(square: Square) -> BitBoard {
+        fn down_left_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut file = square.file() as i8 - 1;
             let mut rank = square.rank() as i8 - 1;
@@ -120,8 +120,8 @@ lazy_static! {
         rays
     };
 
-    static ref ROOK_ATTACK_RAYS: [[BitBoard; 4]; 64] = {
-        fn up_ray_from(square: Square) -> BitBoard {
+    static ref ROOK_ATTACK_RAYS: [[u64; 4]; 64] = {
+        fn up_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut rank = square.rank() as i8 + 1;
 
@@ -133,7 +133,7 @@ lazy_static! {
             ray
         }
 
-        fn right_ray_from(square: Square) -> BitBoard {
+        fn right_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut file = square.file() as i8 + 1;
 
@@ -145,7 +145,7 @@ lazy_static! {
             ray
         }
 
-        fn left_ray_from(square: Square) -> BitBoard {
+        fn left_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut file = square.file() as i8 - 1;
 
@@ -157,7 +157,7 @@ lazy_static! {
             ray
         }
 
-        fn down_ray_from(square: Square) -> BitBoard {
+        fn down_ray_from(square: Square) -> u64 {
             let mut ray = 0;
             let mut rank = square.rank() as i8 - 1;
 
@@ -183,7 +183,7 @@ lazy_static! {
         rays
     };
 
-    static ref KING_ATTACKS: [BitBoard; 64] = {
+    static ref KING_ATTACKS: [u64; 64] = {
         let mut attacks = [0; 64];
 
         for square in SQUARES.iter() {
@@ -216,7 +216,7 @@ pub fn is_attacked(square: Square, colour: Colour, board: &Board) -> bool {
     get_attackers(square, colour, board).count_ones() != 0
 }
 
-pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard {
+pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
     let pawn_attacks = get_pawn_attacks(square, colour.flip(), board);
     let knight_attacks = get_knight_attacks(square);
     let bishop_attacks = get_bishop_attacks(square, board);
@@ -232,7 +232,7 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> BitBoard 
         | (board.pieces(PieceType::King, colour) & king_attacks)
 }
 
-pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> BitBoard {
+pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
     match piece.get_type() {
         PieceType::Pawn => get_pawn_attacks(square, piece.colour(), board),
         PieceType::Knight => get_knight_attacks(square),
@@ -243,15 +243,15 @@ pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> BitBoard {
     }
 }
 
-fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> BitBoard {
+fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
     PAWN_ATTACKS[colour as usize][square.index()] & board.occupancy()
 }
 
-fn get_knight_attacks(square: Square) -> BitBoard {
+fn get_knight_attacks(square: Square) -> u64 {
     KNIGHT_ATTACKS[square.index()]
 }
 
-fn get_bishop_attacks(square: Square, board: &Board) -> BitBoard {
+fn get_bishop_attacks(square: Square, board: &Board) -> u64 {
     let mut attacks = 0;
 
     for direction in 0..4 {
@@ -275,7 +275,7 @@ fn get_bishop_attacks(square: Square, board: &Board) -> BitBoard {
     attacks
 }
 
-fn get_rook_attacks(square: Square, board: &Board) -> BitBoard {
+fn get_rook_attacks(square: Square, board: &Board) -> u64 {
     let mut attacks = 0;
 
     for direction in 0..4 {
@@ -299,7 +299,7 @@ fn get_rook_attacks(square: Square, board: &Board) -> BitBoard {
     attacks
 }
 
-fn get_king_attacks(square: Square) -> BitBoard {
+fn get_king_attacks(square: Square) -> u64 {
     KING_ATTACKS[square.index()]
 }
 
@@ -525,7 +525,7 @@ mod tests {
     }
 
     fn assert_attacks_eq(pos: &Position, attacker: &str, squares: &[&str]) {
-        let attacks: BitBoard = squares.iter().map(|sq| parse_square(sq).u64()).sum();
+        let attacks: u64 = squares.iter().map(|sq| parse_square(sq).u64()).sum();
         let attacker = parse_square(attacker);
 
         assert_eq!(
