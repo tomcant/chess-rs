@@ -6,6 +6,24 @@ use std::str::FromStr;
 pub struct Square(u8);
 
 impl Square {
+    pub const A1: Self = Self(0);
+    pub const B1: Self = Self(1);
+    pub const C1: Self = Self(2);
+    pub const D1: Self = Self(3);
+    pub const E1: Self = Self(4);
+    pub const F1: Self = Self(5);
+    pub const G1: Self = Self(6);
+    pub const H1: Self = Self(7);
+
+    pub const A8: Self = Self(56);
+    pub const B8: Self = Self(57);
+    pub const C8: Self = Self(58);
+    pub const D8: Self = Self(59);
+    pub const E8: Self = Self(60);
+    pub const F8: Self = Self(61);
+    pub const G8: Self = Self(62);
+    pub const H8: Self = Self(63);
+
     pub fn from_index(index: u8) -> Self {
         Self(index)
     }
@@ -55,7 +73,7 @@ impl Square {
     }
 
     pub fn is_corner(&self) -> bool {
-        matches!(self.0, 0 | 7 | 56 | 63)
+        matches!(*self, Self::A1 | Self::H1 | Self::A8 | Self::H8)
     }
 }
 
@@ -92,22 +110,22 @@ mod tests {
 
     #[test]
     fn create_from_a_file_and_a_rank() {
-        assert_eq!(Square::from_file_and_rank(0, 0), Square::from_index(0));
-        assert_eq!(Square::from_file_and_rank(7, 7), Square::from_index(63));
+        assert_eq!(Square::from_file_and_rank(0, 0), Square::A1);
+        assert_eq!(Square::from_file_and_rank(7, 7), Square::H8);
         assert_eq!(Square::from_file_and_rank(1, 4), Square::from_index(33));
     }
 
     #[test]
     fn create_from_a_square_value_in_a_64_bit_board_arrangement() {
-        assert_eq!(Square::from_u64(1), Square::from_index(0));
-        assert_eq!(Square::from_u64(2u64.pow(63)), Square::from_index(63));
+        assert_eq!(Square::from_u64(1), Square::A1);
+        assert_eq!(Square::from_u64(2u64.pow(63)), Square::H8);
         assert_eq!(Square::from_u64(2u64.pow(33)), Square::from_index(33));
     }
 
     #[test]
     fn create_from_algebraic_notation() {
-        assert_eq!(parse_square("a1"), Square::from_index(0));
-        assert_eq!(parse_square("h8"), Square::from_index(63));
+        assert_eq!(parse_square("a1"), Square::A1);
+        assert_eq!(parse_square("h8"), Square::H8);
         assert_eq!(parse_square("b5"), Square::from_index(33));
     }
 

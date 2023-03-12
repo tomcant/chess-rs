@@ -130,11 +130,11 @@ mod tests {
             }
         }
 
-        let pv_move = make_move(Square::from_index(0), Square::from_index(1));
+        let pv_move = make_move(Square::A1, Square::B1);
 
         let moves = [
-            make_move(Square::from_index(2), Square::from_index(3)),
-            make_move(Square::from_index(4), Square::from_index(5)),
+            make_move(Square::C1, Square::D1),
+            make_move(Square::E1, Square::F1),
             pv_move,
         ];
 

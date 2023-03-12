@@ -177,41 +177,41 @@ fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: 
 
     if colour_to_move == Colour::White {
         if castling_rights.has(CastlingRight::WhiteKing)
-            && !board.has_piece_at(Square::from_index(5))
-            && !board.has_piece_at(Square::from_index(6))
-            && !is_attacked(Square::from_index(4), colour_to_move.flip(), board)
-            && !is_attacked(Square::from_index(5), colour_to_move.flip(), board)
+            && !board.has_piece_at(Square::F1)
+            && !board.has_piece_at(Square::G1)
+            && !is_attacked(Square::E1, colour_to_move.flip(), board)
+            && !is_attacked(Square::F1, colour_to_move.flip(), board)
         {
-            castling |= Square::from_index(6).u64();
+            castling |= Square::G1.u64();
         }
 
         if castling_rights.has(CastlingRight::WhiteQueen)
-            && !board.has_piece_at(Square::from_index(1))
-            && !board.has_piece_at(Square::from_index(2))
-            && !board.has_piece_at(Square::from_index(3))
-            && !is_attacked(Square::from_index(3), colour_to_move.flip(), board)
-            && !is_attacked(Square::from_index(4), colour_to_move.flip(), board)
+            && !board.has_piece_at(Square::B1)
+            && !board.has_piece_at(Square::C1)
+            && !board.has_piece_at(Square::D1)
+            && !is_attacked(Square::D1, colour_to_move.flip(), board)
+            && !is_attacked(Square::E1, colour_to_move.flip(), board)
         {
-            castling |= Square::from_index(2).u64();
+            castling |= Square::C1.u64();
         }
     } else {
         if castling_rights.has(CastlingRight::BlackKing)
-            && !board.has_piece_at(Square::from_index(61))
-            && !board.has_piece_at(Square::from_index(62))
-            && !is_attacked(Square::from_index(60), colour_to_move.flip(), board)
-            && !is_attacked(Square::from_index(61), colour_to_move.flip(), board)
+            && !board.has_piece_at(Square::F8)
+            && !board.has_piece_at(Square::G8)
+            && !is_attacked(Square::E8, colour_to_move.flip(), board)
+            && !is_attacked(Square::F8, colour_to_move.flip(), board)
         {
-            castling |= Square::from_index(62).u64();
+            castling |= Square::G8.u64();
         }
 
         if castling_rights.has(CastlingRight::BlackQueen)
-            && !board.has_piece_at(Square::from_index(57))
-            && !board.has_piece_at(Square::from_index(58))
-            && !board.has_piece_at(Square::from_index(59))
-            && !is_attacked(Square::from_index(59), colour_to_move.flip(), board)
-            && !is_attacked(Square::from_index(60), colour_to_move.flip(), board)
+            && !board.has_piece_at(Square::B8)
+            && !board.has_piece_at(Square::C8)
+            && !board.has_piece_at(Square::D8)
+            && !is_attacked(Square::D8, colour_to_move.flip(), board)
+            && !is_attacked(Square::E8, colour_to_move.flip(), board)
         {
-            castling |= Square::from_index(58).u64();
+            castling |= Square::C8.u64();
         }
     }
 
