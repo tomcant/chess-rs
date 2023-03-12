@@ -494,6 +494,22 @@ mod tests {
 
             nodes
         }
+
+        impl std::fmt::Display for Move {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(
+                    f,
+                    "{}{}{}",
+                    self.from,
+                    self.to,
+                    if let Some(piece) = self.promotion_piece {
+                        format!("{piece}")
+                    } else {
+                        String::from("")
+                    }
+                )
+            }
+        }
     }
 
     fn assert_pseudo_legal_move_count(fen: &str, count: usize) {

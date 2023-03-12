@@ -1,7 +1,6 @@
 use crate::piece::Piece;
 use crate::position::CastlingRights;
 use crate::square::Square;
-use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Move {
@@ -32,21 +31,5 @@ impl Move {
 
     pub fn rank_diff(&self) -> u8 {
         self.from.rank_diff(self.to)
-    }
-}
-
-impl Display for Move {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.from,
-            self.to,
-            if let Some(piece) = self.promotion_piece {
-                format!("{piece}")
-            } else {
-                String::from("")
-            }
-        )
     }
 }

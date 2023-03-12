@@ -1,6 +1,9 @@
 use crate::colour::Colour;
+use crate::movegen::Move;
 use crate::piece::{Piece, PieceType};
 use crate::square::Square;
+use std::convert::From;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -8,6 +11,16 @@ pub struct UciMove {
     pub from: Square,
     pub to: Square,
     pub promotion_piece: Option<Piece>,
+}
+
+impl From<Move> for UciMove {
+    fn from(m: Move) -> Self {
+        UciMove {
+            from: m.from,
+            to: m.to,
+            promotion_piece: m.promotion_piece,
+        }
+    }
 }
 
 impl FromStr for UciMove {
@@ -44,5 +57,21 @@ impl FromStr for UciMove {
             to,
             promotion_piece,
         })
+    }
+}
+
+impl Display for UciMove {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}{}",
+            self.from,
+            self.to,
+            if let Some(piece) = self.promotion_piece {
+                format!("{piece}")
+            } else {
+                String::from("")
+            }
+        )
     }
 }

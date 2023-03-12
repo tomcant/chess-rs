@@ -1,5 +1,5 @@
 use super::*;
-use crate::movegen::{is_in_check, generate_capture_moves};
+use crate::movegen::{generate_capture_moves, is_in_check};
 
 pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut Vec<Move>, report: &mut Report) -> i32 {
     report.nodes += 1;

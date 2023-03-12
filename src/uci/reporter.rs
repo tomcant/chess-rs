@@ -1,11 +1,11 @@
-use crate::movegen::Move;
+use super::r#move::UciMove;
 use crate::search::report::{Report, Reporter};
 use std::cell::Cell;
 
 const NANOS_PER_SEC: u128 = 1_000_000_000;
 
 pub struct UciReporter {
-    best_move: Cell<Option<Move>>,
+    best_move: Cell<Option<UciMove>>,
 }
 
 impl UciReporter {
@@ -15,7 +15,7 @@ impl UciReporter {
         }
     }
 
-    pub fn best_move(&self) -> Option<Move> {
+    pub fn best_move(&self) -> Option<UciMove> {
         self.best_move.get()
     }
 }
@@ -41,12 +41,12 @@ impl Reporter for UciReporter {
                 "pv {}",
                 moves
                     .iter()
-                    .map(|mv| format!("{mv}"))
+                    .map(|mv| format!("{}", UciMove::from(*mv)))
                     .collect::<Vec<String>>()
                     .join(" ")
             ));
 
-            self.best_move.set(Some(moves[0]));
+            self.best_move.set(Some(moves[0].into()));
         }
 
         println!("info {}", info.join(" "));

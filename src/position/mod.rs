@@ -1,6 +1,6 @@
 use crate::colour::Colour;
-use crate::piece::{Piece, PieceType};
 use crate::movegen::Move;
+use crate::piece::{Piece, PieceType};
 use crate::square::Square;
 
 mod board;
