@@ -1,9 +1,13 @@
-use crate::attacks::{get_attacks, is_attacked};
 use crate::colour::Colour;
 use crate::piece::{Piece, PieceType};
 use crate::position::{Board, CastlingRight, CastlingRights, Position};
-use crate::r#move::Move;
 use crate::square::Square;
+
+mod attacks;
+mod r#move;
+
+pub use attacks::*;
+pub use r#move::Move;
 
 const MAX_MOVES: usize = 256;
 
@@ -165,7 +169,7 @@ fn can_capture_en_passant(pawn_square: Square, en_passant_square: Option<Square>
         return false;
     };
 
-    return pawn_square.file_diff(square) == 1 && pawn_square.advance(colour_to_move).rank() == square.rank();
+    pawn_square.file_diff(square) == 1 && pawn_square.advance(colour_to_move).rank() == square.rank()
 }
 
 fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: &Board) -> u64 {
@@ -217,7 +221,6 @@ fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::attacks::is_in_check;
 
     #[test]
     fn legal_move_count_in_checkmate_is_zero() {

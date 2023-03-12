@@ -1,6 +1,6 @@
 use crate::info;
 use crate::position::Position;
-use crate::r#move::Move;
+use crate::movegen::Move;
 use crate::search::search;
 use crate::uci::{r#move::UciMove, reporter::UciReporter, stopper::UciStopper};
 

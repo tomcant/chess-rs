@@ -1,5 +1,5 @@
 use super::*;
-use crate::r#move::Move;
+use crate::movegen::Move;
 use std::time::{Duration, Instant};
 
 pub struct Report {

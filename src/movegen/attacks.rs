@@ -9,6 +9,103 @@ const FILE_B: u64 = 0x0202_0202_0202_0202;
 const FILE_G: u64 = 0x4040_4040_4040_4040;
 const FILE_H: u64 = 0x8080_8080_8080_8080;
 
+pub fn is_in_check(colour: Colour, board: &Board) -> bool {
+    let king_square = Square::from_u64(board.pieces(PieceType::King, colour));
+
+    is_attacked(king_square, colour.flip(), board)
+}
+
+pub fn is_attacked(square: Square, colour: Colour, board: &Board) -> bool {
+    get_attackers(square, colour, board).count_ones() != 0
+}
+
+pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
+    let pawn_attacks = get_pawn_attacks(square, colour.flip(), board);
+    let knight_attacks = get_knight_attacks(square);
+    let bishop_attacks = get_bishop_attacks(square, board);
+    let rook_attacks = get_rook_attacks(square, board);
+    let queen_attacks = bishop_attacks | rook_attacks;
+    let king_attacks = get_king_attacks(square);
+
+    (board.pieces(PieceType::Pawn, colour) & pawn_attacks)
+        | (board.pieces(PieceType::Knight, colour) & knight_attacks)
+        | (board.pieces(PieceType::Bishop, colour) & bishop_attacks)
+        | (board.pieces(PieceType::Rook, colour) & rook_attacks)
+        | (board.pieces(PieceType::Queen, colour) & queen_attacks)
+        | (board.pieces(PieceType::King, colour) & king_attacks)
+}
+
+pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
+    match piece.get_type() {
+        PieceType::Pawn => get_pawn_attacks(square, piece.colour(), board),
+        PieceType::Knight => get_knight_attacks(square),
+        PieceType::Bishop => get_bishop_attacks(square, board),
+        PieceType::Rook => get_rook_attacks(square, board),
+        PieceType::Queen => get_bishop_attacks(square, board) | get_rook_attacks(square, board),
+        PieceType::King => get_king_attacks(square),
+    }
+}
+
+fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
+    PAWN_ATTACKS[colour as usize][square.index()] & board.occupancy()
+}
+
+fn get_knight_attacks(square: Square) -> u64 {
+    KNIGHT_ATTACKS[square.index()]
+}
+
+fn get_bishop_attacks(square: Square, board: &Board) -> u64 {
+    let mut attacks = 0;
+
+    for direction in 0..4 {
+        let attack_ray = BISHOP_ATTACK_RAYS[square.index()][direction];
+        let blockers_on_ray = attack_ray & board.occupancy();
+
+        if blockers_on_ray == 0 {
+            attacks |= attack_ray;
+            continue;
+        }
+
+        let blocker_square_index = if direction < 2 {
+            blockers_on_ray.trailing_zeros()
+        } else {
+            63 - blockers_on_ray.leading_zeros()
+        };
+
+        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[blocker_square_index as usize][direction];
+    }
+
+    attacks
+}
+
+fn get_rook_attacks(square: Square, board: &Board) -> u64 {
+    let mut attacks = 0;
+
+    for direction in 0..4 {
+        let attack_ray = ROOK_ATTACK_RAYS[square.index()][direction];
+        let blockers_on_ray = attack_ray & board.occupancy();
+
+        if blockers_on_ray == 0 {
+            attacks |= attack_ray;
+            continue;
+        }
+
+        let blocker_square_index = if direction < 2 {
+            blockers_on_ray.trailing_zeros()
+        } else {
+            63 - blockers_on_ray.leading_zeros()
+        };
+
+        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[blocker_square_index as usize][direction];
+    }
+
+    attacks
+}
+
+fn get_king_attacks(square: Square) -> u64 {
+    KING_ATTACKS[square.index()]
+}
+
 lazy_static! {
     static ref SQUARES: [Square; 64] = (0..64).map(Square::from_index).collect::<Vec<_>>().try_into().unwrap();
 
@@ -204,103 +301,6 @@ lazy_static! {
 
         attacks
     };
-}
-
-pub fn is_in_check(colour: Colour, board: &Board) -> bool {
-    let king_square = Square::from_u64(board.pieces(PieceType::King, colour));
-
-    is_attacked(king_square, colour.flip(), board)
-}
-
-pub fn is_attacked(square: Square, colour: Colour, board: &Board) -> bool {
-    get_attackers(square, colour, board).count_ones() != 0
-}
-
-pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
-    let pawn_attacks = get_pawn_attacks(square, colour.flip(), board);
-    let knight_attacks = get_knight_attacks(square);
-    let bishop_attacks = get_bishop_attacks(square, board);
-    let rook_attacks = get_rook_attacks(square, board);
-    let queen_attacks = bishop_attacks | rook_attacks;
-    let king_attacks = get_king_attacks(square);
-
-    (board.pieces(PieceType::Pawn, colour) & pawn_attacks)
-        | (board.pieces(PieceType::Knight, colour) & knight_attacks)
-        | (board.pieces(PieceType::Bishop, colour) & bishop_attacks)
-        | (board.pieces(PieceType::Rook, colour) & rook_attacks)
-        | (board.pieces(PieceType::Queen, colour) & queen_attacks)
-        | (board.pieces(PieceType::King, colour) & king_attacks)
-}
-
-pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
-    match piece.get_type() {
-        PieceType::Pawn => get_pawn_attacks(square, piece.colour(), board),
-        PieceType::Knight => get_knight_attacks(square),
-        PieceType::Bishop => get_bishop_attacks(square, board),
-        PieceType::Rook => get_rook_attacks(square, board),
-        PieceType::Queen => get_bishop_attacks(square, board) | get_rook_attacks(square, board),
-        PieceType::King => get_king_attacks(square),
-    }
-}
-
-fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
-    PAWN_ATTACKS[colour as usize][square.index()] & board.occupancy()
-}
-
-fn get_knight_attacks(square: Square) -> u64 {
-    KNIGHT_ATTACKS[square.index()]
-}
-
-fn get_bishop_attacks(square: Square, board: &Board) -> u64 {
-    let mut attacks = 0;
-
-    for direction in 0..4 {
-        let attack_ray = BISHOP_ATTACK_RAYS[square.index()][direction];
-        let blockers_on_ray = attack_ray & board.occupancy();
-
-        if blockers_on_ray == 0 {
-            attacks |= attack_ray;
-            continue;
-        }
-
-        let blocker_square_index = if direction < 2 {
-            blockers_on_ray.trailing_zeros()
-        } else {
-            63 - blockers_on_ray.leading_zeros()
-        };
-
-        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[blocker_square_index as usize][direction];
-    }
-
-    attacks
-}
-
-fn get_rook_attacks(square: Square, board: &Board) -> u64 {
-    let mut attacks = 0;
-
-    for direction in 0..4 {
-        let attack_ray = ROOK_ATTACK_RAYS[square.index()][direction];
-        let blockers_on_ray = attack_ray & board.occupancy();
-
-        if blockers_on_ray == 0 {
-            attacks |= attack_ray;
-            continue;
-        }
-
-        let blocker_square_index = if direction < 2 {
-            blockers_on_ray.trailing_zeros()
-        } else {
-            63 - blockers_on_ray.leading_zeros()
-        };
-
-        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[blocker_square_index as usize][direction];
-    }
-
-    attacks
-}
-
-fn get_king_attacks(square: Square) -> u64 {
-    KING_ATTACKS[square.index()]
 }
 
 #[cfg(test)]

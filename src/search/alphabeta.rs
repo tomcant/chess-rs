@@ -1,6 +1,5 @@
 use super::*;
-use crate::attacks::is_in_check;
-use crate::movegen::generate_all_moves;
+use crate::movegen::{is_in_check, generate_all_moves};
 
 pub fn search(
     pos: &mut Position,

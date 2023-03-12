@@ -1,8 +1,6 @@
-mod attacks;
 mod colour;
 mod eval;
 mod info;
-mod r#move;
 mod movegen;
 mod piece;
 mod position;

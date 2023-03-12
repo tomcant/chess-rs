@@ -3,8 +3,8 @@ use self::{
     stopper::Stopper,
 };
 use crate::eval::*;
+use crate::movegen::Move;
 use crate::position::Position;
-use crate::r#move::Move;
 
 pub mod report;
 pub mod stopper;

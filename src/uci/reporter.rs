@@ -1,4 +1,4 @@
-use crate::r#move::Move;
+use crate::movegen::Move;
 use crate::search::report::{Report, Reporter};
 use std::cell::Cell;
 
