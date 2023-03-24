@@ -36,7 +36,7 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
 }
 
 pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
-    match piece.get_type() {
+    match piece.as_type() {
         PieceType::Pawn => get_pawn_attacks(square, piece.colour(), board),
         PieceType::Knight => get_knight_attacks(square),
         PieceType::Bishop => get_bishop_attacks(square, board),

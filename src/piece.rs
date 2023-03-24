@@ -78,7 +78,7 @@ impl Piece {
         *self as usize
     }
 
-    pub fn get_type(&self) -> PieceType {
+    pub fn as_type(&self) -> PieceType {
         match self {
             WhitePawn | BlackPawn => Pawn,
             WhiteKnight | BlackKnight => Knight,

@@ -80,7 +80,7 @@ fn parse_colour_to_move(colour: &str) -> Result<Colour, String> {
     match colour {
         "w" => Ok(Colour::White),
         "b" => Ok(Colour::Black),
-        _ => return Err(format!("invalid colour to move '{colour}'")),
+        _ => Err(format!("invalid colour to move '{colour}'")),
     }
 }
 

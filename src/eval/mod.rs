@@ -1,6 +1,5 @@
-use crate::colour::Colour;
-use crate::piece::PieceType;
-use crate::position::{Board, Position};
+use crate::colour::Colour::*;
+use crate::position::Position;
 
 mod material;
 mod psqt;
@@ -11,11 +10,11 @@ pub const EVAL_STALEMATE: i32 = 0;
 pub const EVAL_CHECKMATE: i32 = 9_900;
 
 pub fn eval(pos: &Position) -> i32 {
-    let eval = (material::eval(Colour::White, &pos.board) - material::eval(Colour::Black, &pos.board))
-        + (psqt::eval(Colour::White, &pos.board) - psqt::eval(Colour::Black, &pos.board));
+    let eval = (material::eval(White, &pos.board) - material::eval(Black, &pos.board))
+        + (psqt::eval(White, &pos.board) - psqt::eval(Black, &pos.board));
 
     match pos.colour_to_move {
-        Colour::White => eval,
+        White => eval,
         _ => -eval,
     }
 }

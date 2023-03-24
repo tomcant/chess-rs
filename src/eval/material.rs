@@ -1,4 +1,6 @@
-use super::*;
+use crate::colour::Colour;
+use crate::piece::PieceType;
+use crate::position::Board;
 
 const PIECE_WEIGHTS: [i32; 6] = [100, 300, 350, 500, 900, 0];
 
@@ -11,6 +13,7 @@ pub fn eval(colour: Colour, board: &Board) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::position::Position;
 
     #[test]
     fn more_material_is_good() {

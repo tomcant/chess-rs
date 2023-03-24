@@ -45,7 +45,7 @@ impl Board {
         self.occupancy() & square.u64() != 0
     }
 
-    pub fn clear_square(&mut self, square: Square) {
+    pub fn remove_piece(&mut self, square: Square) {
         if let Some(piece) = self.piece_at(square) {
             self.pieces[piece.index()] ^= square.u64();
             self.colours[piece.colour() as usize] ^= square.u64();
@@ -53,7 +53,7 @@ impl Board {
     }
 
     pub fn occupancy(&self) -> u64 {
-        self.colours[Colour::White as usize] + self.colours[Colour::Black as usize]
+        self.pieces_by_colour(Colour::White) + self.pieces_by_colour(Colour::Black)
     }
 }
 
@@ -83,7 +83,7 @@ mod tests {
 
         assert!(board.has_piece_at(square));
 
-        board.clear_square(square);
+        board.remove_piece(square);
 
         assert!(!board.has_piece_at(square));
     }

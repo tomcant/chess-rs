@@ -28,7 +28,7 @@ impl Position {
 
     pub fn do_move(&mut self, mv: &Move) {
         if mv.is_capture() {
-            self.board.clear_square(mv.capture_square());
+            self.board.remove_piece(mv.capture_square());
         }
 
         self.en_passant_square = None;
@@ -50,11 +50,11 @@ impl Position {
                 match mv.to.file() {
                     2 => {
                         self.board.put_piece(rook, Square::from_file_and_rank(3, mv.to.rank()));
-                        self.board.clear_square(Square::from_file_and_rank(0, mv.to.rank()));
+                        self.board.remove_piece(Square::from_file_and_rank(0, mv.to.rank()));
                     }
                     6 => {
                         self.board.put_piece(rook, Square::from_file_and_rank(5, mv.to.rank()));
-                        self.board.clear_square(Square::from_file_and_rank(7, mv.to.rank()));
+                        self.board.remove_piece(Square::from_file_and_rank(7, mv.to.rank()));
                     }
                     _ => unreachable!(),
                 };
@@ -70,7 +70,7 @@ impl Position {
         }
 
         self.board.put_piece(piece, mv.to);
-        self.board.clear_square(mv.from);
+        self.board.remove_piece(mv.from);
 
         self.colour_to_move = self.opponent_colour();
         self.full_move_counter += 1;
@@ -88,18 +88,18 @@ impl Position {
             match mv.to.file() {
                 2 => {
                     self.board.put_piece(rook, Square::from_file_and_rank(0, mv.to.rank()));
-                    self.board.clear_square(Square::from_file_and_rank(3, mv.to.rank()));
+                    self.board.remove_piece(Square::from_file_and_rank(3, mv.to.rank()));
                 }
                 6 => {
                     self.board.put_piece(rook, Square::from_file_and_rank(7, mv.to.rank()));
-                    self.board.clear_square(Square::from_file_and_rank(5, mv.to.rank()));
+                    self.board.remove_piece(Square::from_file_and_rank(5, mv.to.rank()));
                 }
                 _ => unreachable!(),
             };
         }
 
         self.board.put_piece(piece, mv.from);
-        self.board.clear_square(mv.to);
+        self.board.remove_piece(mv.to);
 
         self.castling_rights = mv.castling_rights;
         self.en_passant_square = None;

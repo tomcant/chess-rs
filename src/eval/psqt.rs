@@ -1,4 +1,6 @@
-use super::*;
+use crate::colour::Colour;
+use crate::piece::PieceType;
+use crate::position::Board;
 use crate::square::Square;
 
 pub fn eval(colour: Colour, board: &Board) -> i32 {
@@ -114,6 +116,7 @@ const SQUARE_MAP: [[usize; 64]; 2] = [
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::position::Position;
 
     #[test]
     fn a_pawn_is_better_when_it_is_ready_to_promote() {
