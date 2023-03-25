@@ -364,7 +364,8 @@ mod tests {
             .next()
             .unwrap();
 
-        assert_eq!(castling_move.to, "c1".parse::<Square>().unwrap());
+        assert_eq!(castling_move.from, Square::E1);
+        assert_eq!(castling_move.to, Square::C1);
     }
 
     #[test]

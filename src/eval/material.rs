@@ -6,7 +6,7 @@ const PIECE_WEIGHTS: [i32; 12] = [100, 300, 350, 500, 900, 0, 100, 300, 350, 500
 
 pub fn eval(colour: Colour, board: &Board) -> i32 {
     Piece::pieces_by_colour(colour).iter().fold(0, |acc, piece| {
-        acc + PIECE_WEIGHTS[piece.index()] * board.count_pieces(*piece) as i32
+        acc + PIECE_WEIGHTS[*piece] * board.count_pieces(*piece) as i32
     })
 }
 

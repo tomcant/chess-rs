@@ -74,8 +74,8 @@ mod tests {
 
         position(fen, moves, &mut pos);
 
-        assert_eq!(pos.board.piece_at(parse_square("b8")), Some(Piece::WQ));
-        assert_eq!(pos.board.piece_at(parse_square("g1")), Some(Piece::BR));
+        assert_eq!(pos.board.piece_at(Square::B8), Some(Piece::WQ));
+        assert_eq!(pos.board.piece_at(Square::G1), Some(Piece::BR));
     }
 
     fn parse_command(str: &str) -> UciCommand {

@@ -1,6 +1,4 @@
 use crate::colour::Colour;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Square(u8);
@@ -37,8 +35,8 @@ impl Square {
         Self(63 - u64.leading_zeros() as u8)
     }
 
-    pub fn index(&self) -> usize {
-        self.0 as usize
+    pub fn index(&self) -> u8 {
+        self.0
     }
 
     pub fn u64(&self) -> u64 {
@@ -77,13 +75,27 @@ impl Square {
     }
 }
 
-impl Display for Square {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+impl<T> std::ops::Index<Square> for [T; 64] {
+    type Output = T;
+
+    fn index(&self, square: Square) -> &Self::Output {
+        &self[square.0 as usize]
+    }
+}
+
+impl<T> std::ops::IndexMut<Square> for [T; 64] {
+    fn index_mut(&mut self, square: Square) -> &mut Self::Output {
+        &mut self[square.0 as usize]
+    }
+}
+
+impl std::fmt::Display for Square {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}{}", (b'a' + self.file()) as char, 1 + self.rank())
     }
 }
 
-impl FromStr for Square {
+impl std::str::FromStr for Square {
     type Err = String;
 
     fn from_str(square: &str) -> Result<Self, Self::Err> {

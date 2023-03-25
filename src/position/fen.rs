@@ -2,11 +2,10 @@ use super::*;
 use crate::colour::Colour;
 use crate::piece::Piece;
 use crate::square::Square;
-use std::str::FromStr;
 
 pub const START_POS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-impl FromStr for Position {
+impl std::str::FromStr for Position {
     type Err = String;
 
     fn from_str(fen: &str) -> Result<Self, Self::Err> {
@@ -36,7 +35,7 @@ fn parse_board(str: &str) -> Result<Board, String> {
     }
 
     let mut board = Board::empty();
-    let mut square_index = "a8".parse::<Square>().unwrap().index() as u8;
+    let mut square_index = Square::A8.index();
 
     for char in str.chars() {
         if char == '/' {

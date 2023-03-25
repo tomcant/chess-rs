@@ -47,18 +47,18 @@ pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
 }
 
 fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
-    PAWN_ATTACKS[colour.index()][square.index()] & board.occupancy()
+    PAWN_ATTACKS[colour][square] & board.occupancy()
 }
 
 fn get_knight_attacks(square: Square) -> u64 {
-    KNIGHT_ATTACKS[square.index()]
+    KNIGHT_ATTACKS[square]
 }
 
 fn get_bishop_attacks(square: Square, board: &Board) -> u64 {
     let mut attacks = 0;
 
     for direction in 0..4 {
-        let attack_ray = BISHOP_ATTACK_RAYS[square.index()][direction];
+        let attack_ray = BISHOP_ATTACK_RAYS[square][direction];
         let blockers_on_ray = attack_ray & board.occupancy();
 
         if blockers_on_ray == 0 {
@@ -82,7 +82,7 @@ fn get_rook_attacks(square: Square, board: &Board) -> u64 {
     let mut attacks = 0;
 
     for direction in 0..4 {
-        let attack_ray = ROOK_ATTACK_RAYS[square.index()][direction];
+        let attack_ray = ROOK_ATTACK_RAYS[square][direction];
         let blockers_on_ray = attack_ray & board.occupancy();
 
         if blockers_on_ray == 0 {
@@ -103,7 +103,7 @@ fn get_rook_attacks(square: Square, board: &Board) -> u64 {
 }
 
 fn get_king_attacks(square: Square) -> u64 {
-    KING_ATTACKS[square.index()]
+    KING_ATTACKS[square]
 }
 
 lazy_static! {
@@ -115,10 +115,10 @@ lazy_static! {
         for square in SQUARES.iter() {
             let square_u64 = square.u64();
 
-            attacks[Colour::White.index()][square.index()] =
+            attacks[Colour::White][*square] =
                   (square_u64 & !FILE_A) << 7 | (square_u64 & !FILE_H) << 9;
 
-            attacks[Colour::Black.index()][square.index()] =
+            attacks[Colour::Black][*square] =
                   (square_u64 & !FILE_H) >> 7 | (square_u64 & !FILE_A) >> 9;
         }
 
@@ -131,7 +131,7 @@ lazy_static! {
         for square in SQUARES.iter() {
             let square_u64 = square.u64();
 
-            attacks[square.index()] =
+            attacks[*square] =
                   (square_u64 & !FILE_A & !FILE_B) << 6  // up 1, left 2
                 | (square_u64 & !FILE_G & !FILE_H) << 10 // up 1, right 2
                 | (square_u64 & !FILE_A) << 15           // up 2, left 1
@@ -206,7 +206,7 @@ lazy_static! {
         let mut rays = [[0; 4]; 64];
 
         for square in SQUARES.iter() {
-            rays[square.index()] = [
+            rays[*square] = [
                 up_left_ray_from(*square),
                 up_right_ray_from(*square),
                 down_left_ray_from(*square),
@@ -269,7 +269,7 @@ lazy_static! {
         let mut rays = [[0; 4]; 64];
 
         for square in SQUARES.iter() {
-            rays[square.index()] = [
+            rays[*square] = [
                 up_ray_from(*square),
                 right_ray_from(*square),
                 left_ray_from(*square),
@@ -286,7 +286,7 @@ lazy_static! {
         for square in SQUARES.iter() {
             let square_u64 = square.u64();
 
-            attacks[square.index()] =
+            attacks[*square] =
                   (square_u64 & !FILE_H) << 1
                 | (square_u64 & !FILE_A) >> 1
 
@@ -311,7 +311,7 @@ mod tests {
     #[test]
     fn detect_check() {
         let mut board = Board::empty();
-        board.put_piece(BK, parse_square("e8"));
+        board.put_piece(BK, Square::E8);
         board.put_piece(WN, parse_square("d6"));
 
         assert!(is_in_check(Colour::Black, &board));
@@ -321,10 +321,7 @@ mod tests {
     fn attack_by_queen_horizontal() {
         let pos = parse_fen("Q3k3/8/8/8/8/8/8/8 w - - 0 1");
 
-        assert_eq!(
-            get_attackers(parse_square("e8"), Colour::White, &pos.board),
-            parse_square("a8").u64()
-        );
+        assert_eq!(get_attackers(Square::E8, Colour::White, &pos.board), Square::A8.u64());
     }
 
     #[test]
@@ -332,7 +329,7 @@ mod tests {
         let pos = parse_fen("4k3/8/8/8/4Q3/8/8/8 w - - 0 1");
 
         assert_eq!(
-            get_attackers(parse_square("e8"), Colour::White, &pos.board),
+            get_attackers(Square::E8, Colour::White, &pos.board),
             parse_square("e4").u64()
         );
     }
@@ -342,7 +339,7 @@ mod tests {
         let pos = parse_fen("4k3/8/8/8/Q7/8/8/8 w - - 0 1");
 
         assert_eq!(
-            get_attackers(parse_square("e8"), Colour::White, &pos.board),
+            get_attackers(Square::E8, Colour::White, &pos.board),
             parse_square("a4").u64()
         );
     }

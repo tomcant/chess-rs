@@ -3,10 +3,9 @@ use super::{
     UciCommand::{self, *},
 };
 use crate::position::{Position, START_POS_FEN};
-use std::str::FromStr;
 use std::time::Duration;
 
-impl FromStr for UciCommand {
+impl std::str::FromStr for UciCommand {
     type Err = String;
 
     fn from_str(command: &str) -> Result<Self, Self::Err> {
@@ -172,7 +171,7 @@ mod tests {
                 START_POS_FEN.to_string(),
                 vec![UciMove {
                     from: parse_square("e7"),
-                    to: parse_square("e8"),
+                    to: Square::E8,
                     promotion_piece: Some(Piece::WQ)
                 }]
             ))
@@ -184,7 +183,7 @@ mod tests {
                 START_POS_FEN.to_string(),
                 vec![UciMove {
                     from: parse_square("e2"),
-                    to: parse_square("e1"),
+                    to: Square::E1,
                     promotion_piece: Some(Piece::BR)
                 }]
             ))

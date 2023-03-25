@@ -2,9 +2,6 @@ use crate::colour::Colour;
 use crate::movegen::Move;
 use crate::piece::Piece;
 use crate::square::Square;
-use std::convert::From;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UciMove {
@@ -13,7 +10,7 @@ pub struct UciMove {
     pub promotion_piece: Option<Piece>,
 }
 
-impl From<Move> for UciMove {
+impl std::convert::From<Move> for UciMove {
     fn from(m: Move) -> Self {
         UciMove {
             from: m.from,
@@ -23,7 +20,7 @@ impl From<Move> for UciMove {
     }
 }
 
-impl FromStr for UciMove {
+impl std::str::FromStr for UciMove {
     type Err = String;
 
     fn from_str(mv: &str) -> Result<Self, Self::Err> {
@@ -58,8 +55,8 @@ impl FromStr for UciMove {
     }
 }
 
-impl Display for UciMove {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+impl std::fmt::Display for UciMove {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
             "{}{}{}",

@@ -10,7 +10,7 @@ pub fn eval(colour: Colour, board: &Board) -> i32 {
 
         while pieces > 0 {
             let square = Square::from_index(pieces.trailing_zeros() as u8);
-            acc += PSQT[piece.index()][square.index()];
+            acc += PSQT[*piece][square];
             pieces ^= square.u64();
         }
 
@@ -23,14 +23,8 @@ lazy_static! {
         let mut psqt = [[0; 64]; 12];
 
         for piece in Piece::pieces() {
-            let mut psqt_index = piece.index();
-
-            if piece.colour() == Colour::Black {
-                psqt_index -= 6;
-            }
-
-            for (square, mapped_square) in SQUARE_MAP[piece.colour().index()].iter().enumerate() {
-                psqt[piece.index()][square] = PSQT_WHITE[psqt_index][*mapped_square];
+            for (square, mapped_square) in SQUARE_MAP[piece.colour()].iter().enumerate() {
+                psqt[*piece][square] = PSQT_WHITE[*piece as usize % 6][*mapped_square];
             }
         }
 

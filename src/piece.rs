@@ -1,6 +1,5 @@
 use self::Piece::*;
 use crate::colour::Colour;
-use std::fmt::{Display, Formatter};
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,12 +17,12 @@ impl Piece {
     const QUEENS:  [Piece; 2] = [WQ, BQ];
     const KINGS:   [Piece; 2] = [WK, BK];
 
-    pub fn pawn   (colour: Colour) -> Self { Self::PAWNS   [colour.index()] }
-    pub fn knight (colour: Colour) -> Self { Self::KNIGHTS [colour.index()] }
-    pub fn bishop (colour: Colour) -> Self { Self::BISHOPS [colour.index()] }
-    pub fn rook   (colour: Colour) -> Self { Self::ROOKS   [colour.index()] }
-    pub fn queen  (colour: Colour) -> Self { Self::QUEENS  [colour.index()] }
-    pub fn king   (colour: Colour) -> Self { Self::KINGS   [colour.index()] }
+    pub fn pawn   (colour: Colour) -> Self { Self::PAWNS   [colour] }
+    pub fn knight (colour: Colour) -> Self { Self::KNIGHTS [colour] }
+    pub fn bishop (colour: Colour) -> Self { Self::BISHOPS [colour] }
+    pub fn rook   (colour: Colour) -> Self { Self::ROOKS   [colour] }
+    pub fn queen  (colour: Colour) -> Self { Self::QUEENS  [colour] }
+    pub fn king   (colour: Colour) -> Self { Self::KINGS   [colour] }
 }
 
 #[rustfmt::skip]
@@ -48,19 +47,15 @@ impl Piece {
     }
 
     pub fn pieces_by_colour(colour: Colour) -> &'static [Self] {
-        &Self::PIECES_BY_COLOUR[colour.index()]
+        &Self::PIECES_BY_COLOUR[colour]
     }
 
     pub fn promotions(colour: Colour) -> &'static [Self] {
-        &Self::PROMOTION_PIECES_BY_COLOUR[colour.index()]
+        &Self::PROMOTION_PIECES_BY_COLOUR[colour]
     }
 }
 
 impl Piece {
-    pub fn index(&self) -> usize {
-        *self as usize
-    }
-
     pub fn is_pawn(&self) -> bool {
         matches!(self, WP | BP)
     }
@@ -77,8 +72,22 @@ impl Piece {
     }
 }
 
-impl Display for Piece {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+impl<T> std::ops::Index<Piece> for [T; 12] {
+    type Output = T;
+
+    fn index(&self, piece: Piece) -> &Self::Output {
+        &self[piece as usize]
+    }
+}
+
+impl<T> std::ops::IndexMut<Piece> for [T; 12] {
+    fn index_mut(&mut self, piece: Piece) -> &mut Self::Output {
+        &mut self[piece as usize]
+    }
+}
+
+impl std::fmt::Display for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let piece = match self {
             WP => 'P',
             WN => 'N',

@@ -131,7 +131,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/5R2 w - - 0 1");
 
         let mv = Move {
-            from: parse_square("f1"),
+            from: Square::F1,
             to: parse_square("f4"),
             captured_piece: None,
             promotion_piece: None,
@@ -151,7 +151,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/5R2/8/8/8 b - - 0 1");
 
         let mv = Move {
-            from: parse_square("f1"),
+            from: Square::F1,
             to: parse_square("f4"),
             captured_piece: None,
             promotion_piece: None,
@@ -209,8 +209,8 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/4K2R w K - 0 1");
 
         let mv = Move {
-            from: parse_square("e1"),
-            to: parse_square("g1"),
+            from: Square::E1,
+            to: Square::G1,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -222,10 +222,10 @@ mod tests {
         assert_eq!(pos.castling_rights, CastlingRights::none());
 
         assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WK));
-        assert_eq!(pos.board.piece_at(parse_square("f1")), Some(Piece::WR));
+        assert_eq!(pos.board.piece_at(Square::F1), Some(Piece::WR));
 
         assert!(!pos.board.has_piece_at(mv.from));
-        assert!(!pos.board.has_piece_at(parse_square("h1")));
+        assert!(!pos.board.has_piece_at(Square::H1));
     }
 
     #[test]
@@ -233,8 +233,8 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/5RK1 b - - 0 1");
 
         let mv = Move {
-            from: parse_square("e1"),
-            to: parse_square("g1"),
+            from: Square::E1,
+            to: Square::G1,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing]),
@@ -246,10 +246,10 @@ mod tests {
         assert_eq!(pos.castling_rights, CastlingRights::from(&[CastlingRight::WhiteKing]));
 
         assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WK));
-        assert_eq!(pos.board.piece_at(parse_square("h1")), Some(Piece::WR));
+        assert_eq!(pos.board.piece_at(Square::H1), Some(Piece::WR));
 
         assert!(!pos.board.has_piece_at(mv.to));
-        assert!(!pos.board.has_piece_at(parse_square("f1")));
+        assert!(!pos.board.has_piece_at(Square::F1));
     }
 
     #[test]
@@ -257,8 +257,8 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/R3K2R w KQ - 0 1");
 
         let mv = Move {
-            from: parse_square("h1"),
-            to: parse_square("g1"),
+            from: Square::H1,
+            to: Square::G1,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
@@ -276,7 +276,7 @@ mod tests {
 
         let mv = Move {
             from: parse_square("d4"),
-            to: parse_square("a1"),
+            to: Square::A1,
             captured_piece: Some(Piece::WR),
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
@@ -294,7 +294,7 @@ mod tests {
 
         let mv = Move {
             from: parse_square("e7"),
-            to: parse_square("e8"),
+            to: Square::E8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
             castling_rights: CastlingRights::none(),
@@ -313,7 +313,7 @@ mod tests {
 
         let mv = Move {
             from: parse_square("e7"),
-            to: parse_square("e8"),
+            to: Square::E8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
             castling_rights: CastlingRights::none(),
@@ -332,7 +332,7 @@ mod tests {
 
         let mv = Move {
             from: parse_square("e7"),
-            to: parse_square("d8"),
+            to: Square::D8,
             captured_piece: Some(Piece::BQ),
             promotion_piece: Some(Piece::WB),
             castling_rights: CastlingRights::none(),

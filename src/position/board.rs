@@ -17,27 +17,26 @@ impl Board {
     }
 
     pub fn pieces(&self, piece: Piece) -> u64 {
-        self.pieces[piece.index()]
+        self.pieces[piece]
     }
 
     pub fn pieces_by_colour(&self, colour: Colour) -> u64 {
-        self.colours[colour.index()]
+        self.colours[colour]
     }
 
     pub fn count_pieces(&self, piece: Piece) -> u32 {
-        self.pieces(piece).count_ones()
+        self.pieces[piece].count_ones()
     }
 
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
-        let square_u64 = square.u64();
-        self.pieces[piece.index()] |= square_u64;
-        self.colours[piece.colour().index()] |= square_u64;
+        self.pieces[piece] |= square.u64();
+        self.colours[piece.colour()] |= square.u64();
     }
 
     pub fn piece_at(&self, square: Square) -> Option<Piece> {
         Piece::pieces()
             .iter()
-            .find(|&&piece| self.pieces[piece.index()] & square.u64() != 0)
+            .find(|&&piece| self.pieces[piece] & square.u64() != 0)
             .copied()
     }
 
@@ -46,14 +45,16 @@ impl Board {
     }
 
     pub fn remove_piece(&mut self, square: Square) {
-        if let Some(piece) = self.piece_at(square) {
-            self.pieces[piece.index()] ^= square.u64();
-            self.colours[piece.colour().index()] ^= square.u64();
-        }
+        let Some(piece) = self.piece_at(square) else {
+            return;
+        };
+
+        self.pieces[piece] ^= square.u64();
+        self.colours[piece.colour()] ^= square.u64();
     }
 
     pub fn occupancy(&self) -> u64 {
-        self.pieces_by_colour(Colour::White) + self.pieces_by_colour(Colour::Black)
+        self.colours[Colour::White] | self.colours[Colour::Black]
     }
 }
 
@@ -65,7 +66,7 @@ mod tests {
     fn put_a_piece_on_the_board() {
         let mut board = Board::empty();
         let piece = Piece::WK;
-        let square = "e1".parse::<Square>().unwrap();
+        let square = Square::E1;
 
         board.put_piece(piece, square);
 
@@ -76,9 +77,9 @@ mod tests {
     }
 
     #[test]
-    fn clear_a_square() {
+    fn remove_a_piece_from_the_board() {
         let mut board = Board::empty();
-        let square = "e1".parse::<Square>().unwrap();
+        let square = Square::E1;
         board.put_piece(Piece::WK, square);
 
         assert!(board.has_piece_at(square));
