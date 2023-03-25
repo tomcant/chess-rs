@@ -1,5 +1,5 @@
 use crate::colour::Colour;
-use crate::piece::{Piece, PieceType};
+use crate::piece::Piece::{self, *};
 use crate::position::Board;
 use crate::square::Square;
 use lazy_static::lazy_static;
@@ -10,7 +10,7 @@ const FILE_G: u64 = 0x4040_4040_4040_4040;
 const FILE_H: u64 = 0x8080_8080_8080_8080;
 
 pub fn is_in_check(colour: Colour, board: &Board) -> bool {
-    let king_square = Square::from_u64(board.pieces(PieceType::King, colour));
+    let king_square = Square::from_u64(board.pieces(Piece::king(colour)));
 
     is_attacked(king_square, colour.flip(), board)
 }
@@ -27,22 +27,22 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
     let queen_attacks = bishop_attacks | rook_attacks;
     let king_attacks = get_king_attacks(square);
 
-    (board.pieces(PieceType::Pawn, colour) & pawn_attacks)
-        | (board.pieces(PieceType::Knight, colour) & knight_attacks)
-        | (board.pieces(PieceType::Bishop, colour) & bishop_attacks)
-        | (board.pieces(PieceType::Rook, colour) & rook_attacks)
-        | (board.pieces(PieceType::Queen, colour) & queen_attacks)
-        | (board.pieces(PieceType::King, colour) & king_attacks)
+    (board.pieces(Piece::pawn(colour)) & pawn_attacks)
+        | (board.pieces(Piece::knight(colour)) & knight_attacks)
+        | (board.pieces(Piece::bishop(colour)) & bishop_attacks)
+        | (board.pieces(Piece::rook(colour)) & rook_attacks)
+        | (board.pieces(Piece::queen(colour)) & queen_attacks)
+        | (board.pieces(Piece::king(colour)) & king_attacks)
 }
 
 pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
-    match piece.as_type() {
-        PieceType::Pawn => get_pawn_attacks(square, piece.colour(), board),
-        PieceType::Knight => get_knight_attacks(square),
-        PieceType::Bishop => get_bishop_attacks(square, board),
-        PieceType::Rook => get_rook_attacks(square, board),
-        PieceType::Queen => get_bishop_attacks(square, board) | get_rook_attacks(square, board),
-        PieceType::King => get_king_attacks(square),
+    match piece {
+        WhitePawn | BlackPawn => get_pawn_attacks(square, piece.colour(), board),
+        WhiteKnight | BlackKnight => get_knight_attacks(square),
+        WhiteBishop | BlackBishop => get_bishop_attacks(square, board),
+        WhiteRook | BlackRook => get_rook_attacks(square, board),
+        WhiteQueen | BlackQueen => get_bishop_attacks(square, board) | get_rook_attacks(square, board),
+        WhiteKing | BlackKing => get_king_attacks(square),
     }
 }
 
@@ -306,14 +306,13 @@ lazy_static! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::piece::Piece;
     use crate::position::Position;
 
     #[test]
     fn detect_check() {
         let mut board = Board::empty();
-        board.put_piece(Piece::BlackKing, parse_square("e8"));
-        board.put_piece(Piece::WhiteKnight, parse_square("d6"));
+        board.put_piece(BlackKing, parse_square("e8"));
+        board.put_piece(WhiteKnight, parse_square("d6"));
 
         assert!(is_in_check(Colour::Black, &board));
     }

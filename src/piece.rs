@@ -1,92 +1,64 @@
-use self::{Piece::*, PieceType::*};
+use self::Piece::*;
 use crate::colour::Colour;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PieceType {
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King,
-}
-
-const PIECE_TYPES: [PieceType; 6] = [Pawn, Knight, Bishop, Rook, Queen, King];
-
-impl PieceType {
-    pub fn is_pawn(&self) -> bool {
-        matches!(self, Pawn)
-    }
-
-    pub fn is_king(&self) -> bool {
-        matches!(self, King)
-    }
-
-    pub fn types() -> &'static [Self] {
-        &PIECE_TYPES
-    }
-}
-
+#[rustfmt::skip]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Piece {
-    WhitePawn,
-    WhiteKnight,
-    WhiteBishop,
-    WhiteRook,
-    WhiteQueen,
-    WhiteKing,
-    BlackPawn,
-    BlackKnight,
-    BlackBishop,
-    BlackRook,
-    BlackQueen,
-    BlackKing,
+    WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing,
+    BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing,
 }
 
-const PIECES: [Piece; 12] = [
-    WhitePawn,
-    WhiteKnight,
-    WhiteBishop,
-    WhiteRook,
-    WhiteQueen,
-    WhiteKing,
-    BlackPawn,
-    BlackKnight,
-    BlackBishop,
-    BlackRook,
-    BlackQueen,
-    BlackKing,
-];
+#[rustfmt::skip]
+impl Piece {
+    const PAWNS:   [Piece; 2] = [WhitePawn,   BlackPawn  ];
+    const KNIGHTS: [Piece; 2] = [WhiteKnight, BlackKnight];
+    const BISHOPS: [Piece; 2] = [WhiteBishop, BlackBishop];
+    const ROOKS:   [Piece; 2] = [WhiteRook,   BlackRook  ];
+    const QUEENS:  [Piece; 2] = [WhiteQueen,  BlackQueen ];
+    const KINGS:   [Piece; 2] = [WhiteKing,   BlackKing  ];
 
-const PROMOTION_PIECES: [[Piece; 4]; 2] = [
-    [WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen],
-    [BlackKnight, BlackBishop, BlackRook, BlackQueen],
-];
-
-const PIECE_TYPE_TO_COLOUR_MAP: [[Piece; 6]; 2] = [
-    [WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing],
-    [BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing],
-];
+    pub fn pawn   (colour: Colour) -> Self { Self::PAWNS   [colour as usize] }
+    pub fn knight (colour: Colour) -> Self { Self::KNIGHTS [colour as usize] }
+    pub fn bishop (colour: Colour) -> Self { Self::BISHOPS [colour as usize] }
+    pub fn rook   (colour: Colour) -> Self { Self::ROOKS   [colour as usize] }
+    pub fn queen  (colour: Colour) -> Self { Self::QUEENS  [colour as usize] }
+    pub fn king   (colour: Colour) -> Self { Self::KINGS   [colour as usize] }
+}
 
 impl Piece {
-    pub fn from(piece_type: PieceType, colour: Colour) -> Self {
-        PIECE_TYPE_TO_COLOUR_MAP[colour as usize][piece_type as usize]
+    #[rustfmt::skip]
+    const PIECES: [Piece; 12] = [
+        WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing,
+        BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing,
+    ];
+
+    const PIECES_BY_COLOUR: [[Piece; 6]; 2] = [
+        [WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing],
+        [BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing],
+    ];
+
+    const PROMOTION_PIECES_BY_COLOUR: [[Piece; 4]; 2] = [
+        [WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen],
+        [BlackKnight, BlackBishop, BlackRook, BlackQueen],
+    ];
+
+    pub fn pieces() -> &'static [Self] {
+        &Self::PIECES
     }
 
+    pub fn pieces_by_colour(colour: Colour) -> &'static [Self] {
+        &Self::PIECES_BY_COLOUR[colour as usize]
+    }
+
+    pub fn promotions(colour: Colour) -> &'static [Self] {
+        &Self::PROMOTION_PIECES_BY_COLOUR[colour as usize]
+    }
+}
+
+impl Piece {
     pub fn index(&self) -> usize {
         *self as usize
-    }
-
-    pub fn as_type(&self) -> PieceType {
-        match self {
-            WhitePawn | BlackPawn => Pawn,
-            WhiteKnight | BlackKnight => Knight,
-            WhiteBishop | BlackBishop => Bishop,
-            WhiteRook | BlackRook => Rook,
-            WhiteQueen | BlackQueen => Queen,
-            WhiteKing | BlackKing => King,
-        }
     }
 
     pub fn is_pawn(&self) -> bool {
@@ -102,14 +74,6 @@ impl Piece {
             WhitePawn | WhiteKnight | WhiteBishop | WhiteRook | WhiteQueen | WhiteKing => Colour::White,
             _ => Colour::Black,
         }
-    }
-
-    pub fn promotions(colour: Colour) -> &'static [Self] {
-        &PROMOTION_PIECES[colour as usize]
-    }
-
-    pub fn pieces() -> &'static [Self] {
-        &PIECES
     }
 }
 

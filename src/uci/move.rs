@@ -1,6 +1,6 @@
 use crate::colour::Colour;
 use crate::movegen::Move;
-use crate::piece::{Piece, PieceType};
+use crate::piece::Piece;
 use crate::square::Square;
 use std::convert::From;
 use std::fmt::{Display, Formatter};
@@ -35,19 +35,17 @@ impl FromStr for UciMove {
         let to = mv[2..4].parse::<Square>()?;
 
         let promotion_piece = if mv.len() > 4 {
-            Some(Piece::from(
-                match mv.chars().nth(4).unwrap() {
-                    'n' => PieceType::Knight,
-                    'b' => PieceType::Bishop,
-                    'r' => PieceType::Rook,
-                    'q' => PieceType::Queen,
-                    _ => return Err("invalid promotion piece in UCI move".to_string()),
-                },
-                match to.rank() {
-                    0 => Colour::Black,
-                    _ => Colour::White,
-                },
-            ))
+            let colour = match to.rank() {
+                0 => Colour::Black,
+                _ => Colour::White,
+            };
+            Some(match mv.chars().nth(4).unwrap() {
+                'n' => Piece::knight(colour),
+                'b' => Piece::bishop(colour),
+                'r' => Piece::rook(colour),
+                'q' => Piece::queen(colour),
+                _ => return Err("invalid promotion piece in UCI move".to_string()),
+            })
         } else {
             None
         };

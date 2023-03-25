@@ -1,12 +1,12 @@
 use crate::colour::Colour;
-use crate::piece::PieceType;
+use crate::piece::Piece;
 use crate::position::Board;
 
-const PIECE_WEIGHTS: [i32; 6] = [100, 300, 350, 500, 900, 0];
+const PIECE_WEIGHTS: [i32; 12] = [100, 300, 350, 500, 900, 0, 100, 300, 350, 500, 900, 0];
 
 pub fn eval(colour: Colour, board: &Board) -> i32 {
-    PieceType::types().iter().fold(0, |acc, piece_type| {
-        acc + PIECE_WEIGHTS[*piece_type as usize] * board.count_pieces(*piece_type, colour) as i32
+    Piece::pieces_by_colour(colour).iter().fold(0, |acc, piece| {
+        acc + PIECE_WEIGHTS[*piece as usize] * board.count_pieces(*piece) as i32
     })
 }
 

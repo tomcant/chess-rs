@@ -1,15 +1,16 @@
 use crate::colour::Colour;
-use crate::piece::PieceType;
+use crate::piece::Piece;
 use crate::position::Board;
 use crate::square::Square;
+use lazy_static::lazy_static;
 
 pub fn eval(colour: Colour, board: &Board) -> i32 {
-    PieceType::types().iter().fold(0, |mut acc, piece_type| {
-        let mut pieces = board.pieces(*piece_type, colour);
+    Piece::pieces_by_colour(colour).iter().fold(0, |mut acc, piece| {
+        let mut pieces = board.pieces(*piece);
 
         while pieces > 0 {
             let square = Square::from_index(pieces.trailing_zeros() as u8);
-            acc += PSQT[*piece_type as usize][SQUARE_MAP[colour as usize][square.index()]];
+            acc += PSQT[*piece as usize][square.index()];
             pieces ^= square.u64();
         }
 
@@ -17,8 +18,28 @@ pub fn eval(colour: Colour, board: &Board) -> i32 {
     })
 }
 
+lazy_static! {
+    static ref PSQT: [[i32; 64]; 12] = {
+        let mut psqt = [[0; 64]; 12];
+
+        for piece in Piece::pieces() {
+            let mut psqt_index = piece.index();
+
+            if piece.colour() == Colour::Black {
+                psqt_index -= 6;
+            }
+
+            for (square, mapped_square) in SQUARE_MAP[piece.colour() as usize].iter().enumerate() {
+                psqt[piece.index()][square] = PSQT_WHITE[psqt_index][*mapped_square];
+            }
+        }
+
+        psqt
+    };
+}
+
 #[rustfmt::skip]
-const PSQT: [[i32; 64]; 6] = [
+const PSQT_WHITE: [[i32; 64]; 6] = [
     // Pawn
     [
          0,   0,   0,   0,   0,   0,   0,   0,

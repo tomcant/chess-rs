@@ -1,5 +1,5 @@
 use crate::colour::Colour;
-use crate::piece::{Piece, PieceType};
+use crate::piece::Piece;
 use crate::square::Square;
 
 #[derive(Debug)]
@@ -16,16 +16,16 @@ impl Board {
         }
     }
 
-    pub fn pieces(&self, piece_type: PieceType, colour: Colour) -> u64 {
-        self.pieces[Piece::from(piece_type, colour).index()]
+    pub fn pieces(&self, piece: Piece) -> u64 {
+        self.pieces[piece.index()]
     }
 
     pub fn pieces_by_colour(&self, colour: Colour) -> u64 {
         self.colours[colour as usize]
     }
 
-    pub fn count_pieces(&self, piece_type: PieceType, colour: Colour) -> u32 {
-        self.pieces(piece_type, colour).count_ones()
+    pub fn count_pieces(&self, piece: Piece) -> u32 {
+        self.pieces(piece).count_ones()
     }
 
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
@@ -71,7 +71,7 @@ mod tests {
 
         assert!(board.has_piece_at(square));
         assert_eq!(board.piece_at(square), Some(piece));
-        assert_eq!(board.count_pieces(PieceType::King, Colour::White), 1);
+        assert_eq!(board.count_pieces(Piece::WhiteKing), 1);
         assert_eq!(board.pieces_by_colour(piece.colour()) & square.u64(), square.u64());
     }
 

@@ -1,6 +1,6 @@
 use crate::colour::Colour;
 use crate::movegen::Move;
-use crate::piece::{Piece, PieceType};
+use crate::piece::Piece;
 use crate::square::Square;
 
 mod board;
@@ -45,7 +45,7 @@ impl Position {
             self.castling_rights.remove_for_colour(self.colour_to_move);
 
             if mv.file_diff() > 1 {
-                let rook = Piece::from(PieceType::Rook, self.colour_to_move);
+                let rook = Piece::rook(self.colour_to_move);
 
                 match mv.to.file() {
                     2 => {
@@ -78,12 +78,12 @@ impl Position {
 
     pub fn undo_move(&mut self, mv: &Move) {
         let piece = match mv.promotion_piece {
-            Some(piece) => Piece::from(PieceType::Pawn, piece.colour()),
+            Some(piece) => Piece::pawn(piece.colour()),
             None => self.board.piece_at(mv.to).unwrap(),
         };
 
         if piece.is_king() && mv.file_diff() > 1 {
-            let rook = Piece::from(PieceType::Rook, self.opponent_colour());
+            let rook = Piece::rook(self.opponent_colour());
 
             match mv.to.file() {
                 2 => {
