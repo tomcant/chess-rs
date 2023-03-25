@@ -37,12 +37,12 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
 
 pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
     match piece {
-        WhitePawn | BlackPawn => get_pawn_attacks(square, piece.colour(), board),
-        WhiteKnight | BlackKnight => get_knight_attacks(square),
-        WhiteBishop | BlackBishop => get_bishop_attacks(square, board),
-        WhiteRook | BlackRook => get_rook_attacks(square, board),
-        WhiteQueen | BlackQueen => get_bishop_attacks(square, board) | get_rook_attacks(square, board),
-        WhiteKing | BlackKing => get_king_attacks(square),
+        WP | BP => get_pawn_attacks(square, piece.colour(), board),
+        WN | BN => get_knight_attacks(square),
+        WB | BB => get_bishop_attacks(square, board),
+        WR | BR => get_rook_attacks(square, board),
+        WQ | BQ => get_bishop_attacks(square, board) | get_rook_attacks(square, board),
+        WK | BK => get_king_attacks(square),
     }
 }
 
@@ -311,8 +311,8 @@ mod tests {
     #[test]
     fn detect_check() {
         let mut board = Board::empty();
-        board.put_piece(BlackKing, parse_square("e8"));
-        board.put_piece(WhiteKnight, parse_square("d6"));
+        board.put_piece(BK, parse_square("e8"));
+        board.put_piece(WN, parse_square("d6"));
 
         assert!(is_in_check(Colour::Black, &board));
     }

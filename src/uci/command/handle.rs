@@ -62,8 +62,8 @@ mod tests {
 
         position(fen, moves, &mut pos);
 
-        assert_eq!(pos.board.piece_at(parse_square("e4")), Some(Piece::WhitePawn));
-        assert_eq!(pos.board.piece_at(parse_square("e5")), Some(Piece::BlackPawn));
+        assert_eq!(pos.board.piece_at(parse_square("e4")), Some(Piece::WP));
+        assert_eq!(pos.board.piece_at(parse_square("e5")), Some(Piece::BP));
     }
 
     #[test]
@@ -74,8 +74,8 @@ mod tests {
 
         position(fen, moves, &mut pos);
 
-        assert_eq!(pos.board.piece_at(parse_square("b8")), Some(Piece::WhiteQueen));
-        assert_eq!(pos.board.piece_at(parse_square("g1")), Some(Piece::BlackRook));
+        assert_eq!(pos.board.piece_at(parse_square("b8")), Some(Piece::WQ));
+        assert_eq!(pos.board.piece_at(parse_square("g1")), Some(Piece::BR));
     }
 
     fn parse_command(str: &str) -> UciCommand {

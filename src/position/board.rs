@@ -64,14 +64,14 @@ mod tests {
     #[test]
     fn put_a_piece_on_the_board() {
         let mut board = Board::empty();
-        let piece = Piece::WhiteKing;
+        let piece = Piece::WK;
         let square = "e1".parse::<Square>().unwrap();
 
         board.put_piece(piece, square);
 
         assert!(board.has_piece_at(square));
         assert_eq!(board.piece_at(square), Some(piece));
-        assert_eq!(board.count_pieces(Piece::WhiteKing), 1);
+        assert_eq!(board.count_pieces(piece), 1);
         assert_eq!(board.pieces_by_colour(piece.colour()) & square.u64(), square.u64());
     }
 
@@ -79,7 +79,7 @@ mod tests {
     fn clear_a_square() {
         let mut board = Board::empty();
         let square = "e1".parse::<Square>().unwrap();
-        board.put_piece(Piece::WhiteKing, square);
+        board.put_piece(Piece::WK, square);
 
         assert!(board.has_piece_at(square));
 

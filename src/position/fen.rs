@@ -50,18 +50,18 @@ fn parse_board(str: &str) -> Result<Board, String> {
         }
 
         let piece = match char {
-            'P' => Piece::WhitePawn,
-            'N' => Piece::WhiteKnight,
-            'B' => Piece::WhiteBishop,
-            'R' => Piece::WhiteRook,
-            'Q' => Piece::WhiteQueen,
-            'K' => Piece::WhiteKing,
-            'p' => Piece::BlackPawn,
-            'n' => Piece::BlackKnight,
-            'b' => Piece::BlackBishop,
-            'r' => Piece::BlackRook,
-            'q' => Piece::BlackQueen,
-            'k' => Piece::BlackKing,
+            'P' => Piece::WP,
+            'N' => Piece::WN,
+            'B' => Piece::WB,
+            'R' => Piece::WR,
+            'Q' => Piece::WQ,
+            'K' => Piece::WK,
+            'p' => Piece::BP,
+            'n' => Piece::BN,
+            'b' => Piece::BB,
+            'r' => Piece::BR,
+            'q' => Piece::BQ,
+            'k' => Piece::BK,
             _ => return Err(format!("invalid piece '{char}'")),
         };
 
@@ -133,11 +133,7 @@ mod tests {
         let parse = START_POS_FEN.parse::<Position>();
 
         assert!(parse.is_ok());
-
-        assert_eq!(
-            parse.unwrap().board.piece_at(parse_square("e2")),
-            Some(Piece::WhitePawn)
-        );
+        assert_eq!(parse.unwrap().board.piece_at(parse_square("e2")), Some(Piece::WP));
     }
 
     #[test]

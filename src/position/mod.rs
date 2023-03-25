@@ -141,7 +141,7 @@ mod tests {
 
         pos.do_move(&mv);
 
-        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WhiteRook));
+        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WR));
         assert!(!pos.board.has_piece_at(mv.from));
         assert_eq!(pos.colour_to_move, Colour::Black);
     }
@@ -161,7 +161,7 @@ mod tests {
 
         pos.undo_move(&mv);
 
-        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WhiteRook));
+        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WR));
         assert!(!pos.board.has_piece_at(mv.to));
         assert_eq!(pos.colour_to_move, Colour::White);
     }
@@ -173,7 +173,7 @@ mod tests {
         let mv = Move {
             from: parse_square("d4"),
             to: parse_square("f5"),
-            captured_piece: Some(Piece::BlackPawn),
+            captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             is_en_passant: false,
@@ -181,7 +181,7 @@ mod tests {
 
         pos.do_move(&mv);
 
-        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WhiteKnight));
+        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WN));
         assert!(!pos.board.has_piece_at(mv.from));
     }
 
@@ -192,7 +192,7 @@ mod tests {
         let mv = Move {
             from: parse_square("d4"),
             to: parse_square("f5"),
-            captured_piece: Some(Piece::BlackPawn),
+            captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             is_en_passant: false,
@@ -200,8 +200,8 @@ mod tests {
 
         pos.undo_move(&mv);
 
-        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WhiteKnight));
-        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::BlackPawn));
+        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WN));
+        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::BP));
     }
 
     #[test]
@@ -221,8 +221,8 @@ mod tests {
 
         assert_eq!(pos.castling_rights, CastlingRights::none());
 
-        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WhiteKing));
-        assert_eq!(pos.board.piece_at(parse_square("f1")), Some(Piece::WhiteRook));
+        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WK));
+        assert_eq!(pos.board.piece_at(parse_square("f1")), Some(Piece::WR));
 
         assert!(!pos.board.has_piece_at(mv.from));
         assert!(!pos.board.has_piece_at(parse_square("h1")));
@@ -245,8 +245,8 @@ mod tests {
 
         assert_eq!(pos.castling_rights, CastlingRights::from(&[CastlingRight::WhiteKing]));
 
-        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WhiteKing));
-        assert_eq!(pos.board.piece_at(parse_square("h1")), Some(Piece::WhiteRook));
+        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WK));
+        assert_eq!(pos.board.piece_at(parse_square("h1")), Some(Piece::WR));
 
         assert!(!pos.board.has_piece_at(mv.to));
         assert!(!pos.board.has_piece_at(parse_square("f1")));
@@ -277,7 +277,7 @@ mod tests {
         let mv = Move {
             from: parse_square("d4"),
             to: parse_square("a1"),
-            captured_piece: Some(Piece::WhiteRook),
+            captured_piece: Some(Piece::WR),
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
             is_en_passant: false,
@@ -296,7 +296,7 @@ mod tests {
             from: parse_square("e7"),
             to: parse_square("e8"),
             captured_piece: None,
-            promotion_piece: Some(Piece::WhiteKnight),
+            promotion_piece: Some(Piece::WN),
             castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
@@ -315,14 +315,14 @@ mod tests {
             from: parse_square("e7"),
             to: parse_square("e8"),
             captured_piece: None,
-            promotion_piece: Some(Piece::WhiteKnight),
+            promotion_piece: Some(Piece::WN),
             castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
         pos.undo_move(&mv);
 
-        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WhitePawn));
+        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WP));
         assert!(!pos.board.has_piece_at(mv.to));
     }
 
@@ -333,15 +333,15 @@ mod tests {
         let mv = Move {
             from: parse_square("e7"),
             to: parse_square("d8"),
-            captured_piece: Some(Piece::BlackQueen),
-            promotion_piece: Some(Piece::WhiteBishop),
+            captured_piece: Some(Piece::BQ),
+            promotion_piece: Some(Piece::WB),
             castling_rights: CastlingRights::none(),
             is_en_passant: false,
         };
 
         pos.undo_move(&mv);
 
-        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WhitePawn));
+        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WP));
         assert_eq!(pos.board.piece_at(mv.to), mv.captured_piece);
     }
 
@@ -352,7 +352,7 @@ mod tests {
         let mv = Move {
             from: parse_square("d5"),
             to: parse_square("e6"),
-            captured_piece: Some(Piece::BlackPawn),
+            captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             is_en_passant: true,
@@ -360,7 +360,7 @@ mod tests {
 
         pos.do_move(&mv);
 
-        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WhitePawn));
+        assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WP));
         assert!(!pos.board.has_piece_at(parse_square("e5")));
         assert!(!pos.board.has_piece_at(mv.from));
     }
@@ -372,7 +372,7 @@ mod tests {
         let mv = Move {
             from: parse_square("d5"),
             to: parse_square("e6"),
-            captured_piece: Some(Piece::BlackPawn),
+            captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             is_en_passant: true,
@@ -381,8 +381,8 @@ mod tests {
         pos.undo_move(&mv);
 
         assert_eq!(pos.en_passant_square, Some(mv.to));
-        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WhitePawn));
-        assert_eq!(pos.board.piece_at(parse_square("e5")), Some(Piece::BlackPawn));
+        assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WP));
+        assert_eq!(pos.board.piece_at(parse_square("e5")), Some(Piece::BP));
         assert!(!pos.board.has_piece_at(mv.to));
     }
 

@@ -173,7 +173,7 @@ mod tests {
                 vec![UciMove {
                     from: parse_square("e7"),
                     to: parse_square("e8"),
-                    promotion_piece: Some(Piece::WhiteQueen)
+                    promotion_piece: Some(Piece::WQ)
                 }]
             ))
         );
@@ -185,7 +185,7 @@ mod tests {
                 vec![UciMove {
                     from: parse_square("e2"),
                     to: parse_square("e1"),
-                    promotion_piece: Some(Piece::BlackRook)
+                    promotion_piece: Some(Piece::BR)
                 }]
             ))
         );
