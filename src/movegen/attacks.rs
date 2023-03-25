@@ -47,7 +47,7 @@ pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
 }
 
 fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
-    PAWN_ATTACKS[colour as usize][square.index()] & board.occupancy()
+    PAWN_ATTACKS[colour.index()][square.index()] & board.occupancy()
 }
 
 fn get_knight_attacks(square: Square) -> u64 {
@@ -115,10 +115,10 @@ lazy_static! {
         for square in SQUARES.iter() {
             let square_u64 = square.u64();
 
-            attacks[Colour::White as usize][square.index()] =
+            attacks[Colour::White.index()][square.index()] =
                   (square_u64 & !FILE_A) << 7 | (square_u64 & !FILE_H) << 9;
 
-            attacks[Colour::Black as usize][square.index()] =
+            attacks[Colour::Black.index()][square.index()] =
                   (square_u64 & !FILE_H) >> 7 | (square_u64 & !FILE_A) >> 9;
         }
 

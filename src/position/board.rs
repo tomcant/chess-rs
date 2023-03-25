@@ -21,7 +21,7 @@ impl Board {
     }
 
     pub fn pieces_by_colour(&self, colour: Colour) -> u64 {
-        self.colours[colour as usize]
+        self.colours[colour.index()]
     }
 
     pub fn count_pieces(&self, piece: Piece) -> u32 {
@@ -31,7 +31,7 @@ impl Board {
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
         let square_u64 = square.u64();
         self.pieces[piece.index()] |= square_u64;
-        self.colours[piece.colour() as usize] |= square_u64;
+        self.colours[piece.colour().index()] |= square_u64;
     }
 
     pub fn piece_at(&self, square: Square) -> Option<Piece> {
@@ -48,7 +48,7 @@ impl Board {
     pub fn remove_piece(&mut self, square: Square) {
         if let Some(piece) = self.piece_at(square) {
             self.pieces[piece.index()] ^= square.u64();
-            self.colours[piece.colour() as usize] ^= square.u64();
+            self.colours[piece.colour().index()] ^= square.u64();
         }
     }
 

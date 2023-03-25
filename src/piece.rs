@@ -18,12 +18,12 @@ impl Piece {
     const QUEENS:  [Piece; 2] = [WQ, BQ];
     const KINGS:   [Piece; 2] = [WK, BK];
 
-    pub fn pawn   (colour: Colour) -> Self { Self::PAWNS   [colour as usize] }
-    pub fn knight (colour: Colour) -> Self { Self::KNIGHTS [colour as usize] }
-    pub fn bishop (colour: Colour) -> Self { Self::BISHOPS [colour as usize] }
-    pub fn rook   (colour: Colour) -> Self { Self::ROOKS   [colour as usize] }
-    pub fn queen  (colour: Colour) -> Self { Self::QUEENS  [colour as usize] }
-    pub fn king   (colour: Colour) -> Self { Self::KINGS   [colour as usize] }
+    pub fn pawn   (colour: Colour) -> Self { Self::PAWNS   [colour.index()] }
+    pub fn knight (colour: Colour) -> Self { Self::KNIGHTS [colour.index()] }
+    pub fn bishop (colour: Colour) -> Self { Self::BISHOPS [colour.index()] }
+    pub fn rook   (colour: Colour) -> Self { Self::ROOKS   [colour.index()] }
+    pub fn queen  (colour: Colour) -> Self { Self::QUEENS  [colour.index()] }
+    pub fn king   (colour: Colour) -> Self { Self::KINGS   [colour.index()] }
 }
 
 #[rustfmt::skip]
@@ -48,11 +48,11 @@ impl Piece {
     }
 
     pub fn pieces_by_colour(colour: Colour) -> &'static [Self] {
-        &Self::PIECES_BY_COLOUR[colour as usize]
+        &Self::PIECES_BY_COLOUR[colour.index()]
     }
 
     pub fn promotions(colour: Colour) -> &'static [Self] {
-        &Self::PROMOTION_PIECES_BY_COLOUR[colour as usize]
+        &Self::PROMOTION_PIECES_BY_COLOUR[colour.index()]
     }
 }
 
