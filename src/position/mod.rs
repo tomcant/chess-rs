@@ -72,8 +72,11 @@ impl Position {
         self.board.put_piece(piece, mv.to);
         self.board.remove_piece(mv.from);
 
+        if self.colour_to_move == Colour::Black {
+            self.full_move_counter += 1;
+        }
+
         self.colour_to_move = self.opponent_colour();
-        self.full_move_counter += 1;
     }
 
     pub fn undo_move(&mut self, mv: &Move) {
@@ -113,7 +116,10 @@ impl Position {
         }
 
         self.colour_to_move = self.opponent_colour();
-        self.full_move_counter -= 1;
+
+        if self.colour_to_move == Colour::Black {
+            self.full_move_counter -= 1;
+        }
     }
 
     pub fn opponent_colour(&self) -> Colour {
@@ -438,6 +444,72 @@ mod tests {
         pos.undo_move(&mv);
 
         assert_eq!(pos.en_passant_square, None);
+    }
+
+    #[test]
+    fn increment_the_full_move_counter_when_black_moves() {
+        let mut pos = parse_fen("8/4p3/8/8/8/8/4P3/8 w - - 0 1");
+
+        assert_eq!(pos.full_move_counter, 1);
+
+        let mv = Move {
+            from: parse_square("e2"),
+            to: parse_square("e4"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: CastlingRights::none(),
+            is_en_passant: false,
+        };
+
+        pos.do_move(&mv);
+
+        assert_eq!(pos.full_move_counter, 1);
+
+        let mv = Move {
+            from: parse_square("e7"),
+            to: parse_square("e5"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: CastlingRights::none(),
+            is_en_passant: false,
+        };
+
+        pos.do_move(&mv);
+
+        assert_eq!(pos.full_move_counter, 2);
+    }
+
+    #[test]
+    fn decrement_the_full_move_counter_when_undoing_black_moves() {
+        let mut pos = parse_fen("8/8/8/4p3/4P3/8/8/8 w - - 0 2");
+
+        assert_eq!(pos.full_move_counter, 2);
+
+        let mv = Move {
+            from: parse_square("e7"),
+            to: parse_square("e5"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: CastlingRights::none(),
+            is_en_passant: false,
+        };
+
+        pos.undo_move(&mv);
+
+        assert_eq!(pos.full_move_counter, 1);
+
+        let mv = Move {
+            from: parse_square("e2"),
+            to: parse_square("e4"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: CastlingRights::none(),
+            is_en_passant: false,
+        };
+
+        pos.undo_move(&mv);
+
+        assert_eq!(pos.full_move_counter, 1);
     }
 
     fn parse_fen(str: &str) -> Position {

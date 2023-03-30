@@ -48,9 +48,8 @@ impl Board {
         let Some(piece) = self.piece_at(square) else {
             return;
         };
-
-        self.pieces[piece] ^= square.u64();
-        self.colours[piece.colour()] ^= square.u64();
+        self.pieces[piece] &= !square.u64();
+        self.colours[piece.colour()] &= !square.u64();
     }
 
     pub fn occupancy(&self) -> u64 {
