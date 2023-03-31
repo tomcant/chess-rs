@@ -11,88 +11,38 @@ pub use r#move::Move;
 
 const MAX_MOVES: usize = 256;
 
+struct Bitboard(u64);
+
+impl Iterator for Bitboard {
+    type Item = Square;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0 == 0 {
+            return None;
+        }
+
+        let square = Square::from_index(self.0.trailing_zeros() as u8);
+        self.0 ^= square.u64();
+
+        Some(square)
+    }
+}
+
 pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
     let mut moves = Vec::with_capacity(MAX_MOVES);
     let colour_to_move = pos.colour_to_move;
 
-    for piece in Piece::pieces_by_colour(colour_to_move) {
-        let mut pieces = pos.board.pieces(*piece);
+    for from_square in Bitboard(pos.board.pieces_by_colour(colour_to_move)) {
+        let Some(piece) = pos.board.piece_at(from_square) else {
+            continue;
+        };
 
-        while pieces > 0 {
-            let from_square = Square::from_index(pieces.trailing_zeros() as u8);
-            pieces ^= from_square.u64();
+        let mut to_squares = !pos.board.pieces_by_colour(colour_to_move) & get_attacks(piece, from_square, &pos.board);
 
-            let mut to_squares =
-                !pos.board.pieces_by_colour(colour_to_move) & get_attacks(*piece, from_square, &pos.board);
+        if piece.is_pawn() {
+            to_squares |= get_pawn_advances(from_square, colour_to_move, &pos.board);
 
-            if piece.is_pawn() {
-                to_squares |= get_pawn_advances(from_square, colour_to_move, &pos.board);
-
-                if can_capture_en_passant(from_square, pos.en_passant_square, colour_to_move) {
-                    moves.push(Move {
-                        from: from_square,
-                        to: pos.en_passant_square.unwrap(),
-                        captured_piece: Some(Piece::pawn(pos.opponent_colour())),
-                        promotion_piece: None,
-                        castling_rights: pos.castling_rights,
-                        half_move_clock: pos.half_move_clock,
-                        is_en_passant: true,
-                    });
-                }
-            } else if piece.is_king() {
-                to_squares |= get_castling(pos.castling_rights, colour_to_move, &pos.board);
-            }
-
-            while to_squares > 0 {
-                let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
-                to_squares ^= to_square.u64();
-
-                let captured_piece = pos.board.piece_at(to_square);
-
-                if piece.is_pawn() && to_square.is_back_rank() {
-                    for piece in Piece::promotions(colour_to_move) {
-                        moves.push(Move {
-                            from: from_square,
-                            to: to_square,
-                            captured_piece,
-                            promotion_piece: Some(*piece),
-                            castling_rights: pos.castling_rights,
-                            half_move_clock: pos.half_move_clock,
-                            is_en_passant: false,
-                        });
-                    }
-
-                    continue;
-                }
-
-                moves.push(Move {
-                    from: from_square,
-                    to: to_square,
-                    captured_piece,
-                    promotion_piece: None,
-                    castling_rights: pos.castling_rights,
-                    half_move_clock: pos.half_move_clock,
-                    is_en_passant: false,
-                });
-            }
-        }
-    }
-
-    moves
-}
-
-pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
-    let mut moves = Vec::with_capacity(MAX_MOVES);
-    let colour_to_move = pos.colour_to_move;
-
-    for piece in Piece::pieces_by_colour(colour_to_move) {
-        let mut pieces = pos.board.pieces(*piece);
-
-        while pieces > 0 {
-            let from_square = Square::from_index(pieces.trailing_zeros() as u8);
-            pieces ^= from_square.u64();
-
-            if piece.is_pawn() && can_capture_en_passant(from_square, pos.en_passant_square, colour_to_move) {
+            if can_capture_en_passant(from_square, pos.en_passant_square, colour_to_move) {
                 moves.push(Move {
                     from: from_square,
                     to: pos.en_passant_square.unwrap(),
@@ -103,42 +53,102 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
                     is_en_passant: true,
                 });
             }
+        } else if piece.is_king() {
+            to_squares |= get_castling(pos.castling_rights, colour_to_move, &pos.board);
+        }
 
-            let mut to_squares =
-                pos.board.pieces_by_colour(colour_to_move.flip()) & get_attacks(*piece, from_square, &pos.board);
+        while to_squares > 0 {
+            let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
+            to_squares ^= to_square.u64();
 
-            while to_squares > 0 {
-                let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
-                to_squares ^= to_square.u64();
+            let captured_piece = pos.board.piece_at(to_square);
 
-                let captured_piece = pos.board.piece_at(to_square);
-
-                if piece.is_pawn() && to_square.is_back_rank() {
-                    for piece in Piece::promotions(colour_to_move) {
-                        moves.push(Move {
-                            from: from_square,
-                            to: to_square,
-                            captured_piece,
-                            promotion_piece: Some(*piece),
-                            castling_rights: pos.castling_rights,
-                            half_move_clock: pos.half_move_clock,
-                            is_en_passant: false,
-                        });
-                    }
-
-                    continue;
+            if piece.is_pawn() && to_square.is_back_rank() {
+                for piece in Piece::promotions(colour_to_move) {
+                    moves.push(Move {
+                        from: from_square,
+                        to: to_square,
+                        captured_piece,
+                        promotion_piece: Some(*piece),
+                        castling_rights: pos.castling_rights,
+                        half_move_clock: pos.half_move_clock,
+                        is_en_passant: false,
+                    });
                 }
 
-                moves.push(Move {
-                    from: from_square,
-                    to: to_square,
-                    captured_piece,
-                    promotion_piece: None,
-                    castling_rights: pos.castling_rights,
-                    half_move_clock: pos.half_move_clock,
-                    is_en_passant: false,
-                });
+                continue;
             }
+
+            moves.push(Move {
+                from: from_square,
+                to: to_square,
+                captured_piece,
+                promotion_piece: None,
+                castling_rights: pos.castling_rights,
+                half_move_clock: pos.half_move_clock,
+                is_en_passant: false,
+            });
+        }
+    }
+
+    moves
+}
+
+pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
+    let mut moves = Vec::with_capacity(MAX_MOVES);
+    let colour_to_move = pos.colour_to_move;
+
+    for from_square in Bitboard(pos.board.pieces_by_colour(colour_to_move)) {
+        let Some(piece) = pos.board.piece_at(from_square) else {
+            continue;
+        };
+
+        if piece.is_pawn() && can_capture_en_passant(from_square, pos.en_passant_square, colour_to_move) {
+            moves.push(Move {
+                from: from_square,
+                to: pos.en_passant_square.unwrap(),
+                captured_piece: Some(Piece::pawn(pos.opponent_colour())),
+                promotion_piece: None,
+                castling_rights: pos.castling_rights,
+                half_move_clock: pos.half_move_clock,
+                is_en_passant: true,
+            });
+        }
+
+        let mut to_squares =
+            pos.board.pieces_by_colour(colour_to_move.flip()) & get_attacks(piece, from_square, &pos.board);
+
+        while to_squares > 0 {
+            let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
+            to_squares ^= to_square.u64();
+
+            let captured_piece = pos.board.piece_at(to_square);
+
+            if piece.is_pawn() && to_square.is_back_rank() {
+                for piece in Piece::promotions(colour_to_move) {
+                    moves.push(Move {
+                        from: from_square,
+                        to: to_square,
+                        captured_piece,
+                        promotion_piece: Some(*piece),
+                        castling_rights: pos.castling_rights,
+                        half_move_clock: pos.half_move_clock,
+                        is_en_passant: false,
+                    });
+                }
+
+                continue;
+            }
+
+            moves.push(Move {
+                from: from_square,
+                to: to_square,
+                captured_piece,
+                promotion_piece: None,
+                castling_rights: pos.castling_rights,
+                half_move_clock: pos.half_move_clock,
+                is_en_passant: false,
+            });
         }
     }
 
