@@ -126,6 +126,7 @@ mod tests {
                 captured_piece: None,
                 promotion_piece: None,
                 castling_rights: CastlingRights::none(),
+                half_move_clock: 0,
                 is_en_passant: false,
             }
         }

@@ -32,6 +32,7 @@ pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
             captured_piece: pos.board.piece_at(mv.to),
             promotion_piece: mv.promotion_piece,
             castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         });
     }

@@ -9,6 +9,7 @@ pub struct Move {
     pub captured_piece: Option<Piece>,
     pub promotion_piece: Option<Piece>,
     pub castling_rights: CastlingRights,
+    pub half_move_clock: u8,
     pub is_en_passant: bool,
 }
 

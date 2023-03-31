@@ -35,6 +35,7 @@ pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
                         captured_piece: Some(Piece::pawn(pos.opponent_colour())),
                         promotion_piece: None,
                         castling_rights: pos.castling_rights,
+                        half_move_clock: pos.half_move_clock,
                         is_en_passant: true,
                     });
                 }
@@ -56,6 +57,7 @@ pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
                             captured_piece,
                             promotion_piece: Some(*piece),
                             castling_rights: pos.castling_rights,
+                            half_move_clock: pos.half_move_clock,
                             is_en_passant: false,
                         });
                     }
@@ -69,6 +71,7 @@ pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
                     captured_piece,
                     promotion_piece: None,
                     castling_rights: pos.castling_rights,
+                    half_move_clock: pos.half_move_clock,
                     is_en_passant: false,
                 });
             }
@@ -96,6 +99,7 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
                     captured_piece: Some(Piece::pawn(pos.opponent_colour())),
                     promotion_piece: None,
                     castling_rights: pos.castling_rights,
+                    half_move_clock: pos.half_move_clock,
                     is_en_passant: true,
                 });
             }
@@ -117,6 +121,7 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
                             captured_piece,
                             promotion_piece: Some(*piece),
                             castling_rights: pos.castling_rights,
+                            half_move_clock: pos.half_move_clock,
                             is_en_passant: false,
                         });
                     }
@@ -130,6 +135,7 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
                     captured_piece,
                     promotion_piece: None,
                     castling_rights: pos.castling_rights,
+                    half_move_clock: pos.half_move_clock,
                     is_en_passant: false,
                 });
             }

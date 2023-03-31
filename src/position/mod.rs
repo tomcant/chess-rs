@@ -27,18 +27,24 @@ impl Position {
     }
 
     pub fn do_move(&mut self, mv: &Move) {
+        self.half_move_clock += 1;
+        self.en_passant_square = None;
+
         if mv.is_capture() {
+            self.half_move_clock = 0;
             self.board.remove_piece(mv.capture_square());
         }
-
-        self.en_passant_square = None;
 
         let piece = mv
             .promotion_piece
             .unwrap_or_else(|| self.board.piece_at(mv.from).unwrap());
 
-        if piece.is_pawn() && mv.rank_diff() == 2 {
-            self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
+        if piece.is_pawn() {
+            self.half_move_clock = 0;
+
+            if mv.rank_diff() == 2 {
+                self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
+            }
         }
 
         if piece.is_king() {
@@ -105,6 +111,7 @@ impl Position {
         self.board.remove_piece(mv.to);
 
         self.castling_rights = mv.castling_rights;
+        self.half_move_clock = mv.half_move_clock;
         self.en_passant_square = None;
 
         if mv.is_capture() {
@@ -141,7 +148,8 @@ mod tests {
             to: parse_square("f4"),
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -154,7 +162,7 @@ mod tests {
 
     #[test]
     fn undo_moving_a_piece() {
-        let mut pos = parse_fen("8/8/8/8/5R2/8/8/8 b - - 0 1");
+        let mut pos = parse_fen("8/8/8/8/5R2/8/8/8 b - - 1 1");
 
         let mv = Move {
             from: Square::F1,
@@ -162,6 +170,7 @@ mod tests {
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
+            half_move_clock: 0,
             is_en_passant: false,
         };
 
@@ -181,7 +190,8 @@ mod tests {
             to: parse_square("f5"),
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -193,7 +203,7 @@ mod tests {
 
     #[test]
     fn undo_capturing_a_piece() {
-        let mut pos = parse_fen("8/8/8/5N2/8/8/8/8 b - - 0 1");
+        let mut pos = parse_fen("8/8/8/5N2/8/8/8/8 b - - 1 1");
 
         let mv = Move {
             from: parse_square("d4"),
@@ -201,6 +211,7 @@ mod tests {
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
+            half_move_clock: 0,
             is_en_passant: false,
         };
 
@@ -220,6 +231,7 @@ mod tests {
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -236,7 +248,7 @@ mod tests {
 
     #[test]
     fn undo_castle_king_side() {
-        let mut pos = parse_fen("8/8/8/8/8/8/8/5RK1 b - - 0 1");
+        let mut pos = parse_fen("8/8/8/8/8/8/8/5RK1 b - - 1 1");
 
         let mv = Move {
             from: Square::E1,
@@ -244,6 +256,7 @@ mod tests {
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing]),
+            half_move_clock: 0,
             is_en_passant: false,
         };
 
@@ -268,6 +281,7 @@ mod tests {
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -286,6 +300,7 @@ mod tests {
             captured_piece: Some(Piece::WR),
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -303,7 +318,8 @@ mod tests {
             to: Square::E8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -323,6 +339,7 @@ mod tests {
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
             castling_rights: CastlingRights::none(),
+            half_move_clock: 1,
             is_en_passant: false,
         };
 
@@ -342,6 +359,7 @@ mod tests {
             captured_piece: Some(Piece::BQ),
             promotion_piece: Some(Piece::WB),
             castling_rights: CastlingRights::none(),
+            half_move_clock: 1,
             is_en_passant: false,
         };
 
@@ -360,7 +378,8 @@ mod tests {
             to: parse_square("e6"),
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: true,
         };
 
@@ -381,6 +400,7 @@ mod tests {
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
+            half_move_clock: 1,
             is_en_passant: true,
         };
 
@@ -401,7 +421,8 @@ mod tests {
             to: parse_square("e4"),
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -419,7 +440,8 @@ mod tests {
             to: parse_square("e5"),
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -438,12 +460,70 @@ mod tests {
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
+            half_move_clock: 1,
             is_en_passant: false,
         };
 
         pos.undo_move(&mv);
 
         assert_eq!(pos.en_passant_square, None);
+    }
+
+    #[test]
+    fn increment_the_half_move_clock_for_non_pawn_or_non_capture_moves() {
+        let mut pos = parse_fen("8/4p3/8/8/8/8/4P3/4k3 w - - 0 1");
+
+        let mv = Move {
+            from: parse_square("e1"),
+            to: parse_square("f2"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            is_en_passant: false,
+        };
+
+        pos.do_move(&mv);
+
+        assert_eq!(pos.half_move_clock, 1);
+    }
+
+    #[test]
+    fn reset_the_half_move_clock_when_a_pawn_moves() {
+        let mut pos = parse_fen("8/4p3/8/8/8/8/4P3/8 w - - 1 1");
+
+        let mv = Move {
+            from: parse_square("e2"),
+            to: parse_square("e4"),
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            is_en_passant: false,
+        };
+
+        pos.do_move(&mv);
+
+        assert_eq!(pos.half_move_clock, 0);
+    }
+
+    #[test]
+    fn reset_the_half_move_clock_when_a_piece_is_captured() {
+        let mut pos = parse_fen("8/4p3/8/8/8/8/4Q3/8 w - - 1 1");
+
+        let mv = Move {
+            from: parse_square("e2"),
+            to: parse_square("e7"),
+            captured_piece: Some(Piece::BP),
+            promotion_piece: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            is_en_passant: false,
+        };
+
+        pos.do_move(&mv);
+
+        assert_eq!(pos.half_move_clock, 0);
     }
 
     #[test]
@@ -457,7 +537,8 @@ mod tests {
             to: parse_square("e4"),
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -470,7 +551,8 @@ mod tests {
             to: parse_square("e5"),
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
             is_en_passant: false,
         };
 
@@ -491,6 +573,7 @@ mod tests {
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
+            half_move_clock: 0,
             is_en_passant: false,
         };
 
@@ -504,6 +587,7 @@ mod tests {
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
+            half_move_clock: 0,
             is_en_passant: false,
         };
 
