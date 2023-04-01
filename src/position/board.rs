@@ -38,6 +38,14 @@ impl Board {
             .iter()
             .find(|&&piece| self.pieces[piece] & square.u64() != 0)
             .copied()
+
+        //        for piece in Piece::pieces() {
+        //            if self.pieces[*piece] & square.u64() != 0 {
+        //                return Some(*piece);
+        //            }
+        //        }
+        //
+        //        None
     }
 
     pub fn has_piece_at(&self, square: Square) -> bool {
