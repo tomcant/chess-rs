@@ -16,7 +16,7 @@ pub fn is_in_check(colour: Colour, board: &Board) -> bool {
 }
 
 pub fn is_attacked(square: Square, colour: Colour, board: &Board) -> bool {
-    get_attackers(square, colour, board).count_ones() != 0
+    get_attackers(square, colour, board) != 0
 }
 
 pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
