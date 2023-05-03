@@ -47,7 +47,7 @@ pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
 }
 
 fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
-    PAWN_ATTACKS[colour][square] & board.occupancy()
+    PAWN_ATTACKS[colour][square] & board.pieces_by_colour(colour.flip())
 }
 
 fn get_knight_attacks(square: Square) -> u64 {
@@ -66,13 +66,12 @@ fn get_bishop_attacks(square: Square, board: &Board) -> u64 {
             continue;
         }
 
-        let blocker_square_index = if direction < 2 {
-            blockers_on_ray.trailing_zeros()
-        } else {
-            63 - blockers_on_ray.leading_zeros()
+        let first_blocker_index = match direction {
+            0 | 1 => blockers_on_ray.trailing_zeros(),
+            _ => 63 - blockers_on_ray.leading_zeros(),
         };
 
-        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[blocker_square_index as usize][direction];
+        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[first_blocker_index as usize][direction];
     }
 
     attacks
@@ -90,13 +89,12 @@ fn get_rook_attacks(square: Square, board: &Board) -> u64 {
             continue;
         }
 
-        let blocker_square_index = if direction < 2 {
-            blockers_on_ray.trailing_zeros()
-        } else {
-            63 - blockers_on_ray.leading_zeros()
+        let first_blocker_index = match direction {
+            0 | 1 => blockers_on_ray.trailing_zeros(),
+            _ => 63 - blockers_on_ray.leading_zeros(),
         };
 
-        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[blocker_square_index as usize][direction];
+        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[first_blocker_index as usize][direction];
     }
 
     attacks
