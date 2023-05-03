@@ -28,7 +28,7 @@ pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
             if piece.is_pawn() {
                 to_squares |= get_pawn_advances(from_square, colour_to_move, &pos.board);
 
-                if can_capture_en_passant(from_square, pos.en_passant_square, colour_to_move) {
+                if pos.can_capture_en_passant(from_square) {
                     moves.push(Move {
                         from: from_square,
                         to: pos.en_passant_square.unwrap(),
@@ -92,7 +92,7 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
             let from_square = Square::from_index(pieces.trailing_zeros() as u8);
             pieces ^= from_square.u64();
 
-            if piece.is_pawn() && can_capture_en_passant(from_square, pos.en_passant_square, colour_to_move) {
+            if piece.is_pawn() && pos.can_capture_en_passant(from_square) {
                 moves.push(Move {
                     from: from_square,
                     to: pos.en_passant_square.unwrap(),
@@ -168,14 +168,6 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> u64 {
     }
 
     advances
-}
-
-fn can_capture_en_passant(pawn_square: Square, en_passant_square: Option<Square>, colour_to_move: Colour) -> bool {
-    let Some(square) = en_passant_square else {
-        return false;
-    };
-
-    pawn_square.file_diff(square) == 1 && pawn_square.advance(colour_to_move).rank() == square.rank()
 }
 
 fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: &Board) -> u64 {

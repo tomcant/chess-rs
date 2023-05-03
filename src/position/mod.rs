@@ -129,6 +129,14 @@ impl Position {
         }
     }
 
+    pub fn can_capture_en_passant(&self, from_square: Square) -> bool {
+        let Some(square) = self.en_passant_square else {
+            return false;
+        };
+
+        from_square.file_diff(square) == 1 && from_square.advance(self.colour_to_move).rank() == square.rank()
+    }
+
     pub fn opponent_colour(&self) -> Colour {
         self.colour_to_move.flip()
     }
