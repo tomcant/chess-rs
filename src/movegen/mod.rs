@@ -2,12 +2,17 @@ use crate::colour::Colour;
 use crate::piece::Piece;
 use crate::position::{Board, CastlingRight, CastlingRights, Position};
 use crate::square::Square;
+use lazy_static::lazy_static;
 
 mod attacks;
 mod r#move;
 
 pub use attacks::*;
 pub use r#move::Move;
+
+lazy_static! {
+    static ref PAWN_START_RANKS: [u8; 2] = [1, 6];
+}
 
 const MAX_MOVES: usize = 256;
 
@@ -146,28 +151,23 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
 }
 
 fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> u64 {
-    let advanced_square = square.advance(colour);
+    let one_ahead = square.advance(colour);
 
-    if board.has_piece_at(advanced_square) {
+    if board.has_piece_at(one_ahead) {
         return 0;
     }
 
-    let mut advances = advanced_square.u64();
-
-    let start_rank = match colour {
-        Colour::White => 1,
-        Colour::Black => 6,
-    };
-
-    if square.rank() == start_rank {
-        let advanced_square = advanced_square.advance(colour);
-
-        if !board.has_piece_at(advanced_square) {
-            advances += advanced_square.u64();
-        }
+    if square.rank() != PAWN_START_RANKS[colour] {
+        return one_ahead.u64();
     }
 
-    advances
+    let two_ahead = one_ahead.advance(colour);
+
+    if board.has_piece_at(two_ahead) {
+        return one_ahead.u64();
+    }
+
+    one_ahead.u64() | two_ahead.u64()
 }
 
 fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: &Board) -> u64 {
