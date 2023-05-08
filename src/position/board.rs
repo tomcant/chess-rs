@@ -55,6 +55,10 @@ impl Board {
     pub fn occupancy(&self) -> u64 {
         self.colours[Colour::White] | self.colours[Colour::Black]
     }
+
+    pub fn has_occupancy_at(&self, squares: u64) -> bool {
+        self.occupancy() & squares != 0
+    }
 }
 
 #[cfg(test)]

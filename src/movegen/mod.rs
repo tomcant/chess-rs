@@ -10,8 +10,13 @@ mod r#move;
 pub use attacks::*;
 pub use r#move::Move;
 
+const PAWN_START_RANKS: [u8; 2] = [1, 6];
+
 lazy_static! {
-    static ref PAWN_START_RANKS: [u8; 2] = [1, 6];
+    static ref WHITE_KING_CASTLING_PATH: u64 = Square::F1.u64() | Square::G1.u64();
+    static ref BLACK_KING_CASTLING_PATH: u64 = Square::F8.u64() | Square::G8.u64();
+    static ref WHITE_QUEEN_CASTLING_PATH: u64 = Square::B1.u64() | Square::C1.u64() | Square::D1.u64();
+    static ref BLACK_QUEEN_CASTLING_PATH: u64 = Square::B8.u64() | Square::C8.u64() | Square::D8.u64();
 }
 
 const MAX_MOVES: usize = 256;
@@ -170,44 +175,38 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> u64 {
     one_ahead.u64() | two_ahead.u64()
 }
 
-fn get_castling(castling_rights: CastlingRights, colour_to_move: Colour, board: &Board) -> u64 {
+fn get_castling(rights: CastlingRights, colour: Colour, board: &Board) -> u64 {
     let mut castling = 0;
 
-    if colour_to_move == Colour::White {
-        if castling_rights.has(CastlingRight::WhiteKing)
-            && !board.has_piece_at(Square::F1)
-            && !board.has_piece_at(Square::G1)
-            && !is_attacked(Square::E1, colour_to_move.flip(), board)
-            && !is_attacked(Square::F1, colour_to_move.flip(), board)
+    if colour == Colour::White {
+        if rights.has(CastlingRight::WhiteKing)
+            && !board.has_occupancy_at(*WHITE_KING_CASTLING_PATH)
+            && !is_attacked(Square::F1, colour.flip(), board)
+            && !is_in_check(colour, board)
         {
             castling |= Square::G1.u64();
         }
 
-        if castling_rights.has(CastlingRight::WhiteQueen)
-            && !board.has_piece_at(Square::B1)
-            && !board.has_piece_at(Square::C1)
-            && !board.has_piece_at(Square::D1)
-            && !is_attacked(Square::D1, colour_to_move.flip(), board)
-            && !is_attacked(Square::E1, colour_to_move.flip(), board)
+        if rights.has(CastlingRight::WhiteQueen)
+            && !board.has_occupancy_at(*WHITE_QUEEN_CASTLING_PATH)
+            && !is_attacked(Square::D1, colour.flip(), board)
+            && !is_in_check(colour, board)
         {
             castling |= Square::C1.u64();
         }
     } else {
-        if castling_rights.has(CastlingRight::BlackKing)
-            && !board.has_piece_at(Square::F8)
-            && !board.has_piece_at(Square::G8)
-            && !is_attacked(Square::E8, colour_to_move.flip(), board)
-            && !is_attacked(Square::F8, colour_to_move.flip(), board)
+        if rights.has(CastlingRight::BlackKing)
+            && !board.has_occupancy_at(*BLACK_KING_CASTLING_PATH)
+            && !is_attacked(Square::F8, colour.flip(), board)
+            && !is_in_check(colour, board)
         {
             castling |= Square::G8.u64();
         }
 
-        if castling_rights.has(CastlingRight::BlackQueen)
-            && !board.has_piece_at(Square::B8)
-            && !board.has_piece_at(Square::C8)
-            && !board.has_piece_at(Square::D8)
-            && !is_attacked(Square::D8, colour_to_move.flip(), board)
-            && !is_attacked(Square::E8, colour_to_move.flip(), board)
+        if rights.has(CastlingRight::BlackQueen)
+            && !board.has_occupancy_at(*BLACK_QUEEN_CASTLING_PATH)
+            && !is_attacked(Square::D8, colour.flip(), board)
+            && !is_in_check(colour, board)
         {
             castling |= Square::C8.u64();
         }
