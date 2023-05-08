@@ -182,7 +182,6 @@ fn get_castling(rights: CastlingRights, colour: Colour, board: &Board) -> u64 {
         if rights.has(CastlingRight::WhiteKing)
             && !board.has_occupancy_at(*WHITE_KING_CASTLING_PATH)
             && !is_attacked(Square::F1, colour.flip(), board)
-            && !is_in_check(colour, board)
         {
             castling |= Square::G1.u64();
         }
@@ -190,7 +189,6 @@ fn get_castling(rights: CastlingRights, colour: Colour, board: &Board) -> u64 {
         if rights.has(CastlingRight::WhiteQueen)
             && !board.has_occupancy_at(*WHITE_QUEEN_CASTLING_PATH)
             && !is_attacked(Square::D1, colour.flip(), board)
-            && !is_in_check(colour, board)
         {
             castling |= Square::C1.u64();
         }
@@ -198,7 +196,6 @@ fn get_castling(rights: CastlingRights, colour: Colour, board: &Board) -> u64 {
         if rights.has(CastlingRight::BlackKing)
             && !board.has_occupancy_at(*BLACK_KING_CASTLING_PATH)
             && !is_attacked(Square::F8, colour.flip(), board)
-            && !is_in_check(colour, board)
         {
             castling |= Square::G8.u64();
         }
@@ -206,13 +203,16 @@ fn get_castling(rights: CastlingRights, colour: Colour, board: &Board) -> u64 {
         if rights.has(CastlingRight::BlackQueen)
             && !board.has_occupancy_at(*BLACK_QUEEN_CASTLING_PATH)
             && !is_attacked(Square::D8, colour.flip(), board)
-            && !is_in_check(colour, board)
         {
             castling |= Square::C8.u64();
         }
     }
 
-    castling
+    if castling != 0 && !is_in_check(colour, board) {
+        return castling;
+    }
+
+    0
 }
 
 #[cfg(test)]
