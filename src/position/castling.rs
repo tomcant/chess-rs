@@ -3,10 +3,10 @@ use crate::square::Square;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CastlingRight {
-    WhiteKing,
-    WhiteQueen,
-    BlackKing,
-    BlackQueen,
+    WhiteKing = 1,
+    WhiteQueen = 2,
+    BlackKing = 4,
+    BlackQueen = 8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,15 +18,15 @@ impl CastlingRights {
     }
 
     pub fn has(&self, right: CastlingRight) -> bool {
-        self.0 & 1 << right as u8 != 0
+        self.0 & right as u8 != 0
     }
 
     pub fn add(&mut self, right: CastlingRight) {
-        self.0 |= 1 << right as u8;
+        self.0 |= right as u8;
     }
 
     fn remove(&mut self, right: CastlingRight) {
-        self.0 &= !(1 << right as u8);
+        self.0 &= !(right as u8);
     }
 
     pub fn remove_for_colour(&mut self, colour: Colour) {

@@ -176,43 +176,56 @@ fn get_pawn_advances(square: Square, colour: Colour, board: &Board) -> u64 {
 }
 
 fn get_castling(rights: CastlingRights, colour: Colour, board: &Board) -> u64 {
-    let mut castling = 0;
-
-    if colour == Colour::White {
-        if rights.has(CastlingRight::WhiteKing)
-            && !board.has_occupancy_at(*WHITE_KING_CASTLING_PATH)
-            && !is_attacked(Square::F1, colour.flip(), board)
-        {
-            castling |= Square::G1.u64();
-        }
-
-        if rights.has(CastlingRight::WhiteQueen)
-            && !board.has_occupancy_at(*WHITE_QUEEN_CASTLING_PATH)
-            && !is_attacked(Square::D1, colour.flip(), board)
-        {
-            castling |= Square::C1.u64();
-        }
-    } else {
-        if rights.has(CastlingRight::BlackKing)
-            && !board.has_occupancy_at(*BLACK_KING_CASTLING_PATH)
-            && !is_attacked(Square::F8, colour.flip(), board)
-        {
-            castling |= Square::G8.u64();
-        }
-
-        if rights.has(CastlingRight::BlackQueen)
-            && !board.has_occupancy_at(*BLACK_QUEEN_CASTLING_PATH)
-            && !is_attacked(Square::D8, colour.flip(), board)
-        {
-            castling |= Square::C8.u64();
-        }
-    }
+    let castling = match colour {
+        Colour::White => get_white_castling(rights, board),
+        _ => get_black_castling(rights, board),
+    };
 
     if castling != 0 && !is_in_check(colour, board) {
         return castling;
     }
 
     0
+}
+
+fn get_white_castling(rights: CastlingRights, board: &Board) -> u64 {
+    let mut castling = 0;
+
+    if rights.has(CastlingRight::WhiteKing)
+        && !board.has_occupancy_at(*WHITE_KING_CASTLING_PATH)
+        && !is_attacked(Square::F1, Colour::Black, board)
+    {
+        castling |= Square::G1.u64();
+    }
+
+    if rights.has(CastlingRight::WhiteQueen)
+        && !board.has_occupancy_at(*WHITE_QUEEN_CASTLING_PATH)
+        && !is_attacked(Square::D1, Colour::Black, board)
+    {
+        castling |= Square::C1.u64();
+    }
+
+    castling
+}
+
+fn get_black_castling(rights: CastlingRights, board: &Board) -> u64 {
+    let mut castling = 0;
+
+    if rights.has(CastlingRight::BlackKing)
+        && !board.has_occupancy_at(*BLACK_KING_CASTLING_PATH)
+        && !is_attacked(Square::F8, Colour::White, board)
+    {
+        castling |= Square::G8.u64();
+    }
+
+    if rights.has(CastlingRight::BlackQueen)
+        && !board.has_occupancy_at(*BLACK_QUEEN_CASTLING_PATH)
+        && !is_attacked(Square::D8, Colour::White, board)
+    {
+        castling |= Square::C8.u64();
+    }
+
+    castling
 }
 
 #[cfg(test)]
