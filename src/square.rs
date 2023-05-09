@@ -1,5 +1,8 @@
 use crate::colour::Colour;
 
+const BACK_RANKS: u64 = 0xFF000000000000FF;
+const CORNERS: u64 = 0x8100000000000081;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Square(u8);
 
@@ -67,11 +70,11 @@ impl Square {
     }
 
     pub fn is_back_rank(&self) -> bool {
-        matches!(self.rank(), 0 | 7)
+        self.u64() & BACK_RANKS != 0
     }
 
     pub fn is_corner(&self) -> bool {
-        matches!(*self, Self::A1 | Self::H1 | Self::A8 | Self::H8)
+        self.u64() & CORNERS != 0
     }
 }
 
