@@ -14,16 +14,16 @@ pub struct Move {
 }
 
 impl Move {
-    pub fn is_capture(&self) -> bool {
-        self.captured_piece.is_some()
-    }
+    pub fn capture_square(&self) -> Option<Square> {
+        let Some(captured_piece) = self.captured_piece else {
+            return None;
+        };
 
-    pub fn capture_square(&self) -> Square {
         if self.is_en_passant {
-            return self.to.advance(self.captured_piece.unwrap().colour());
+            return Some(self.to.advance(captured_piece.colour()));
         }
 
-        self.to
+        Some(self.to)
     }
 
     pub fn file_diff(&self) -> u8 {

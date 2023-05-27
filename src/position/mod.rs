@@ -30,9 +30,9 @@ impl Position {
         self.half_move_clock += 1;
         self.en_passant_square = None;
 
-        if mv.is_capture() {
+        if let Some(capture_square) = mv.capture_square() {
+            self.board.remove_piece(capture_square);
             self.half_move_clock = 0;
-            self.board.remove_piece(mv.capture_square());
         }
 
         let piece = mv
@@ -114,8 +114,8 @@ impl Position {
         self.half_move_clock = mv.half_move_clock;
         self.en_passant_square = None;
 
-        if mv.is_capture() {
-            self.board.put_piece(mv.captured_piece.unwrap(), mv.capture_square());
+        if let Some(capture_square) = mv.capture_square() {
+            self.board.put_piece(mv.captured_piece.unwrap(), capture_square);
 
             if mv.is_en_passant {
                 self.en_passant_square = Some(mv.to);
