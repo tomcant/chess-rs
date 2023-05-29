@@ -10,7 +10,7 @@ const FILE_G: u64 = 0x4040_4040_4040_4040;
 const FILE_H: u64 = 0x8080_8080_8080_8080;
 
 pub fn is_in_check(colour: Colour, board: &Board) -> bool {
-    let king_square = Square::from_u64(board.pieces(Piece::king(colour)));
+    let king_square = Square::first(board.pieces(Piece::king(colour)));
 
     is_attacked(king_square, colour.flip(), board)
 }
@@ -66,12 +66,12 @@ fn get_bishop_attacks(square: Square, board: &Board) -> u64 {
             continue;
         }
 
-        let first_blocker_index = match direction {
-            0 | 1 => blockers_on_ray.trailing_zeros(),
-            _ => 63 - blockers_on_ray.leading_zeros(),
+        let first_blocking_square = match direction {
+            0 | 1 => Square::first(blockers_on_ray),
+            _ => Square::last(blockers_on_ray),
         };
 
-        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[first_blocker_index as usize][direction];
+        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[first_blocking_square][direction];
     }
 
     attacks
@@ -89,12 +89,12 @@ fn get_rook_attacks(square: Square, board: &Board) -> u64 {
             continue;
         }
 
-        let first_blocker_index = match direction {
-            0 | 1 => blockers_on_ray.trailing_zeros(),
-            _ => 63 - blockers_on_ray.leading_zeros(),
+        let first_blocking_square = match direction {
+            0 | 1 => Square::first(blockers_on_ray),
+            _ => Square::last(blockers_on_ray),
         };
 
-        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[first_blocker_index as usize][direction];
+        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[first_blocking_square][direction];
     }
 
     attacks

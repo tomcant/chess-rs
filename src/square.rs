@@ -33,9 +33,12 @@ impl Square {
         Self(rank << 3 | file)
     }
 
-    pub fn from_u64(u64: u64) -> Self {
-        debug_assert_eq!(u64.count_ones(), 1, "given u64 must be a power of 2");
-        Self(63 - u64.leading_zeros() as u8)
+    pub fn first(squares: u64) -> Self {
+        Self(squares.trailing_zeros() as u8)
+    }
+
+    pub fn last(squares: u64) -> Self {
+        Self(63 - squares.leading_zeros() as u8)
     }
 
     pub fn index(&self) -> u8 {
@@ -131,17 +134,20 @@ mod tests {
     }
 
     #[test]
-    fn create_from_a_square_value_in_a_64_bit_board_arrangement() {
-        assert_eq!(Square::from_u64(1), Square::A1);
-        assert_eq!(Square::from_u64(2u64.pow(63)), Square::H8);
-        assert_eq!(Square::from_u64(2u64.pow(33)), Square::from_index(33));
-    }
-
-    #[test]
     fn create_from_algebraic_notation() {
         assert_eq!(parse_square("a1"), Square::A1);
         assert_eq!(parse_square("h8"), Square::H8);
         assert_eq!(parse_square("b5"), Square::from_index(33));
+    }
+
+    #[test]
+    fn create_from_first_bit_in_a_bitboard() {
+        assert_eq!(Square::first(Square::A1.u64() | Square::A8.u64()), Square::A1);
+    }
+
+    #[test]
+    fn create_from_last_bit_in_a_bitboard() {
+        assert_eq!(Square::last(Square::A1.u64() | Square::A8.u64()), Square::A8);
     }
 
     #[test]

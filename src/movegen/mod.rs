@@ -10,6 +10,7 @@ mod r#move;
 pub use attacks::*;
 pub use r#move::Move;
 
+const MAX_MOVES: usize = 256;
 const PAWN_START_RANKS: [u8; 2] = [1, 6];
 
 lazy_static! {
@@ -19,8 +20,6 @@ lazy_static! {
     static ref BLACK_QUEEN_CASTLING_PATH: u64 = Square::B8.u64() | Square::C8.u64() | Square::D8.u64();
 }
 
-const MAX_MOVES: usize = 256;
-
 pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
     let mut moves = Vec::with_capacity(MAX_MOVES);
     let colour_to_move = pos.colour_to_move;
@@ -29,7 +28,7 @@ pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
         let mut pieces = pos.board.pieces(*piece);
 
         while pieces > 0 {
-            let from_square = Square::from_index(pieces.trailing_zeros() as u8);
+            let from_square = Square::first(pieces);
             pieces ^= from_square.u64();
 
             let mut to_squares =
@@ -54,7 +53,7 @@ pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
             }
 
             while to_squares > 0 {
-                let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
+                let to_square = Square::first(to_squares);
                 to_squares ^= to_square.u64();
 
                 let captured_piece = pos.board.piece_at(to_square);
@@ -99,7 +98,7 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
         let mut pieces = pos.board.pieces(*piece);
 
         while pieces > 0 {
-            let from_square = Square::from_index(pieces.trailing_zeros() as u8);
+            let from_square = Square::first(pieces);
             pieces ^= from_square.u64();
 
             if piece.is_pawn() && pos.can_capture_en_passant(from_square) {
@@ -118,7 +117,7 @@ pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
                 pos.board.pieces_by_colour(colour_to_move.flip()) & get_attacks(*piece, from_square, &pos.board);
 
             while to_squares > 0 {
-                let to_square = Square::from_index(to_squares.trailing_zeros() as u8);
+                let to_square = Square::first(to_squares);
                 to_squares ^= to_square.u64();
 
                 let captured_piece = pos.board.piece_at(to_square);
