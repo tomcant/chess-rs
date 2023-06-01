@@ -9,9 +9,7 @@ pub fn eval(colour: Colour, board: &Board) -> i32 {
         let mut pieces = board.pieces(*piece);
 
         while pieces > 0 {
-            let square = Square::first(pieces);
-            acc += PSQT[*piece][square];
-            pieces ^= square.u64();
+            acc += PSQT[*piece][Square::next(&mut pieces)];
         }
 
         acc

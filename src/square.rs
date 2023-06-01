@@ -41,6 +41,12 @@ impl Square {
         Self(63 - squares.leading_zeros() as u8)
     }
 
+    pub fn next(squares: &mut u64) -> Self {
+        let square = Self::first(*squares);
+        *squares ^= square.u64();
+        square
+    }
+
     pub fn index(&self) -> u8 {
         self.0
     }
@@ -142,12 +148,27 @@ mod tests {
 
     #[test]
     fn create_from_first_bit_in_a_bitboard() {
-        assert_eq!(Square::first(Square::A1.u64() | Square::A8.u64()), Square::A1);
+        let bitboard = Square::A1.u64() | Square::A8.u64();
+
+        assert_eq!(Square::first(bitboard), Square::A1);
     }
 
     #[test]
     fn create_from_last_bit_in_a_bitboard() {
-        assert_eq!(Square::last(Square::A1.u64() | Square::A8.u64()), Square::A8);
+        let bitboard = Square::A1.u64() | Square::A8.u64();
+
+        assert_eq!(Square::last(bitboard), Square::A8);
+    }
+
+    #[test]
+    fn consume_next_bit_in_a_bitboard() {
+        let mut bitboard = Square::A1.u64() | Square::A8.u64();
+
+        assert_eq!(Square::next(&mut bitboard), Square::A1);
+        assert_eq!(bitboard, Square::A8.u64());
+
+        assert_eq!(Square::next(&mut bitboard), Square::A8);
+        assert_eq!(bitboard, 0);
     }
 
     #[test]

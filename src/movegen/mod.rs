@@ -31,8 +31,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
         let mut pieces = pos.board.pieces(*piece);
 
         while pieces > 0 {
-            let from_square = Square::first(pieces);
-            pieces ^= from_square.u64();
+            let from_square = Square::next(&mut pieces);
 
             let mut to_squares =
                 !pos.board.pieces_by_colour(colour_to_move) & get_attacks(*piece, from_square, &pos.board);
@@ -56,9 +55,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
             }
 
             while to_squares > 0 {
-                let to_square = Square::first(to_squares);
-                to_squares ^= to_square.u64();
-
+                let to_square = Square::next(&mut to_squares);
                 let captured_piece = pos.board.piece_at(to_square);
 
                 if piece.is_pawn() && to_square.is_back_rank() {
@@ -101,8 +98,7 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
         let mut pieces = pos.board.pieces(*piece);
 
         while pieces > 0 {
-            let from_square = Square::first(pieces);
-            pieces ^= from_square.u64();
+            let from_square = Square::next(&mut pieces);
 
             if piece.is_pawn() && pos.can_capture_en_passant(from_square) {
                 moves.push(Move {
@@ -120,9 +116,7 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
                 pos.board.pieces_by_colour(colour_to_move.flip()) & get_attacks(*piece, from_square, &pos.board);
 
             while to_squares > 0 {
-                let to_square = Square::first(to_squares);
-                to_squares ^= to_square.u64();
-
+                let to_square = Square::next(&mut to_squares);
                 let captured_piece = pos.board.piece_at(to_square);
 
                 if piece.is_pawn() && to_square.is_back_rank() {
