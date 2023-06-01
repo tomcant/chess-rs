@@ -3,6 +3,7 @@ use crate::piece::Piece;
 use crate::position::{Board, CastlingRight, CastlingRights, Position};
 use crate::square::Square;
 use lazy_static::lazy_static;
+use smallvec::SmallVec;
 
 mod attacks;
 mod r#move;
@@ -10,7 +11,9 @@ mod r#move;
 pub use attacks::*;
 pub use r#move::Move;
 
-const MAX_MOVES: usize = 256;
+const MAX_MOVES: usize = 128;
+type MoveList = SmallVec<[Move; MAX_MOVES]>;
+
 const PAWN_START_RANKS: [u8; 2] = [1, 6];
 
 lazy_static! {
@@ -20,8 +23,8 @@ lazy_static! {
     static ref BLACK_QUEEN_CASTLING_PATH: u64 = Square::B8.u64() | Square::C8.u64() | Square::D8.u64();
 }
 
-pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
-    let mut moves = Vec::with_capacity(MAX_MOVES);
+pub fn generate_all_moves(pos: &Position) -> MoveList {
+    let mut moves = MoveList::new();
     let colour_to_move = pos.colour_to_move;
 
     for piece in Piece::pieces_by_colour(colour_to_move) {
@@ -90,8 +93,8 @@ pub fn generate_all_moves(pos: &Position) -> Vec<Move> {
     moves
 }
 
-pub fn generate_capture_moves(pos: &Position) -> Vec<Move> {
-    let mut moves = Vec::with_capacity(MAX_MOVES);
+pub fn generate_capture_moves(pos: &Position) -> MoveList {
+    let mut moves = MoveList::new();
     let colour_to_move = pos.colour_to_move;
 
     for piece in Piece::pieces_by_colour(colour_to_move) {
@@ -543,7 +546,7 @@ mod tests {
         assert_eq!(legal_move_count, count);
     }
 
-    fn assert_castling_move_count(moves: &Vec<Move>, board: &Board, count: usize) {
+    fn assert_castling_move_count(moves: &MoveList, board: &Board, count: usize) {
         assert_eq!(
             moves
                 .iter()
