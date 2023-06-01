@@ -38,18 +38,6 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
 
             if piece.is_pawn() {
                 to_squares |= get_pawn_advances(from_square, colour_to_move, &pos.board);
-
-                if pos.can_capture_en_passant(from_square) {
-                    moves.push(Move {
-                        from: from_square,
-                        to: pos.en_passant_square.unwrap(),
-                        captured_piece: Some(Piece::pawn(pos.opponent_colour())),
-                        promotion_piece: None,
-                        castling_rights: pos.castling_rights,
-                        half_move_clock: pos.half_move_clock,
-                        is_en_passant: true,
-                    });
-                }
             } else if piece.is_king() {
                 to_squares |= get_castling(pos.castling_rights, colour_to_move, &pos.board);
             }
@@ -87,6 +75,22 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
         }
     }
 
+    if let Some(en_passant_square) = pos.en_passant_square {
+        let mut from_squares = get_en_passant_attacks(en_passant_square, colour_to_move, &pos.board);
+
+        while from_squares > 0 {
+            moves.push(Move {
+                from: Square::next(&mut from_squares),
+                to: en_passant_square,
+                captured_piece: Some(Piece::pawn(colour_to_move.flip())),
+                promotion_piece: None,
+                castling_rights: pos.castling_rights,
+                half_move_clock: pos.half_move_clock,
+                is_en_passant: true,
+            });
+        }
+    }
+
     moves
 }
 
@@ -99,18 +103,6 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
 
         while pieces > 0 {
             let from_square = Square::next(&mut pieces);
-
-            if piece.is_pawn() && pos.can_capture_en_passant(from_square) {
-                moves.push(Move {
-                    from: from_square,
-                    to: pos.en_passant_square.unwrap(),
-                    captured_piece: Some(Piece::pawn(pos.opponent_colour())),
-                    promotion_piece: None,
-                    castling_rights: pos.castling_rights,
-                    half_move_clock: pos.half_move_clock,
-                    is_en_passant: true,
-                });
-            }
 
             let mut to_squares =
                 pos.board.pieces_by_colour(colour_to_move.flip()) & get_attacks(*piece, from_square, &pos.board);
@@ -145,6 +137,22 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
                     is_en_passant: false,
                 });
             }
+        }
+    }
+
+    if let Some(en_passant_square) = pos.en_passant_square {
+        let mut from_squares = get_en_passant_attacks(en_passant_square, colour_to_move, &pos.board);
+
+        while from_squares > 0 {
+            moves.push(Move {
+                from: Square::next(&mut from_squares),
+                to: en_passant_square,
+                captured_piece: Some(Piece::pawn(colour_to_move.flip())),
+                promotion_piece: None,
+                castling_rights: pos.castling_rights,
+                half_move_clock: pos.half_move_clock,
+                is_en_passant: true,
+            });
         }
     }
 
@@ -389,6 +397,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
+        assert_eq!(moves.len(), 4);
         assert_eq!(moves.iter().filter(|mv| mv.is_en_passant).count(), 2);
     }
 
@@ -468,11 +477,11 @@ mod tests {
             );
         }
 
-        fn assert_perft_for_fen(fen: &str, depth: u8, expected_move_count: u64) {
+        fn assert_perft_for_fen(fen: &str, depth: u8, expected_move_count: u32) {
             assert_eq!(perft(&mut parse_fen(fen), depth, true), expected_move_count);
         }
 
-        fn perft(pos: &mut Position, depth: u8, divide: bool) -> u64 {
+        fn perft(pos: &mut Position, depth: u8, divide: bool) -> u32 {
             if depth == 0 {
                 return 1;
             }

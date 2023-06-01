@@ -46,6 +46,10 @@ pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
     }
 }
 
+pub fn get_en_passant_attacks(en_passant_square: Square, colour: Colour, board: &Board) -> u64 {
+    PAWN_ATTACKS[colour.flip()][en_passant_square] & board.pieces(Piece::pawn(colour))
+}
+
 fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
     PAWN_ATTACKS[colour][square] & board.pieces_by_colour(colour.flip())
 }
