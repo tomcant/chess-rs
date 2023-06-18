@@ -3,8 +3,9 @@ use self::{
     stopper::Stopper,
 };
 use crate::eval::*;
-use crate::movegen::Move;
+use crate::movegen::{Move, MoveList, MAX_MOVES};
 use crate::position::Position;
+use smallvec::SmallVec;
 
 pub mod report;
 pub mod stopper;
@@ -15,7 +16,7 @@ mod quiescence;
 const MAX_DEPTH: u8 = u8::MAX;
 
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopper) {
-    let mut pv = vec![];
+    let mut pv = MoveList::new();
     let mut report = Report::new();
 
     let max_depth = match stopper.max_depth() {
@@ -37,11 +38,11 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
     }
 }
 
-fn split_pv(pv: &mut [Move]) -> (Option<Move>, Vec<Move>) {
+fn split_pv(pv: &mut [Move]) -> (Option<Move>, MoveList) {
     if let Some((head, tail)) = pv.split_first() {
-        (Some(*head), tail.to_vec())
+        (Some(*head), MoveList::from_slice(tail))
     } else {
-        (None, vec![])
+        (None, MoveList::new())
     }
 }
 
@@ -49,6 +50,8 @@ struct OrderedMove {
     mv: Move,
     order: u8,
 }
+
+type OrderedMoveList = SmallVec<[OrderedMove; MAX_MOVES]>;
 
 impl std::ops::Deref for OrderedMove {
     type Target = Move;
@@ -61,7 +64,7 @@ impl std::ops::Deref for OrderedMove {
 const ORDER_PV_MOVE: u8 = 0;
 const ORDER_NON_PV_MOVE: u8 = 1;
 
-fn order_moves(moves: &[Move], pv_move: Option<Move>) -> Vec<OrderedMove> {
+fn order_moves(moves: &[Move], pv_move: Option<Move>) -> OrderedMoveList {
     let has_pv_move = pv_move.is_some();
 
     let mut moves = moves
@@ -74,7 +77,7 @@ fn order_moves(moves: &[Move], pv_move: Option<Move>) -> Vec<OrderedMove> {
                 ORDER_NON_PV_MOVE
             },
         })
-        .collect::<Vec<OrderedMove>>();
+        .collect::<OrderedMoveList>();
 
     if has_pv_move {
         moves.sort_unstable_by_key(|mv| mv.order);
@@ -150,7 +153,7 @@ mod tests {
 
         pub struct ReporterSpy {
             depths: RefCell<Vec<u8>>,
-            last_pv_moves: RefCell<Vec<Move>>,
+            last_pv_moves: RefCell<MoveList>,
             last_nodes: Cell<u128>,
         }
 
@@ -158,7 +161,7 @@ mod tests {
             pub fn new() -> Self {
                 Self {
                     depths: RefCell::new(vec![]),
-                    last_pv_moves: RefCell::new(vec![]),
+                    last_pv_moves: RefCell::new(MoveList::new()),
                     last_nodes: Cell::new(0),
                 }
             }
@@ -167,7 +170,7 @@ mod tests {
                 self.depths.borrow().clone()
             }
 
-            pub fn last_pv_moves(&self) -> Vec<Move> {
+            pub fn last_pv_moves(&self) -> MoveList {
                 self.last_pv_moves.borrow().clone()
             }
 

@@ -11,8 +11,8 @@ mod r#move;
 pub use attacks::*;
 pub use r#move::Move;
 
-const MAX_MOVES: usize = 128;
-type MoveList = SmallVec<[Move; MAX_MOVES]>;
+pub const MAX_MOVES: usize = 128;
+pub type MoveList = SmallVec<[Move; MAX_MOVES]>;
 
 const PAWN_START_RANKS: [u8; 2] = [1, 6];
 
@@ -30,7 +30,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
     for piece in Piece::pieces_by_colour(colour_to_move) {
         let mut pieces = pos.board.pieces(*piece);
 
-        while pieces > 0 {
+        while pieces != 0 {
             let from_square = Square::next(&mut pieces);
 
             let mut to_squares =
@@ -42,7 +42,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
                 to_squares |= get_castling(pos.castling_rights, colour_to_move, &pos.board);
             }
 
-            while to_squares > 0 {
+            while to_squares != 0 {
                 let to_square = Square::next(&mut to_squares);
                 let captured_piece = pos.board.piece_at(to_square);
 
@@ -78,7 +78,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
     if let Some(en_passant_square) = pos.en_passant_square {
         let mut from_squares = get_en_passant_attacks(en_passant_square, colour_to_move, &pos.board);
 
-        while from_squares > 0 {
+        while from_squares != 0 {
             moves.push(Move {
                 from: Square::next(&mut from_squares),
                 to: en_passant_square,
@@ -101,13 +101,13 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
     for piece in Piece::pieces_by_colour(colour_to_move) {
         let mut pieces = pos.board.pieces(*piece);
 
-        while pieces > 0 {
+        while pieces != 0 {
             let from_square = Square::next(&mut pieces);
 
             let mut to_squares =
                 pos.board.pieces_by_colour(colour_to_move.flip()) & get_attacks(*piece, from_square, &pos.board);
 
-            while to_squares > 0 {
+            while to_squares != 0 {
                 let to_square = Square::next(&mut to_squares);
                 let captured_piece = pos.board.piece_at(to_square);
 
@@ -143,7 +143,7 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
     if let Some(en_passant_square) = pos.en_passant_square {
         let mut from_squares = get_en_passant_attacks(en_passant_square, colour_to_move, &pos.board);
 
-        while from_squares > 0 {
+        while from_squares != 0 {
             moves.push(Move {
                 from: Square::next(&mut from_squares),
                 to: en_passant_square,

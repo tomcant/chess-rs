@@ -1,12 +1,11 @@
 use super::*;
-use crate::movegen::Move;
 use std::time::{Duration, Instant};
 
 pub struct Report {
     pub depth: u8,
     pub ply: u8,
     pub nodes: u128,
-    pub pv: Option<(Vec<Move>, i32)>,
+    pub pv: Option<(MoveList, i32)>,
     started_at: Instant,
 }
 

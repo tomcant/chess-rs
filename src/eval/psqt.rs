@@ -8,7 +8,7 @@ pub fn eval(colour: Colour, board: &Board) -> i32 {
     Piece::pieces_by_colour(colour).iter().fold(0, |mut acc, piece| {
         let mut pieces = board.pieces(*piece);
 
-        while pieces > 0 {
+        while pieces != 0 {
             acc += PSQT[*piece][Square::next(&mut pieces)];
         }
 

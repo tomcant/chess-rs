@@ -6,7 +6,7 @@ pub fn search(
     depth: u8,
     mut alpha: i32,
     beta: i32,
-    pv: &mut Vec<Move>,
+    pv: &mut MoveList,
     report: &mut Report,
     stopper: &impl Stopper,
 ) -> i32 {
@@ -15,7 +15,7 @@ pub fn search(
     }
 
     if depth == 0 {
-        return quiescence::search(pos, alpha, beta, &mut vec![], report);
+        return quiescence::search(pos, alpha, beta, &mut MoveList::new(), report);
     }
 
     report.nodes += 1;
