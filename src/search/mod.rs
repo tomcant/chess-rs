@@ -3,12 +3,13 @@ use self::{
     stopper::Stopper,
 };
 use crate::eval::*;
-use crate::movegen::{Move, MoveList, MAX_MOVES};
+use crate::movegen::{MAX_MOVES, Move, MoveList};
 use crate::position::Position;
 use smallvec::SmallVec;
 
 pub mod report;
 pub mod stopper;
+pub mod tt;
 
 mod alphabeta;
 mod quiescence;
@@ -17,6 +18,7 @@ const MAX_DEPTH: u8 = u8::MAX;
 
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopper) {
     let mut pv = MoveList::new();
+    let mut tt = tt::Table::with_mb(tt::size_mb());
     let mut report = Report::new();
 
     let max_depth = match stopper.max_depth() {
@@ -27,13 +29,14 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
     for depth in 1..=max_depth {
         report.depth = depth;
 
-        let eval = alphabeta::search(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut report, stopper);
+        let eval = alphabeta::search(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut tt, &mut report, stopper);
 
         if stopper.should_stop(&report) {
             break;
         }
 
         report.pv = Some((pv.clone(), eval));
+        report.tt_stats = (tt.usage, tt.capacity);
         reporter.send(&report);
     }
 }

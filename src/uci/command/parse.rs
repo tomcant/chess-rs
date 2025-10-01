@@ -3,6 +3,7 @@ use super::{
     UciCommand::{self, *},
 };
 use crate::position::{Position, START_POS_FEN};
+use crate::search::tt;
 use std::time::Duration;
 
 impl std::str::FromStr for UciCommand {
@@ -18,6 +19,7 @@ impl std::str::FromStr for UciCommand {
             "ucinewgame" => Ok(NewGame),
             "position" => Ok(parse_position(args)?),
             "go" => Ok(parse_go(args)?),
+            "setoption" => Ok(parse_setoption(args)?),
             "stop" => Ok(Stop),
             "quit" => Ok(Quit),
             _ => Err(format!("unknown command '{}'", parts[0])),
@@ -92,6 +94,52 @@ fn parse_go(args: &[&str]) -> Result<UciCommand, String> {
     }
 
     Ok(Go(params))
+}
+
+fn parse_setoption(args: &[&str]) -> Result<UciCommand, String> {
+    if args.is_empty() || args[0] != "name" {
+        return Err("missing option name".to_string());
+    }
+
+    let mut name_parts: Vec<&str> = Vec::new();
+    let mut value_parts: Vec<&str> = Vec::new();
+    let mut in_value_section = false;
+
+    for arg in &args[1..] {
+        if *arg == "value" && !in_value_section {
+            in_value_section = true;
+            continue;
+        }
+
+        if in_value_section {
+            value_parts.push(*arg);
+        } else {
+            name_parts.push(*arg);
+        }
+    }
+
+    let name = name_parts.join(" ").trim().to_string().to_lowercase();
+    let value = value_parts.join(" ").trim().to_string().to_lowercase();
+
+    if name.is_empty() {
+        return Err("missing option name".to_string());
+    }
+
+    match name.as_str() {
+        "hash" => {
+            if value.is_empty() {
+                return Err("missing value for 'hash' option".to_string());
+            };
+            let Ok(size_mb) = value.parse::<usize>() else {
+                return Err("could not parse value for 'hash' option".to_string());
+            };
+            if !(tt::MIN_SIZE_MB..=tt::MAX_SIZE_MB).contains(&size_mb) {
+                return Err("invalid value for 'hash' option".to_string());
+            };
+            Ok(SetOption(name, Some(value)))
+        }
+        _ => Err(format!("unknown option '{name}'")),
+    }
 }
 
 #[cfg(test)]
@@ -211,6 +259,14 @@ mod tests {
                 movetime: None,
                 nodes: None,
             }))
+        );
+    }
+
+    #[test]
+    fn parse_setoption_command_with_hash_option() {
+        assert_eq!(
+            "setoption name Hash value 64".parse(),
+            Ok(SetOption("hash".to_string(), Some("64".to_string())))
         );
     }
 

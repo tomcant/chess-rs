@@ -53,6 +53,14 @@ impl CastlingRights {
     }
 }
 
+impl<T> std::ops::Index<CastlingRights> for [T; 16] {
+    type Output = T;
+
+    fn index(&self, rights: CastlingRights) -> &Self::Output {
+        &self[rights.0 as usize]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

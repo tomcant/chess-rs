@@ -1,12 +1,18 @@
 use crate::info;
 use crate::movegen::Move;
 use crate::position::Position;
-use crate::search::search;
+use crate::search::{search, tt};
 use crate::uci::{r#move::UciMove, reporter::UciReporter, stopper::UciStopper};
 
 pub fn init() {
     println!("id name {}", info::name());
     println!("id author {}", info::author());
+    println!(
+        "option name Hash type spin default {} min {} max {}",
+        tt::DEFAULT_SIZE_MB,
+        tt::MIN_SIZE_MB,
+        tt::MAX_SIZE_MB
+    );
     println!("uciok");
 }
 
@@ -19,11 +25,7 @@ pub fn new_game(pos: &mut Position) {
 }
 
 pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
-    let Ok(parsed) = fen.parse() else {
-        return;
-    };
-
-    *pos = parsed;
+    *pos = fen.parse().unwrap();
 
     for mv in moves {
         pos.do_move(&Move {
@@ -48,6 +50,13 @@ pub fn go(pos: &mut Position, stopper: &UciStopper) {
     }
 }
 
+pub fn set_option(name: String, value: Option<String>) {
+    match name.as_str() {
+        "hash" => tt::set_size_mb(value.unwrap().parse().unwrap()),
+        _ => panic!("unknown option '{name}'"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,7 +67,9 @@ mod tests {
     #[test]
     fn handle_position_command_with_moves() {
         let command = "position startpos moves e2e4 e7e5";
-        let Position(fen, moves) = parse_command(command) else { panic!() };
+        let Position(fen, moves) = parse_command(command) else {
+            panic!()
+        };
         let Ok(mut pos) = fen.parse() else { panic!() };
 
         position(fen, moves, &mut pos);
@@ -70,7 +81,9 @@ mod tests {
     #[test]
     fn handle_position_command_with_promotion_moves() {
         let command = format!("position fen 8/1P2k3/8/8/8/8/4K1p1/8 w - - 0 1 moves b7b8q g2g1r");
-        let Position(fen, moves) = parse_command(&command) else { panic!() };
+        let Position(fen, moves) = parse_command(&command) else {
+            panic!()
+        };
         let Ok(mut pos) = fen.parse() else { panic!() };
 
         position(fen, moves, &mut pos);
