@@ -6,6 +6,7 @@ use crate::square::Square;
 mod board;
 mod castling;
 mod fen;
+mod zobrist;
 
 pub use board::Board;
 pub use castling::{CastlingRight, CastlingRights};

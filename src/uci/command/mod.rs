@@ -11,6 +11,7 @@ pub enum UciCommand {
     NewGame,
     Position(String, Vec<UciMove>),
     Go(GoParams),
+    SetOption(String, Option<String>),
     Stop,
     Quit,
 }

@@ -1,11 +1,11 @@
 use self::{
-    command::{handle, UciCommand::*},
+    command::{UciCommand::*, handle},
     stopper::UciStopper,
 };
 use crate::position::Position;
 use std::{
     io,
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     thread,
 };
 
@@ -21,18 +21,20 @@ pub fn main() {
     let stopper_rx = Arc::new(Mutex::new(stopper_rx));
     let pos = Arc::new(Mutex::new(Position::startpos()));
 
-    thread::spawn(move || loop {
-        let mut buffer = String::new();
-        io::stdin().read_line(&mut buffer).unwrap();
-        let command = buffer.trim();
+    thread::spawn(move || {
+        loop {
+            let mut buffer = String::new();
+            io::stdin().read_line(&mut buffer).unwrap();
+            let command = buffer.trim();
 
-        if command.is_empty() {
-            continue;
-        }
+            if command.is_empty() {
+                continue;
+            }
 
-        match command.parse() {
-            Ok(parsed) => uci_tx.send(parsed).unwrap(),
-            Err(err) => println!("error: {err}"),
+            match command.parse() {
+                Ok(parsed) => uci_tx.send(parsed).unwrap(),
+                Err(err) => println!("error: {err}"),
+            }
         }
     });
 
@@ -70,6 +72,7 @@ pub fn main() {
                     handle::go(&mut pos.lock().unwrap(), &stopper);
                 });
             }
+            SetOption(name, value) => handle::set_option(name, value),
             Stop => stopper_tx.send(true).unwrap(),
             Quit => break,
         }
