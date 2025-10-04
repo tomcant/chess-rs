@@ -20,10 +20,10 @@ jobs:
         include:
           - build: x86_64-linux-gnu
             target: x86_64-unknown-linux-gnu
-            os: ubuntu-20.04
+            os: ubuntu-latest
           - build: x86_64-macos
             target: x86_64-apple-darwin
-            os: macos-11
+            os: macos-latest
     steps:
       - uses: actions/checkout@v1
       - name: Install Rust
