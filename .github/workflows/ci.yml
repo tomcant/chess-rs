@@ -10,7 +10,7 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -18,7 +18,7 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - name: Format
         uses: actions-rs/cargo@v1
         with:
