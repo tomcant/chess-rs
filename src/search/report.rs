@@ -29,9 +29,7 @@ impl Report {
     }
 
     pub fn moves_until_mate(&self) -> Option<u8> {
-        let Some((_, eval)) = self.pv else {
-            return None;
-        };
+        let (_, eval) = self.pv.clone()?;
 
         if eval.abs() < Self::EVAL_CHECKMATE_THRESHOLD || eval.abs() > EVAL_CHECKMATE {
             return None;

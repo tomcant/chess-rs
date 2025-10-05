@@ -15,15 +15,13 @@ pub struct Move {
 
 impl Move {
     pub fn capture_square(&self) -> Option<Square> {
-        let Some(captured_piece) = self.captured_piece else {
-            return None;
-        };
+        let captured_piece = self.captured_piece?;
 
         if self.is_en_passant {
-            return Some(self.to.advance(captured_piece.colour()));
+            Some(self.to.advance(captured_piece.colour()))
+        } else {
+            Some(self.to)
         }
-
-        Some(self.to)
     }
 
     pub fn file_diff(&self) -> u8 {
