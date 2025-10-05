@@ -11,6 +11,7 @@ mod zobrist;
 pub use board::Board;
 pub use castling::{CastlingRight, CastlingRights};
 pub use fen::START_POS_FEN;
+use zobrist::ZOBRIST;
 
 #[derive(Debug)]
 pub struct Position {
@@ -20,18 +21,47 @@ pub struct Position {
     pub en_passant_square: Option<Square>,
     pub half_move_clock: u8,
     pub full_move_counter: u8,
+    key: u64,
 }
 
 impl Position {
+    pub fn new(
+        board: Board,
+        colour_to_move: Colour,
+        castling_rights: CastlingRights,
+        en_passant_square: Option<Square>,
+        half_move_clock: u8,
+        full_move_counter: u8,
+    ) -> Self {
+        let mut pos = Self {
+            board,
+            colour_to_move,
+            castling_rights,
+            en_passant_square,
+            half_move_clock,
+            full_move_counter,
+            key: 0,
+        };
+        pos.key = pos.compute_key();
+        pos
+    }
+
     pub fn startpos() -> Self {
         START_POS_FEN.parse().unwrap()
     }
 
     pub fn do_move(&mut self, mv: &Move) {
+        if let Some(square) = self.en_passant_square {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
+        }
+
+        let old_castling_rights = self.castling_rights;
+
         self.half_move_clock += 1;
         self.en_passant_square = None;
 
         if let Some(capture_square) = mv.capture_square() {
+            self.key ^= ZOBRIST.piece_square[mv.captured_piece.unwrap()][capture_square];
             self.board.remove_piece(capture_square);
             self.half_move_clock = 0;
         }
@@ -56,10 +86,20 @@ impl Position {
 
                 match mv.to.file() {
                     2 => {
+                        let rook_from = Square::from_file_and_rank(0, mv.to.rank());
+                        let rook_to = Square::from_file_and_rank(3, mv.to.rank());
+                        self.key ^= ZOBRIST.piece_square[rook][rook_from];
+                        self.key ^= ZOBRIST.piece_square[rook][rook_to];
+
                         self.board.put_piece(rook, Square::from_file_and_rank(3, mv.to.rank()));
                         self.board.remove_piece(Square::from_file_and_rank(0, mv.to.rank()));
                     }
                     6 => {
+                        let rook_from = Square::from_file_and_rank(7, mv.to.rank());
+                        let rook_to = Square::from_file_and_rank(5, mv.to.rank());
+                        self.key ^= ZOBRIST.piece_square[rook][rook_from];
+                        self.key ^= ZOBRIST.piece_square[rook][rook_to];
+
                         self.board.put_piece(rook, Square::from_file_and_rank(5, mv.to.rank()));
                         self.board.remove_piece(Square::from_file_and_rank(7, mv.to.rank()));
                     }
@@ -76,17 +116,41 @@ impl Position {
             self.castling_rights.remove_for_square(mv.to);
         }
 
+        let from_piece = match mv.promotion_piece {
+            Some(_piece) => Piece::pawn(self.colour_to_move),
+            None => piece,
+        };
+        self.key ^= ZOBRIST.piece_square[from_piece][mv.from];
+        self.key ^= ZOBRIST.piece_square[piece][mv.to];
+
         self.board.put_piece(piece, mv.to);
         self.board.remove_piece(mv.from);
+
+        self.key ^= ZOBRIST.castling_rights[old_castling_rights];
+        self.key ^= ZOBRIST.castling_rights[self.castling_rights];
+
+        if let Some(square) = self.en_passant_square {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
+        }
+
+        self.key ^= ZOBRIST.colour_to_move;
 
         if self.colour_to_move == Colour::Black {
             self.full_move_counter += 1;
         }
 
         self.colour_to_move = self.opponent_colour();
+
+        debug_assert_eq!(self.key, self.compute_key());
     }
 
     pub fn undo_move(&mut self, mv: &Move) {
+        if let Some(square) = self.en_passant_square {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
+        }
+
+        let old_castling_rights = self.castling_rights;
+
         let piece = match mv.promotion_piece {
             Some(piece) => Piece::pawn(piece.colour()),
             None => self.board.piece_at(mv.to).unwrap(),
@@ -97,16 +161,34 @@ impl Position {
 
             match mv.to.file() {
                 2 => {
+                    let rook_to = Square::from_file_and_rank(0, mv.to.rank());
+                    let rook_from = Square::from_file_and_rank(3, mv.to.rank());
+                    self.key ^= ZOBRIST.piece_square[rook][rook_from];
+                    self.key ^= ZOBRIST.piece_square[rook][rook_to];
+
                     self.board.put_piece(rook, Square::from_file_and_rank(0, mv.to.rank()));
                     self.board.remove_piece(Square::from_file_and_rank(3, mv.to.rank()));
                 }
                 6 => {
+                    let rook_to = Square::from_file_and_rank(7, mv.to.rank());
+                    let rook_from = Square::from_file_and_rank(5, mv.to.rank());
+                    self.key ^= ZOBRIST.piece_square[rook][rook_from];
+                    self.key ^= ZOBRIST.piece_square[rook][rook_to];
+
                     self.board.put_piece(rook, Square::from_file_and_rank(7, mv.to.rank()));
                     self.board.remove_piece(Square::from_file_and_rank(5, mv.to.rank()));
                 }
                 _ => unreachable!(),
             };
         }
+
+        let to_piece = match mv.promotion_piece {
+            Some(piece) => piece,
+            None => self.board.piece_at(mv.to).unwrap(),
+        };
+
+        self.key ^= ZOBRIST.piece_square[to_piece][mv.to];
+        self.key ^= ZOBRIST.piece_square[piece][mv.from];
 
         self.board.put_piece(piece, mv.from);
         self.board.remove_piece(mv.to);
@@ -117,17 +199,29 @@ impl Position {
 
         if let Some(capture_square) = mv.capture_square() {
             self.board.put_piece(mv.captured_piece.unwrap(), capture_square);
+            self.key ^= ZOBRIST.piece_square[mv.captured_piece.unwrap()][capture_square];
 
             if mv.is_en_passant {
                 self.en_passant_square = Some(mv.to);
             }
         }
 
+        self.key ^= ZOBRIST.castling_rights[old_castling_rights];
+        self.key ^= ZOBRIST.castling_rights[self.castling_rights];
+
+        if let Some(square) = self.en_passant_square {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
+        }
+
+        self.key ^= ZOBRIST.colour_to_move;
+
         self.colour_to_move = self.opponent_colour();
 
         if self.colour_to_move == Colour::Black {
             self.full_move_counter -= 1;
         }
+
+        debug_assert_eq!(self.key, self.compute_key());
     }
 
     pub fn opponent_colour(&self) -> Colour {
