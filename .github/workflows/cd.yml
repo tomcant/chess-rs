@@ -24,6 +24,9 @@ jobs:
           - build: x86_64-macos
             target: x86_64-apple-darwin
             os: macos-latest
+          - build: aarch64-macos
+            target: aarch64-apple-darwin
+            os: macos-latest
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
