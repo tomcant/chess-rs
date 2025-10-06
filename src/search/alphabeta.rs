@@ -50,7 +50,10 @@ pub fn search(
     let mut has_legal_move = false;
     let mut tt_bound = Bound::Upper;
 
-    for mv in order_moves(&generate_all_moves(pos), tt_move) {
+    let mut moves = generate_all_moves(pos);
+    order_moves(&mut moves, &pos.board, tt_move);
+
+    for mv in moves {
         pos.do_move(&mv);
 
         if is_in_check(colour_to_move, &pos.board) {
@@ -67,7 +70,7 @@ pub fn search(
 
         if eval >= beta {
             pos.undo_move(&mv);
-            tt.store(key, depth, beta, Bound::Lower, Some(*mv));
+            tt.store(key, depth, beta, Bound::Lower, Some(mv));
             return beta;
         }
 
@@ -75,10 +78,10 @@ pub fn search(
             alpha = eval;
 
             tt_bound = Bound::Exact;
-            tt_move = Some(*mv);
+            tt_move = Some(mv);
 
             pv.clear();
-            pv.push(*mv);
+            pv.push(mv);
             pv.append(&mut pv_tail);
         }
 

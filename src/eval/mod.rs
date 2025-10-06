@@ -1,7 +1,7 @@
 use crate::colour::Colour::*;
 use crate::position::Position;
 
-mod material;
+pub mod material;
 mod psqt;
 
 pub const EVAL_MAX: i32 = 10_000;
