@@ -17,7 +17,10 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut MoveList, 
     let (pv_move, mut next_ply_pv) = split_pv(pv);
     let colour_to_move = pos.colour_to_move;
 
-    for mv in order_moves(&generate_capture_moves(pos), pv_move) {
+    let mut moves = generate_capture_moves(pos);
+    order_moves(&mut moves, &pos.board, pv_move);
+
+    for mv in moves {
         pos.do_move(&mv);
 
         if is_in_check(colour_to_move, &pos.board) {
@@ -36,7 +39,7 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut MoveList, 
             alpha = eval;
 
             pv.clear();
-            pv.push(*mv);
+            pv.push(mv);
             pv.append(&mut next_ply_pv);
         }
 

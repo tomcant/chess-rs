@@ -3,9 +3,8 @@ use self::{
     stopper::Stopper,
 };
 use crate::eval::*;
-use crate::movegen::{MAX_MOVES, Move, MoveList};
-use crate::position::Position;
-use smallvec::SmallVec;
+use crate::movegen::{Move, MoveList};
+use crate::position::{Board, Position};
 
 pub mod report;
 pub mod stopper;
@@ -49,49 +48,48 @@ fn split_pv(pv: &mut [Move]) -> (Option<Move>, MoveList) {
     }
 }
 
-struct OrderedMove {
-    mv: Move,
-    order: u8,
-}
+fn order_moves(moves: &mut [Move], board: &Board, pv_move: Option<Move>) {
+    moves.sort_unstable_by(|a, b| {
+        // 1) PV move first if provided
+        let a_is_pv = pv_move.is_some() && *a == pv_move.unwrap();
+        let b_is_pv = pv_move.is_some() && *b == pv_move.unwrap();
 
-type OrderedMoveList = SmallVec<[OrderedMove; MAX_MOVES]>;
+        if a_is_pv != b_is_pv {
+            return b_is_pv.cmp(&a_is_pv);
+        }
 
-impl std::ops::Deref for OrderedMove {
-    type Target = Move;
+        // 2) Captures before quiets
+        let a_is_capture = a.captured_piece.is_some();
+        let b_is_capture = b.captured_piece.is_some();
 
-    fn deref(&self) -> &Self::Target {
-        &self.mv
-    }
-}
+        if a_is_capture != b_is_capture {
+            return b_is_capture.cmp(&a_is_capture);
+        }
 
-const ORDER_PV_MOVE: u8 = 0;
-const ORDER_NON_PV_MOVE: u8 = 1;
+        if a_is_capture {
+            // 3) Both are captures, higher weighted victim first (MVV)
+            let a_victim = material::PIECE_WEIGHTS[a.captured_piece.unwrap()];
+            let b_victim = material::PIECE_WEIGHTS[b.captured_piece.unwrap()];
 
-fn order_moves(moves: &[Move], pv_move: Option<Move>) -> OrderedMoveList {
-    let has_pv_move = pv_move.is_some();
+            if a_victim != b_victim {
+                return b_victim.cmp(&a_victim);
+            }
 
-    let mut moves = moves
-        .iter()
-        .map(|mv| OrderedMove {
-            mv: *mv,
-            order: if has_pv_move && *mv == pv_move.unwrap() {
-                ORDER_PV_MOVE
-            } else {
-                ORDER_NON_PV_MOVE
-            },
-        })
-        .collect::<OrderedMoveList>();
+            // 4) Same victim, lower weighted attacker first (LVA)
+            let a_attacker = material::PIECE_WEIGHTS[board.piece_at(a.from).unwrap()];
+            let b_attacker = material::PIECE_WEIGHTS[board.piece_at(b.from).unwrap()];
 
-    if has_pv_move {
-        moves.sort_unstable_by_key(|mv| mv.order);
-    }
+            return a_attacker.cmp(&b_attacker);
+        }
 
-    moves
+        std::cmp::Ordering::Equal
+    });
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::piece::Piece;
     use crate::position::CastlingRights;
     use crate::square::Square;
     use doubles::*;
@@ -125,29 +123,82 @@ mod tests {
 
     #[test]
     fn order_pv_move_to_front() {
-        fn make_move(from: Square, to: Square) -> Move {
-            Move {
-                from,
-                to,
-                captured_piece: None,
-                promotion_piece: None,
-                castling_rights: CastlingRights::none(),
-                half_move_clock: 0,
-                is_en_passant: false,
-            }
-        }
+        let pos = parse_fen("4k3/8/8/8/8/8/8/R1R1K3 w - - 0 1");
+        let pv_move = make_move(Square::A1, Square::B1, None);
 
-        let pv_move = make_move(Square::A1, Square::B1);
-
-        let moves = [
-            make_move(Square::C1, Square::D1),
-            make_move(Square::E1, Square::F1),
+        let mut moves = [
+            make_move(Square::C1, Square::D1, None),
+            make_move(Square::E1, Square::F1, None),
             pv_move,
         ];
 
-        let ordered_moves = order_moves(&moves, Some(pv_move));
+        order_moves(&mut moves, &pos.board, Some(pv_move));
 
-        assert_eq!(ordered_moves[0].mv, pv_move);
+        assert_eq!(moves[0], pv_move);
+    }
+
+    #[test]
+    fn order_captures_by_mvv_lva_and_before_quiets() {
+        let pos = parse_fen("4k3/8/8/1p1q4/2P2N2/8/8/4K3 w - - 0 1");
+
+        let quiet_move = make_move(parse_square("c4"), parse_square("c5"), None);
+        let pawn_captures_pawn = make_move(parse_square("c4"), parse_square("b5"), Some(Piece::BP));
+        let pawn_captures_queen = make_move(parse_square("c4"), parse_square("d5"), Some(Piece::BQ));
+        let knight_captures_bishop = make_move(parse_square("f4"), parse_square("d3"), Some(Piece::BB));
+        let knight_captures_queen = make_move(parse_square("f4"), parse_square("d5"), Some(Piece::BQ));
+        let knight_captures_rook = make_move(parse_square("f4"), parse_square("g6"), Some(Piece::BR));
+        let knight_captures_knight = make_move(parse_square("f4"), parse_square("h3"), Some(Piece::BN));
+
+        let mut moves = [
+            quiet_move,
+            pawn_captures_pawn,
+            pawn_captures_queen,
+            knight_captures_bishop,
+            knight_captures_queen,
+            knight_captures_rook,
+            knight_captures_knight,
+        ];
+
+        order_moves(&mut moves, &pos.board, None);
+
+        assert_eq!(
+            moves,
+            [
+                pawn_captures_queen,
+                knight_captures_queen,
+                knight_captures_rook,
+                knight_captures_bishop,
+                knight_captures_knight,
+                pawn_captures_pawn,
+                quiet_move,
+            ],
+        );
+    }
+
+    fn make_move(from: Square, to: Square, captured_piece: Option<Piece>) -> Move {
+        Move {
+            from,
+            to,
+            captured_piece,
+            promotion_piece: None,
+            castling_rights: CastlingRights::none(),
+            half_move_clock: 0,
+            is_en_passant: false,
+        }
+    }
+
+    fn parse_fen(str: &str) -> Position {
+        let pos = str.parse();
+        assert!(pos.is_ok());
+
+        pos.unwrap()
+    }
+
+    fn parse_square(str: &str) -> Square {
+        let square = str.parse();
+        assert!(square.is_ok());
+
+        square.unwrap()
     }
 
     mod doubles {
