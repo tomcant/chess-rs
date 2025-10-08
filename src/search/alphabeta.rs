@@ -46,18 +46,48 @@ pub fn search(
 
     report.nodes += 1;
 
-    let colour_to_move = pos.colour_to_move;
     let mut has_legal_move = false;
     let mut tt_bound = Bound::Upper;
 
+    // Search the TT move before generating other moves because there's a good
+    // chance it leads to a cutoff
+    if let Some(mv) = tt_move {
+        pos.do_move(&mv);
+        report.ply += 1;
+
+        let eval = -search(pos, depth - 1, -beta, -alpha, &mut pv_tail, tt, report, stopper);
+
+        report.ply -= 1;
+        pos.undo_move(&mv);
+
+        if eval >= beta {
+            tt.store(key, depth, beta, Bound::Lower, tt_move);
+            return beta;
+        }
+
+        if eval > alpha {
+            alpha = eval;
+            tt_bound = Bound::Exact;
+
+            pv.clear();
+            pv.push(mv);
+            pv.append(&mut pv_tail);
+        }
+
+        has_legal_move = true;
+    }
+
+    let colour_to_move = pos.colour_to_move;
+
     let mut moves = generate_all_moves(pos);
     order_moves(&mut moves, &pos.board, tt_move);
+    let start_index = if tt_move.is_some() { 1 } else { 0 };
 
-    for mv in moves {
-        pos.do_move(&mv);
+    for mv in &moves[start_index..] {
+        pos.do_move(mv);
 
         if is_in_check(colour_to_move, &pos.board) {
-            pos.undo_move(&mv);
+            pos.undo_move(mv);
             continue;
         }
 
@@ -67,25 +97,22 @@ pub fn search(
         let eval = -search(pos, depth - 1, -beta, -alpha, &mut pv_tail, tt, report, stopper);
 
         report.ply -= 1;
+        pos.undo_move(mv);
 
         if eval >= beta {
-            pos.undo_move(&mv);
-            tt.store(key, depth, beta, Bound::Lower, Some(mv));
+            tt.store(key, depth, beta, Bound::Lower, Some(*mv));
             return beta;
         }
 
         if eval > alpha {
             alpha = eval;
-
             tt_bound = Bound::Exact;
-            tt_move = Some(mv);
+            tt_move = Some(*mv);
 
             pv.clear();
-            pv.push(mv);
+            pv.push(*mv);
             pv.append(&mut pv_tail);
         }
-
-        pos.undo_move(&mv);
     }
 
     if !has_legal_move {

@@ -14,7 +14,7 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut MoveList, 
         alpha = eval;
     }
 
-    let (pv_move, mut next_ply_pv) = split_pv(pv);
+    let (pv_move, mut pv_tail) = split_pv(pv);
     let colour_to_move = pos.colour_to_move;
 
     let mut moves = generate_capture_moves(pos);
@@ -28,22 +28,17 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut MoveList, 
             continue;
         }
 
-        let eval = -search(pos, -beta, -alpha, &mut next_ply_pv, report);
+        let eval = -search(pos, -beta, -alpha, &mut pv_tail, report);
+
+        pos.undo_move(&mv);
 
         if eval >= beta {
-            pos.undo_move(&mv);
             return beta;
         }
 
         if eval > alpha {
             alpha = eval;
-
-            pv.clear();
-            pv.push(mv);
-            pv.append(&mut next_ply_pv);
         }
-
-        pos.undo_move(&mv);
     }
 
     alpha
