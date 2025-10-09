@@ -71,24 +71,13 @@ fn parse_go(args: &[&str]) -> Result<UciCommand, String> {
         };
 
         match *attr {
-            "depth" => {
-                let Ok(depth) = value.parse() else {
-                    return Err("invalid value for 'depth' attribute".to_string());
-                };
-                params.depth = Some(depth);
-            }
-            "movetime" => {
-                let Ok(movetime) = value.parse() else {
-                    return Err("invalid value for 'movetime' attribute".to_string());
-                };
-                params.movetime = Some(Duration::from_millis(movetime));
-            }
-            "nodes" => {
-                let Ok(nodes) = value.parse() else {
-                    return Err("invalid value for 'nodes' attribute".to_string());
-                };
-                params.nodes = Some(nodes);
-            }
+            "depth" => params.depth = Some(parse_u8_attr("depth", value)?),
+            "movetime" => params.movetime = Some(parse_duration_attr("movetime", value)?),
+            "wtime" => params.wtime = Some(parse_duration_attr("wtime", value)?),
+            "btime" => params.btime = Some(parse_duration_attr("btime", value)?),
+            "winc" => params.winc = Some(parse_duration_attr("winc", value)?),
+            "binc" => params.binc = Some(parse_duration_attr("binc", value)?),
+            "nodes" => params.nodes = Some(parse_u128_attr("nodes", value)?),
             _ => return Err(format!("unknown attribute '{attr}'")),
         }
     }
@@ -140,6 +129,26 @@ fn parse_setoption(args: &[&str]) -> Result<UciCommand, String> {
         }
         _ => Err(format!("unknown option '{name}'")),
     }
+}
+
+fn parse_u8_attr(attr: &str, value: &str) -> Result<u8, String> {
+    value
+        .parse::<u8>()
+        .map_err(|_| format!("invalid value for '{attr}' attribute"))
+}
+
+fn parse_u128_attr(attr: &str, value: &str) -> Result<u128, String> {
+    value
+        .parse::<u128>()
+        .map_err(|_| format!("invalid value for '{attr}' attribute"))
+}
+
+fn parse_duration_attr(attr: &str, value: &str) -> Result<Duration, String> {
+    let ms = value
+        .parse::<u64>()
+        .map_err(|_| format!("invalid value for '{attr}' attribute"))?;
+
+    Ok(Duration::from_millis(ms))
 }
 
 #[cfg(test)]
@@ -241,11 +250,15 @@ mod tests {
     #[test]
     fn parse_go_command() {
         assert_eq!(
-            "go depth 1 movetime 2 nodes 3".parse(),
+            "go depth 1 movetime 2 wtime 3 btime 4 winc 5 binc 6 nodes 7".parse(),
             Ok(Go(GoParams {
                 depth: Some(1),
                 movetime: Some(Duration::from_millis(2)),
-                nodes: Some(3),
+                wtime: Some(Duration::from_millis(3)),
+                btime: Some(Duration::from_millis(4)),
+                winc: Some(Duration::from_millis(5)),
+                binc: Some(Duration::from_millis(6)),
+                nodes: Some(7),
             }))
         );
     }
@@ -257,6 +270,10 @@ mod tests {
             Ok(Go(GoParams {
                 depth: None,
                 movetime: None,
+                wtime: None,
+                btime: None,
+                winc: None,
+                binc: None,
                 nodes: None,
             }))
         );

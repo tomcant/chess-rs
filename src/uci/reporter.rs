@@ -35,7 +35,7 @@ impl Reporter for UciReporter {
             if let Some(plies) = report.moves_until_mate() {
                 info.push(format!("score mate {}", plies.div_ceil(2) as i32 * eval.signum()));
             } else {
-                info.push(format!("score cp {}", eval * 100));
+                info.push(format!("score cp {}", eval));
             }
 
             info.push(format!(
