@@ -63,7 +63,7 @@ impl std::fmt::Display for UciMove {
             self.from,
             self.to,
             if let Some(piece) = self.promotion_piece {
-                format!("{piece}")
+                format!("{piece}").to_lowercase()
             } else {
                 String::from("")
             }
