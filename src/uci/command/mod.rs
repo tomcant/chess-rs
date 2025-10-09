@@ -20,6 +20,10 @@ pub enum UciCommand {
 pub struct GoParams {
     pub depth: Option<u8>,
     pub movetime: Option<Duration>,
+    pub wtime: Option<Duration>,
+    pub btime: Option<Duration>,
+    pub winc: Option<Duration>,
+    pub binc: Option<Duration>,
     pub nodes: Option<u128>,
 }
 
@@ -28,6 +32,10 @@ impl GoParams {
         Self {
             depth: None,
             movetime: None,
+            wtime: None,
+            btime: None,
+            winc: None,
+            binc: None,
             nodes: None,
         }
     }
