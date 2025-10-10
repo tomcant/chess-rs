@@ -51,6 +51,13 @@ pub fn main() {
                     handle::new_game(&mut pos.lock().unwrap());
                 });
             }
+            PrintBoard => {
+                let pos = Arc::clone(&pos);
+
+                thread::spawn(move || {
+                    handle::print_board(&pos.lock().unwrap());
+                });
+            }
             Position(fen, moves) => {
                 let pos = Arc::clone(&pos);
 
@@ -85,7 +92,10 @@ pub fn main() {
                     });
                     stopper.at_elapsed(allocated_time);
 
-                    handle::go(&mut pos.lock().unwrap(), &stopper);
+                    // Clone the position so that searching doesn't block
+                    // this thread and we can still handle other commands.
+                    let mut pos = pos.lock().unwrap().clone();
+                    handle::go(&mut pos, &stopper);
                 });
             }
             SetOption(name, value) => handle::set_option(name, value),

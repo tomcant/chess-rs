@@ -9,6 +9,7 @@ pub enum UciCommand {
     Init,
     IsReady,
     NewGame,
+    PrintBoard,
     Position(String, Vec<UciMove>),
     Go(GoParams),
     SetOption(String, Option<String>),
