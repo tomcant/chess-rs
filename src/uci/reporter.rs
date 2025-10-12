@@ -38,16 +38,18 @@ impl Reporter for UciReporter {
                 info.push(format!("score cp {}", eval));
             }
 
-            info.push(format!(
-                "pv {}",
-                moves
-                    .iter()
-                    .map(|mv| format!("{}", UciMove::from(*mv)))
-                    .collect::<Vec<String>>()
-                    .join(" ")
-            ));
+            if !moves.is_empty() {
+                info.push(format!(
+                    "pv {}",
+                    moves
+                        .iter()
+                        .map(|mv| format!("{}", UciMove::from(*mv)))
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                ));
 
-            self.best_move.set(Some(moves[0].into()));
+                self.best_move.set(Some(moves[0].into()));
+            }
         }
 
         println!("info {}", info.join(" "));
