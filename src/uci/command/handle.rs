@@ -24,6 +24,10 @@ pub fn new_game(pos: &mut Position) {
     *pos = Position::startpos();
 }
 
+pub fn print_board(pos: &Position) {
+    println!("{}", pos.board);
+}
+
 pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
     *pos = fen.parse().unwrap();
 

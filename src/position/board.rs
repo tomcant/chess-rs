@@ -2,7 +2,7 @@ use crate::colour::Colour;
 use crate::piece::Piece;
 use crate::square::Square;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Board {
     pieces: [u64; 12],
     colours: [u64; 2],
@@ -58,6 +58,46 @@ impl Board {
 
     pub fn has_occupancy_at(&self, squares: u64) -> bool {
         self.occupancy() & squares != 0
+    }
+}
+
+impl std::fmt::Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        writeln!(f, "\n   -----------------")?;
+
+        for rank in (0..8).rev() {
+            let mut line = String::new();
+
+            for file in 0..8 {
+                match self.piece_at(Square::from_file_and_rank(file, rank)) {
+                    Some(piece) => {
+                        let symbol = match piece {
+                            Piece::WP => 'P',
+                            Piece::WN => 'N',
+                            Piece::WB => 'B',
+                            Piece::WR => 'R',
+                            Piece::WQ => 'Q',
+                            Piece::WK => 'K',
+                            Piece::BP => 'p',
+                            Piece::BN => 'n',
+                            Piece::BB => 'b',
+                            Piece::BR => 'r',
+                            Piece::BQ => 'q',
+                            Piece::BK => 'k',
+                        };
+                        line.push_str(&format!("{symbol} "));
+                    }
+                    None => line.push_str(". "),
+                }
+            }
+
+            writeln!(f, "{} | {} |", rank + 1, line.trim_end())?;
+        }
+
+        writeln!(f, "   -----------------")?;
+        writeln!(f, "    a b c d e f g h")?;
+
+        Ok(())
     }
 }
 

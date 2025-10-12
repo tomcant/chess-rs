@@ -12,7 +12,7 @@ pub use board::Board;
 pub use castling::{CastlingRight, CastlingRights};
 pub use fen::START_POS_FEN;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Position {
     pub board: Board,
     pub colour_to_move: Colour,
