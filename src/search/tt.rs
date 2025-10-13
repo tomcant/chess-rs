@@ -28,9 +28,9 @@ impl Table {
         let size_bytes = size_mb.saturating_mul(1024 * 1024);
         let capacity = size_bytes / std::mem::size_of::<Entry>();
 
-        // We find the nearest power of two below `capacity` because the table index can be calculated
-        // much more efficiently, i.e. `key % pow2` is the same as `key & (pow2 - 1)`, see `index()`
-        let pow2 = 1usize << (usize::BITS - (capacity.leading_zeros() + 1));
+        // We use the nearest lower power of two for capacity so that indexing can
+        // use fast bitwise AND (key & (pow2 - 1)) instead of modulo, as in index()
+        let pow2 = capacity.next_power_of_two() / 2;
 
         let entries = vec![
             Entry {
