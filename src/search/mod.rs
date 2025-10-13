@@ -40,14 +40,6 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
     }
 }
 
-fn split_pv(pv: &mut [Move]) -> (Option<Move>, MoveList) {
-    if let Some((head, tail)) = pv.split_first() {
-        (Some(*head), MoveList::from_slice(tail))
-    } else {
-        (None, MoveList::new())
-    }
-}
-
 fn order_moves(moves: &mut [Move], board: &Board, pv_move: Option<Move>) {
     moves.sort_unstable_by(|a, b| {
         // 1) PV move first if provided

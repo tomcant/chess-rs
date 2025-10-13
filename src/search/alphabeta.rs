@@ -20,12 +20,11 @@ pub fn search(
     }
 
     if depth == 0 {
-        return quiescence::search(pos, alpha, beta, &mut MoveList::new(), report);
+        return quiescence::search(pos, alpha, beta, report);
     }
 
     let key = pos.key();
     let mut tt_move = None;
-    let (_, mut pv_tail) = split_pv(pv);
 
     if let Some(entry) = tt.probe(key) {
         if let Some(mv) = entry.mv {
@@ -55,7 +54,8 @@ pub fn search(
         pos.do_move(&mv);
         report.ply += 1;
 
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut pv_tail, tt, report, stopper);
+        let mut child_pv = MoveList::new();
+        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, report, stopper);
 
         report.ply -= 1;
         pos.undo_move(&mv);
@@ -71,7 +71,7 @@ pub fn search(
 
             pv.clear();
             pv.push(mv);
-            pv.append(&mut pv_tail);
+            pv.append(&mut child_pv);
         }
 
         has_legal_move = true;
@@ -94,7 +94,8 @@ pub fn search(
         has_legal_move = true;
         report.ply += 1;
 
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut pv_tail, tt, report, stopper);
+        let mut child_pv = MoveList::new();
+        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, report, stopper);
 
         report.ply -= 1;
         pos.undo_move(mv);
@@ -111,7 +112,7 @@ pub fn search(
 
             pv.clear();
             pv.push(*mv);
-            pv.append(&mut pv_tail);
+            pv.append(&mut child_pv);
         }
     }
 
