@@ -1,5 +1,6 @@
 use crate::info;
 use crate::movegen::Move;
+use crate::piece::Piece;
 use crate::position::Position;
 use crate::search::{search, tt};
 use crate::uci::{r#move::UciMove, reporter::UciReporter, stopper::UciStopper};
@@ -32,14 +33,26 @@ pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
     *pos = fen.parse().unwrap();
 
     for mv in moves {
+        let is_en_passant = if let Some(en_passant_square) = pos.en_passant_square {
+            mv.to == en_passant_square && pos.board.piece_at(mv.from).unwrap().is_pawn()
+        } else {
+            false
+        };
+
+        let captured_piece = if is_en_passant {
+            Some(Piece::pawn(pos.colour_to_move.flip()))
+        } else {
+            pos.board.piece_at(mv.to)
+        };
+
         pos.do_move(&Move {
             from: mv.from,
             to: mv.to,
-            captured_piece: pos.board.piece_at(mv.to),
+            captured_piece,
             promotion_piece: mv.promotion_piece,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
-            is_en_passant: false,
+            is_en_passant,
         });
     }
 }
@@ -84,8 +97,8 @@ mod tests {
 
     #[test]
     fn handle_position_command_with_promotion_moves() {
-        let command = format!("position fen 8/1P2k3/8/8/8/8/4K1p1/8 w - - 0 1 moves b7b8q g2g1r");
-        let Position(fen, moves) = parse_command(&command) else {
+        let command = "position fen 8/1P2k3/8/8/8/8/4K1p1/8 w - - 0 1 moves b7b8q g2g1r";
+        let Position(fen, moves) = parse_command(command) else {
             panic!()
         };
         let Ok(mut pos) = fen.parse() else { panic!() };
@@ -94,6 +107,36 @@ mod tests {
 
         assert_eq!(pos.board.piece_at(Square::B8), Some(Piece::WQ));
         assert_eq!(pos.board.piece_at(Square::G1), Some(Piece::BR));
+    }
+
+    #[test]
+    fn handle_position_command_with_en_passant_move_for_white() {
+        let command = "position fen 4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1 moves e5d6";
+        let Position(fen, moves) = parse_command(command) else {
+            panic!()
+        };
+        let Ok(mut pos) = fen.parse() else { panic!() };
+
+        position(fen, moves, &mut pos);
+
+        assert_eq!(pos.board.piece_at(parse_square("d6")), Some(Piece::WP));
+        assert!(!pos.board.has_piece_at(parse_square("e5")));
+        assert!(!pos.board.has_piece_at(parse_square("d5")));
+    }
+
+    #[test]
+    fn handle_position_command_with_en_passant_move_for_black() {
+        let command = "position fen 4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1 moves d4e3";
+        let Position(fen, moves) = parse_command(command) else {
+            panic!()
+        };
+        let Ok(mut pos) = fen.parse() else { panic!() };
+
+        position(fen, moves, &mut pos);
+
+        assert_eq!(pos.board.piece_at(parse_square("e3")), Some(Piece::BP));
+        assert!(!pos.board.has_piece_at(parse_square("d4")));
+        assert!(!pos.board.has_piece_at(parse_square("e4")));
     }
 
     fn parse_command(str: &str) -> UciCommand {
