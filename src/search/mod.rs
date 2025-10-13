@@ -114,6 +114,16 @@ mod tests {
     }
 
     #[test]
+    fn report_the_number_of_moves_until_mate() {
+        let mut pos = parse_fen("8/8/4R3/8/k1K5/8/8/8 w - - 0 1");
+        let reporter = ReporterSpy::new();
+
+        search(&mut pos, &reporter, &StopperStub(1));
+
+        assert_eq!(reporter.last_moves_until_mate(), Some(1));
+    }
+
+    #[test]
     fn order_pv_move_to_front() {
         let pos = parse_fen("4k3/8/8/8/8/8/8/R1R1K3 w - - 0 1");
         let pv_move = make_move(Square::A1, Square::B1, None);
@@ -201,6 +211,7 @@ mod tests {
             depths: RefCell<Vec<u8>>,
             last_pv_moves: RefCell<MoveList>,
             last_nodes: Cell<u128>,
+            last_moves_until_mate: Cell<Option<u8>>,
         }
 
         impl ReporterSpy {
@@ -209,6 +220,7 @@ mod tests {
                     depths: RefCell::new(vec![]),
                     last_pv_moves: RefCell::new(MoveList::new()),
                     last_nodes: Cell::new(0),
+                    last_moves_until_mate: Cell::new(None),
                 }
             }
 
@@ -223,12 +235,17 @@ mod tests {
             pub fn last_nodes(&self) -> u128 {
                 self.last_nodes.get()
             }
+
+            pub fn last_moves_until_mate(&self) -> Option<u8> {
+                self.last_moves_until_mate.get()
+            }
         }
 
         impl Reporter for ReporterSpy {
             fn send(&self, report: &Report) {
                 self.depths.borrow_mut().push(report.depth);
                 self.last_nodes.set(report.nodes);
+                self.last_moves_until_mate.set(report.moves_until_mate());
 
                 if let Some((moves, _)) = &report.pv {
                     *self.last_pv_moves.borrow_mut() = moves.clone();

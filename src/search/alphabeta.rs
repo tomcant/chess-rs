@@ -7,7 +7,7 @@ use crate::movegen::{generate_all_moves, is_in_check};
 #[allow(clippy::too_many_arguments)]
 pub fn search(
     pos: &mut Position,
-    depth: u8,
+    mut depth: u8,
     mut alpha: i32,
     beta: i32,
     pv: &mut MoveList,
@@ -20,7 +20,13 @@ pub fn search(
     }
 
     if depth == 0 {
-        return quiescence::search(pos, alpha, beta, report);
+        if !is_in_check(pos.colour_to_move, &pos.board) {
+            return quiescence::search(pos, alpha, beta, report);
+        }
+
+        // Extend the search if we're in check so that quiescence doesn't need
+        // to consider possible evasions and can remain focused on captures.
+        depth = 1;
     }
 
     let key = pos.key();
