@@ -1,7 +1,7 @@
 use super::*;
 use crate::movegen::{generate_capture_moves, is_in_check};
 
-pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut MoveList, report: &mut Report) -> i32 {
+pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, report: &mut Report) -> i32 {
     report.nodes += 1;
 
     let eval = eval(pos);
@@ -14,11 +14,10 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut MoveList, 
         alpha = eval;
     }
 
-    let (pv_move, mut pv_tail) = split_pv(pv);
     let colour_to_move = pos.colour_to_move;
 
     let mut moves = generate_capture_moves(pos);
-    order_moves(&mut moves, &pos.board, pv_move);
+    order_moves(&mut moves, &pos.board, None);
 
     for mv in moves {
         pos.do_move(&mv);
@@ -28,7 +27,7 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, pv: &mut MoveList, 
             continue;
         }
 
-        let eval = -search(pos, -beta, -alpha, &mut pv_tail, report);
+        let eval = -search(pos, -beta, -alpha, report);
 
         pos.undo_move(&mv);
 

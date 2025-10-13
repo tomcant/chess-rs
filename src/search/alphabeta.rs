@@ -20,7 +20,7 @@ pub fn search(
     }
 
     if depth == 0 {
-        return quiescence::search(pos, alpha, beta, &mut MoveList::new(), report);
+        return quiescence::search(pos, alpha, beta, report);
     }
 
     let key = pos.key();
