@@ -49,6 +49,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
                 if piece.is_pawn() && to_square.is_back_rank() {
                     for piece in Piece::promotions(colour_to_move) {
                         moves.push(Move {
+                            piece: *piece,
                             from: from_square,
                             to: to_square,
                             captured_piece,
@@ -63,6 +64,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
                 }
 
                 moves.push(Move {
+                    piece: *piece,
                     from: from_square,
                     to: to_square,
                     captured_piece,
@@ -80,6 +82,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
 
         while from_squares != 0 {
             moves.push(Move {
+                piece: Piece::pawn(colour_to_move),
                 from: Square::next(&mut from_squares),
                 to: en_passant_square,
                 captured_piece: Some(Piece::pawn(colour_to_move.flip())),
@@ -114,6 +117,7 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
                 if piece.is_pawn() && to_square.is_back_rank() {
                     for piece in Piece::promotions(colour_to_move) {
                         moves.push(Move {
+                            piece: *piece,
                             from: from_square,
                             to: to_square,
                             captured_piece,
@@ -128,6 +132,7 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
                 }
 
                 moves.push(Move {
+                    piece: *piece,
                     from: from_square,
                     to: to_square,
                     captured_piece,
@@ -145,6 +150,7 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
 
         while from_squares != 0 {
             moves.push(Move {
+                piece: Piece::pawn(colour_to_move),
                 from: Square::next(&mut from_squares),
                 to: en_passant_square,
                 captured_piece: Some(Piece::pawn(colour_to_move.flip())),
@@ -307,7 +313,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 1);
+        assert_castling_move_count(&moves, 1);
     }
 
     #[test]
@@ -316,7 +322,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 1);
+        assert_castling_move_count(&moves, 1);
     }
 
     #[test]
@@ -325,7 +331,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 2);
+        assert_castling_move_count(&moves, 2);
     }
 
     #[test]
@@ -334,7 +340,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 0);
+        assert_castling_move_count(&moves, 0);
     }
 
     #[test]
@@ -343,7 +349,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 0);
+        assert_castling_move_count(&moves, 0);
     }
 
     #[test]
@@ -352,7 +358,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 0);
+        assert_castling_move_count(&moves, 0);
     }
 
     #[test]
@@ -361,7 +367,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 0);
+        assert_castling_move_count(&moves, 0);
     }
 
     #[test]
@@ -370,13 +376,9 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 1);
+        assert_castling_move_count(&moves, 1);
 
-        let castling_move = moves
-            .iter()
-            .filter(|mv| pos.board.piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
-            .next()
-            .unwrap();
+        let castling_move = moves.iter().filter(|mv| mv.is_castling()).next().unwrap();
 
         assert_eq!(castling_move.from, Square::E1);
         assert_eq!(castling_move.to, Square::C1);
@@ -388,7 +390,7 @@ mod tests {
 
         let moves = generate_all_moves(&pos);
 
-        assert_castling_move_count(&moves, &pos.board, 0);
+        assert_castling_move_count(&moves, 0);
     }
 
     #[test]
@@ -549,14 +551,8 @@ mod tests {
         assert_eq!(legal_move_count, count);
     }
 
-    fn assert_castling_move_count(moves: &MoveList, board: &Board, count: usize) {
-        assert_eq!(
-            moves
-                .iter()
-                .filter(|mv| board.piece_at(mv.from).unwrap().is_king() && mv.file_diff() > 1)
-                .count(),
-            count
-        );
+    fn assert_castling_move_count(moves: &MoveList, count: usize) {
+        assert_eq!(moves.iter().filter(|mv| mv.is_castling()).count(), count);
     }
 
     fn parse_fen(str: &str) -> Position {

@@ -36,9 +36,7 @@ impl Position {
             self.half_move_clock = 0;
         }
 
-        let piece = mv
-            .promotion_piece
-            .unwrap_or_else(|| self.board.piece_at(mv.from).unwrap());
+        let piece = mv.promotion_piece.unwrap_or(mv.piece);
 
         if piece.is_pawn() {
             self.half_move_clock = 0;
@@ -87,12 +85,7 @@ impl Position {
     }
 
     pub fn undo_move(&mut self, mv: &Move) {
-        let piece = match mv.promotion_piece {
-            Some(piece) => Piece::pawn(piece.colour()),
-            None => self.board.piece_at(mv.to).unwrap(),
-        };
-
-        if piece.is_king() && mv.file_diff() > 1 {
+        if mv.is_castling() {
             let rook = Piece::rook(self.opponent_colour());
 
             match mv.to.file() {
@@ -108,6 +101,10 @@ impl Position {
             };
         }
 
+        let piece = match mv.promotion_piece {
+            Some(piece) => Piece::pawn(piece.colour()),
+            None => mv.piece,
+        };
         self.board.put_piece(piece, mv.from);
         self.board.remove_piece(mv.to);
 
@@ -145,6 +142,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/5R2 w - - 0 1");
 
         let mv = Move {
+            piece: Piece::WR,
             from: Square::F1,
             to: parse_square("f4"),
             captured_piece: None,
@@ -166,6 +164,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/5R2/8/8/8 b - - 1 1");
 
         let mv = Move {
+            piece: Piece::WR,
             from: Square::F1,
             to: parse_square("f4"),
             captured_piece: None,
@@ -187,6 +186,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/5p2/3N4/8/8/8 w - - 0 1");
 
         let mv = Move {
+            piece: Piece::WN,
             from: parse_square("d4"),
             to: parse_square("f5"),
             captured_piece: Some(Piece::BP),
@@ -207,6 +207,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/5N2/8/8/8/8 b - - 1 1");
 
         let mv = Move {
+            piece: Piece::WN,
             from: parse_square("d4"),
             to: parse_square("f5"),
             captured_piece: Some(Piece::BP),
@@ -227,6 +228,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/4K2R w K - 0 1");
 
         let mv = Move {
+            piece: Piece::WK,
             from: Square::E1,
             to: Square::G1,
             captured_piece: None,
@@ -252,6 +254,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/5RK1 b - - 1 1");
 
         let mv = Move {
+            piece: Piece::WK,
             from: Square::E1,
             to: Square::G1,
             captured_piece: None,
@@ -277,6 +280,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/8/R3K2R w KQ - 0 1");
 
         let mv = Move {
+            piece: Piece::WR,
             from: Square::H1,
             to: Square::G1,
             captured_piece: None,
@@ -296,6 +300,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/3b4/8/8/R3K2R b KQ - 0 1");
 
         let mv = Move {
+            piece: Piece::BB,
             from: parse_square("d4"),
             to: Square::A1,
             captured_piece: Some(Piece::WR),
@@ -315,6 +320,7 @@ mod tests {
         let mut pos = parse_fen("8/4P3/8/8/8/8/8/8 w - - 0 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e7"),
             to: Square::E8,
             captured_piece: None,
@@ -335,6 +341,7 @@ mod tests {
         let mut pos = parse_fen("4N3/8/8/8/8/8/8/8 b - - 0 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e7"),
             to: Square::E8,
             captured_piece: None,
@@ -355,6 +362,7 @@ mod tests {
         let mut pos = parse_fen("3B4/8/8/8/8/8/8/8 b - - 0 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e7"),
             to: Square::D8,
             captured_piece: Some(Piece::BQ),
@@ -375,6 +383,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/3Pp3/8/8/8/8 w - e6 0 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("d5"),
             to: parse_square("e6"),
             captured_piece: Some(Piece::BP),
@@ -396,6 +405,7 @@ mod tests {
         let mut pos = parse_fen("8/8/4P3/8/8/8/8/8 b - - 0 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("d5"),
             to: parse_square("e6"),
             captured_piece: Some(Piece::BP),
@@ -418,6 +428,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/8/8/4P3/8 w - - 0 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e2"),
             to: parse_square("e4"),
             captured_piece: None,
@@ -437,6 +448,7 @@ mod tests {
         let mut pos = parse_fen("8/4p3/8/8/8/8/8/8 b - - 0 1");
 
         let mv = Move {
+            piece: Piece::BP,
             from: parse_square("e7"),
             to: parse_square("e5"),
             captured_piece: None,
@@ -456,6 +468,7 @@ mod tests {
         let mut pos = parse_fen("8/8/8/8/4P3/8/8/8 b - e3 0 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e2"),
             to: parse_square("e4"),
             captured_piece: None,
@@ -472,9 +485,10 @@ mod tests {
 
     #[test]
     fn increment_the_half_move_clock_for_non_pawn_or_non_capture_moves() {
-        let mut pos = parse_fen("8/4p3/8/8/8/8/4P3/4k3 w - - 0 1");
+        let mut pos = parse_fen("8/4p3/8/8/8/8/4P3/4K3 w - - 0 1");
 
         let mv = Move {
+            piece: Piece::WK,
             from: parse_square("e1"),
             to: parse_square("f2"),
             captured_piece: None,
@@ -494,6 +508,7 @@ mod tests {
         let mut pos = parse_fen("8/4p3/8/8/8/8/4P3/8 w - - 1 1");
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e2"),
             to: parse_square("e4"),
             captured_piece: None,
@@ -513,6 +528,7 @@ mod tests {
         let mut pos = parse_fen("8/4p3/8/8/8/8/4Q3/8 w - - 1 1");
 
         let mv = Move {
+            piece: Piece::WQ,
             from: parse_square("e2"),
             to: parse_square("e7"),
             captured_piece: Some(Piece::BP),
@@ -534,6 +550,7 @@ mod tests {
         assert_eq!(pos.full_move_counter, 1);
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e2"),
             to: parse_square("e4"),
             captured_piece: None,
@@ -548,6 +565,7 @@ mod tests {
         assert_eq!(pos.full_move_counter, 1);
 
         let mv = Move {
+            piece: Piece::BP,
             from: parse_square("e7"),
             to: parse_square("e5"),
             captured_piece: None,
@@ -569,6 +587,7 @@ mod tests {
         assert_eq!(pos.full_move_counter, 2);
 
         let mv = Move {
+            piece: Piece::BP,
             from: parse_square("e7"),
             to: parse_square("e5"),
             captured_piece: None,
@@ -583,6 +602,7 @@ mod tests {
         assert_eq!(pos.full_move_counter, 1);
 
         let mv = Move {
+            piece: Piece::WP,
             from: parse_square("e2"),
             to: parse_square("e4"),
             captured_piece: None,

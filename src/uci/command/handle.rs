@@ -33,8 +33,10 @@ pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
     *pos = fen.parse().unwrap();
 
     for mv in moves {
+        let piece = pos.board.piece_at(mv.from).unwrap();
+
         let is_en_passant = if let Some(en_passant_square) = pos.en_passant_square {
-            mv.to == en_passant_square && pos.board.piece_at(mv.from).unwrap().is_pawn()
+            mv.to == en_passant_square && piece.is_pawn()
         } else {
             false
         };
@@ -46,6 +48,7 @@ pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
         };
 
         pos.do_move(&Move {
+            piece,
             from: mv.from,
             to: mv.to,
             captured_piece,

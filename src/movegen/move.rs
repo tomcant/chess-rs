@@ -4,6 +4,7 @@ use crate::square::Square;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Move {
+    pub piece: Piece,
     pub from: Square,
     pub to: Square,
     pub captured_piece: Option<Piece>,
@@ -22,6 +23,10 @@ impl Move {
         } else {
             Some(self.to)
         }
+    }
+
+    pub fn is_castling(&self) -> bool {
+        self.piece.is_king() && self.file_diff() > 1
     }
 
     pub fn file_diff(&self) -> u8 {
