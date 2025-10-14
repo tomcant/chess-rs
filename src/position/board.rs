@@ -4,6 +4,7 @@ use crate::square::Square;
 
 #[derive(Debug, Clone)]
 pub struct Board {
+    squares: [Option<Piece>; 64],
     pieces: [u64; 12],
     colours: [u64; 2],
 }
@@ -11,6 +12,7 @@ pub struct Board {
 impl Board {
     pub fn empty() -> Self {
         Self {
+            squares: [None; 64],
             pieces: [0; 12],
             colours: [0; 2],
         }
@@ -29,25 +31,24 @@ impl Board {
     }
 
     pub fn put_piece(&mut self, piece: Piece, square: Square) {
+        self.squares[square] = Some(piece);
         self.pieces[piece] |= square.u64();
         self.colours[piece.colour()] |= square.u64();
     }
 
     pub fn piece_at(&self, square: Square) -> Option<Piece> {
-        Piece::pieces()
-            .iter()
-            .find(|&&piece| self.pieces[piece] & square.u64() != 0)
-            .copied()
+        self.squares[square]
     }
 
     pub fn has_piece_at(&self, square: Square) -> bool {
-        self.occupancy() & square.u64() != 0
+        self.piece_at(square).is_some()
     }
 
     pub fn remove_piece(&mut self, square: Square) {
         let Some(piece) = self.piece_at(square) else {
             return;
         };
+        self.squares[square] = None;
         self.pieces[piece] &= !square.u64();
         self.colours[piece.colour()] &= !square.u64();
     }
