@@ -146,10 +146,10 @@ fn parse_u128_attr(attr: &str, value: &str) -> Result<u128, String> {
 
 fn parse_duration_attr(attr: &str, value: &str) -> Result<Duration, String> {
     let ms = value
-        .parse::<u64>()
+        .parse::<i128>()
         .map_err(|_| format!("invalid value for '{attr}' attribute"))?;
 
-    Ok(Duration::from_millis(ms))
+    Ok(Duration::from_millis(ms.max(0) as u64))
 }
 
 #[cfg(test)]
