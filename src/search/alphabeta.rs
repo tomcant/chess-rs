@@ -86,7 +86,7 @@ pub fn search(
     let colour_to_move = pos.colour_to_move;
 
     let mut moves = generate_all_moves(pos);
-    order_moves(&mut moves, &pos.board, tt_move);
+    order_moves(&mut moves, tt_move);
     let start_index = if tt_move.is_some() { 1 } else { 0 };
 
     for mv in &moves[start_index..] {

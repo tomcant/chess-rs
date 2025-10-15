@@ -4,7 +4,7 @@ use self::{
 };
 use crate::eval::*;
 use crate::movegen::{Move, MoveList};
-use crate::position::{Board, Position};
+use crate::position::Position;
 
 pub mod report;
 pub mod stopper;
@@ -40,7 +40,7 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
     }
 }
 
-fn order_moves(moves: &mut [Move], board: &Board, pv_move: Option<Move>) {
+fn order_moves(moves: &mut [Move], pv_move: Option<Move>) {
     moves.sort_unstable_by(|a, b| {
         // 1) PV move first if provided
         let a_is_pv = pv_move.is_some() && *a == pv_move.unwrap();
@@ -68,8 +68,8 @@ fn order_moves(moves: &mut [Move], board: &Board, pv_move: Option<Move>) {
             }
 
             // 4) Same victim, lower weighted attacker first (LVA)
-            let a_attacker = material::PIECE_WEIGHTS[board.piece_at(a.from).unwrap()];
-            let b_attacker = material::PIECE_WEIGHTS[board.piece_at(b.from).unwrap()];
+            let a_attacker = material::PIECE_WEIGHTS[a.piece];
+            let b_attacker = material::PIECE_WEIGHTS[b.piece];
 
             return a_attacker.cmp(&b_attacker);
         }
@@ -125,31 +125,28 @@ mod tests {
 
     #[test]
     fn order_pv_move_to_front() {
-        let pos = parse_fen("4k3/8/8/8/8/8/8/R1R1K3 w - - 0 1");
-        let pv_move = make_move(Square::A1, Square::B1, None);
+        let pv_move = make_move(Piece::WP, Square::A1, Square::B1, None);
 
         let mut moves = [
-            make_move(Square::C1, Square::D1, None),
-            make_move(Square::E1, Square::F1, None),
+            make_move(Piece::WP, Square::C1, Square::D1, None),
+            make_move(Piece::WP, Square::E1, Square::F1, None),
             pv_move,
         ];
 
-        order_moves(&mut moves, &pos.board, Some(pv_move));
+        order_moves(&mut moves, Some(pv_move));
 
         assert_eq!(moves[0], pv_move);
     }
 
     #[test]
     fn order_captures_by_mvv_lva_and_before_quiets() {
-        let pos = parse_fen("4k3/8/8/1p1q4/2P2N2/8/8/4K3 w - - 0 1");
-
-        let quiet_move = make_move(parse_square("c4"), parse_square("c5"), None);
-        let pawn_captures_pawn = make_move(parse_square("c4"), parse_square("b5"), Some(Piece::BP));
-        let pawn_captures_queen = make_move(parse_square("c4"), parse_square("d5"), Some(Piece::BQ));
-        let knight_captures_bishop = make_move(parse_square("f4"), parse_square("d3"), Some(Piece::BB));
-        let knight_captures_queen = make_move(parse_square("f4"), parse_square("d5"), Some(Piece::BQ));
-        let knight_captures_rook = make_move(parse_square("f4"), parse_square("g6"), Some(Piece::BR));
-        let knight_captures_knight = make_move(parse_square("f4"), parse_square("h3"), Some(Piece::BN));
+        let quiet_move = make_move(Piece::WP, parse_square("c4"), parse_square("c5"), None);
+        let pawn_captures_pawn = make_move(Piece::WP, parse_square("c4"), parse_square("b5"), Some(Piece::BP));
+        let pawn_captures_queen = make_move(Piece::WP, parse_square("c4"), parse_square("d5"), Some(Piece::BQ));
+        let knight_captures_bishop = make_move(Piece::WN, parse_square("f4"), parse_square("d3"), Some(Piece::BB));
+        let knight_captures_queen = make_move(Piece::WN, parse_square("f4"), parse_square("d5"), Some(Piece::BQ));
+        let knight_captures_rook = make_move(Piece::WN, parse_square("f4"), parse_square("g6"), Some(Piece::BR));
+        let knight_captures_knight = make_move(Piece::WN, parse_square("f4"), parse_square("h3"), Some(Piece::BN));
 
         let mut moves = [
             quiet_move,
@@ -161,7 +158,7 @@ mod tests {
             knight_captures_knight,
         ];
 
-        order_moves(&mut moves, &pos.board, None);
+        order_moves(&mut moves, None);
 
         assert_eq!(
             moves,
@@ -177,8 +174,9 @@ mod tests {
         );
     }
 
-    fn make_move(from: Square, to: Square, captured_piece: Option<Piece>) -> Move {
+    fn make_move(piece: Piece, from: Square, to: Square, captured_piece: Option<Piece>) -> Move {
         Move {
+            piece,
             from,
             to,
             captured_piece,
