@@ -17,7 +17,7 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, report: &mut Report
     let colour_to_move = pos.colour_to_move;
 
     let mut moves = generate_capture_moves(pos);
-    order_moves(&mut moves, None);
+    order_moves(&mut moves);
 
     for mv in moves {
         pos.do_move(&mv);

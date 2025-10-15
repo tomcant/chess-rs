@@ -40,17 +40,9 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
     }
 }
 
-fn order_moves(moves: &mut [Move], pv_move: Option<Move>) {
+fn order_moves(moves: &mut [Move]) {
     moves.sort_unstable_by(|a, b| {
-        // 1) PV move first if provided
-        let a_is_pv = pv_move.is_some() && *a == pv_move.unwrap();
-        let b_is_pv = pv_move.is_some() && *b == pv_move.unwrap();
-
-        if a_is_pv != b_is_pv {
-            return b_is_pv.cmp(&a_is_pv);
-        }
-
-        // 2) Captures before quiets
+        // 1) Captures before quiets
         let a_is_capture = a.captured_piece.is_some();
         let b_is_capture = b.captured_piece.is_some();
 
@@ -59,7 +51,7 @@ fn order_moves(moves: &mut [Move], pv_move: Option<Move>) {
         }
 
         if a_is_capture {
-            // 3) Both are captures, higher weighted victim first (MVV)
+            // 2) Both are captures, higher weighted victim first (MVV)
             let a_victim = material::PIECE_WEIGHTS[a.captured_piece.unwrap()];
             let b_victim = material::PIECE_WEIGHTS[b.captured_piece.unwrap()];
 
@@ -67,7 +59,7 @@ fn order_moves(moves: &mut [Move], pv_move: Option<Move>) {
                 return b_victim.cmp(&a_victim);
             }
 
-            // 4) Same victim, lower weighted attacker first (LVA)
+            // 3) Same victim, lower weighted attacker first (LVA)
             let a_attacker = material::PIECE_WEIGHTS[a.piece];
             let b_attacker = material::PIECE_WEIGHTS[b.piece];
 
@@ -124,21 +116,6 @@ mod tests {
     }
 
     #[test]
-    fn order_pv_move_to_front() {
-        let pv_move = make_move(Piece::WP, Square::A1, Square::B1, None);
-
-        let mut moves = [
-            make_move(Piece::WP, Square::C1, Square::D1, None),
-            make_move(Piece::WP, Square::E1, Square::F1, None),
-            pv_move,
-        ];
-
-        order_moves(&mut moves, Some(pv_move));
-
-        assert_eq!(moves[0], pv_move);
-    }
-
-    #[test]
     fn order_captures_by_mvv_lva_and_before_quiets() {
         let quiet_move = make_move(Piece::WP, parse_square("c4"), parse_square("c5"), None);
         let pawn_captures_pawn = make_move(Piece::WP, parse_square("c4"), parse_square("b5"), Some(Piece::BP));
@@ -158,7 +135,7 @@ mod tests {
             knight_captures_knight,
         ];
 
-        order_moves(&mut moves, None);
+        order_moves(&mut moves);
 
         assert_eq!(
             moves,

@@ -49,7 +49,7 @@ impl Position {
         if piece.is_king() {
             self.castling_rights.remove_for_colour(self.colour_to_move);
 
-            if mv.file_diff() > 1 {
+            if mv.is_castling() {
                 let rook = Piece::rook(self.colour_to_move);
 
                 match mv.to.file() {

@@ -86,10 +86,13 @@ pub fn search(
     let colour_to_move = pos.colour_to_move;
 
     let mut moves = generate_all_moves(pos);
-    order_moves(&mut moves, tt_move);
-    let start_index = if tt_move.is_some() { 1 } else { 0 };
+    order_moves(&mut moves);
 
-    for mv in &moves[start_index..] {
+    for mv in &moves {
+        if tt_move.is_some() && *mv == tt_move.unwrap() {
+            continue;
+        }
+
         pos.do_move(mv);
 
         if is_in_check(colour_to_move, &pos.board) {
