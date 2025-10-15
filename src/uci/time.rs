@@ -20,7 +20,7 @@ use std::time::Duration;
 //
 pub fn calculate_allocated_time(time_left: Duration, time_inc: Option<Duration>) -> Option<Duration> {
     if time_left.as_millis() == 0 {
-        return None;
+        return Some(time_left);
     }
 
     let reserve = (time_left / 20).max(Duration::from_millis(50));
@@ -91,6 +91,6 @@ mod tests {
 
         let allocated = calculate_allocated_time(time_left, increment);
 
-        assert_eq!(allocated, None);
+        assert_eq!(allocated, Some(Duration::from_millis(0)));
     }
 }
