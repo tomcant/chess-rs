@@ -309,12 +309,13 @@ lazy_static! {
 mod tests {
     use super::*;
     use crate::position::Position;
+    use crate::testing::*;
 
     #[test]
     fn detect_check() {
         let mut board = Board::empty();
         board.put_piece(BK, Square::E8);
-        board.put_piece(WN, parse_square("d6"));
+        board.put_piece(WN, Square::D6);
 
         assert!(is_in_check(Colour::Black, &board));
     }
@@ -330,20 +331,14 @@ mod tests {
     fn attack_by_queen_vertical() {
         let pos = parse_fen("4k3/8/8/8/4Q3/8/8/8 w - - 0 1");
 
-        assert_eq!(
-            get_attackers(Square::E8, Colour::White, &pos.board),
-            parse_square("e4").u64()
-        );
+        assert_eq!(get_attackers(Square::E8, Colour::White, &pos.board), Square::E4.u64());
     }
 
     #[test]
     fn attack_by_queen_diagonal() {
         let pos = parse_fen("4k3/8/8/8/Q7/8/8/8 w - - 0 1");
 
-        assert_eq!(
-            get_attackers(Square::E8, Colour::White, &pos.board),
-            parse_square("a4").u64()
-        );
+        assert_eq!(get_attackers(Square::E8, Colour::White, &pos.board), Square::A4.u64());
     }
 
     #[test]
@@ -523,26 +518,15 @@ mod tests {
     }
 
     fn assert_attacks_eq(pos: &Position, attacker: &str, squares: &[&str]) {
-        let attacks: u64 = squares.iter().map(|sq| parse_square(sq).u64()).sum();
-        let attacker = parse_square(attacker);
+        let attacker = attacker.parse().unwrap();
+        let attacks: u64 = squares
+            .iter()
+            .map(|square| square.parse::<Square>().unwrap().u64())
+            .sum();
 
         assert_eq!(
             attacks,
             get_attacks(pos.board.piece_at(attacker).unwrap(), attacker, &pos.board)
         );
-    }
-
-    fn parse_fen(str: &str) -> Position {
-        let pos = str.parse();
-        assert!(pos.is_ok());
-
-        pos.unwrap()
-    }
-
-    fn parse_square(str: &str) -> Square {
-        let square = str.parse();
-        assert!(square.is_ok());
-
-        square.unwrap()
     }
 }

@@ -2,6 +2,7 @@ use crate::colour::Colour;
 use crate::movegen::Move;
 use crate::piece::Piece;
 use crate::square::Square;
+use smallvec::SmallVec;
 
 mod board;
 mod castling;
@@ -12,6 +13,8 @@ pub use board::Board;
 pub use castling::{CastlingRight, CastlingRights};
 pub use fen::START_POS_FEN;
 
+const MAX_HISTORY: usize = 256;
+
 #[derive(Debug, Clone)]
 pub struct Position {
     pub board: Board,
@@ -20,14 +23,35 @@ pub struct Position {
     pub en_passant_square: Option<Square>,
     pub half_move_clock: u8,
     pub full_move_counter: u8,
+    pub key_history: SmallVec<[u64; MAX_HISTORY]>,
 }
 
 impl Position {
+    pub fn new(
+        board: Board,
+        colour_to_move: Colour,
+        castling_rights: CastlingRights,
+        en_passant_square: Option<Square>,
+        half_move_clock: u8,
+        full_move_counter: u8,
+    ) -> Self {
+        Self {
+            board,
+            colour_to_move,
+            castling_rights,
+            en_passant_square,
+            half_move_clock,
+            full_move_counter,
+            key_history: SmallVec::new(),
+        }
+    }
+
     pub fn startpos() -> Self {
         START_POS_FEN.parse().unwrap()
     }
 
     pub fn do_move(&mut self, mv: &Move) {
+        self.key_history.push(self.key());
         self.half_move_clock += 1;
         self.en_passant_square = None;
 
@@ -125,6 +149,32 @@ impl Position {
         if self.colour_to_move == Colour::Black {
             self.full_move_counter -= 1;
         }
+
+        self.key_history.pop();
+    }
+
+    pub fn is_threefold_repetition(&self) -> bool {
+        if self.half_move_clock < 8 {
+            return false;
+        }
+
+        let current_key = self.key();
+        let len = self.key_history.len();
+        let max_back = len.min(self.half_move_clock as usize);
+        let mut found_first_repetition = false;
+        let mut offset = 2;
+
+        while offset <= max_back {
+            if self.key_history[len - offset] == current_key {
+                if found_first_repetition {
+                    return true;
+                }
+                found_first_repetition = true;
+            }
+            offset += 2;
+        }
+
+        false
     }
 
     pub fn opponent_colour(&self) -> Colour {
@@ -135,7 +185,7 @@ impl Position {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::piece::Piece;
+    use crate::testing::*;
 
     #[test]
     fn move_a_piece() {
@@ -144,7 +194,7 @@ mod tests {
         let mv = Move {
             piece: Piece::WR,
             from: Square::F1,
-            to: parse_square("f4"),
+            to: Square::F4,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -166,7 +216,7 @@ mod tests {
         let mv = Move {
             piece: Piece::WR,
             from: Square::F1,
-            to: parse_square("f4"),
+            to: Square::F4,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
@@ -187,8 +237,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WN,
-            from: parse_square("d4"),
-            to: parse_square("f5"),
+            from: Square::D4,
+            to: Square::F5,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -208,8 +258,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WN,
-            from: parse_square("d4"),
-            to: parse_square("f5"),
+            from: Square::D4,
+            to: Square::F5,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
@@ -301,7 +351,7 @@ mod tests {
 
         let mv = Move {
             piece: Piece::BB,
-            from: parse_square("d4"),
+            from: Square::D4,
             to: Square::A1,
             captured_piece: Some(Piece::WR),
             promotion_piece: None,
@@ -321,7 +371,7 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e7"),
+            from: Square::E7,
             to: Square::E8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
@@ -342,7 +392,7 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e7"),
+            from: Square::E7,
             to: Square::E8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
@@ -363,7 +413,7 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e7"),
+            from: Square::E7,
             to: Square::D8,
             captured_piece: Some(Piece::BQ),
             promotion_piece: Some(Piece::WB),
@@ -384,8 +434,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("d5"),
-            to: parse_square("e6"),
+            from: Square::D5,
+            to: Square::E6,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -396,7 +446,7 @@ mod tests {
         pos.do_move(&mv);
 
         assert_eq!(pos.board.piece_at(mv.to), Some(Piece::WP));
-        assert!(!pos.board.has_piece_at(parse_square("e5")));
+        assert!(!pos.board.has_piece_at(Square::E5));
         assert!(!pos.board.has_piece_at(mv.from));
     }
 
@@ -406,8 +456,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("d5"),
-            to: parse_square("e6"),
+            from: Square::D5,
+            to: Square::E6,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
@@ -419,7 +469,7 @@ mod tests {
 
         assert_eq!(pos.en_passant_square, Some(mv.to));
         assert_eq!(pos.board.piece_at(mv.from), Some(Piece::WP));
-        assert_eq!(pos.board.piece_at(parse_square("e5")), Some(Piece::BP));
+        assert_eq!(pos.board.piece_at(Square::E5), Some(Piece::BP));
         assert!(!pos.board.has_piece_at(mv.to));
     }
 
@@ -429,8 +479,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e2"),
-            to: parse_square("e4"),
+            from: Square::E2,
+            to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -440,7 +490,7 @@ mod tests {
 
         pos.do_move(&mv);
 
-        assert_eq!(pos.en_passant_square, Some(parse_square("e3")));
+        assert_eq!(pos.en_passant_square, Some(Square::E3));
     }
 
     #[test]
@@ -449,8 +499,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::BP,
-            from: parse_square("e7"),
-            to: parse_square("e5"),
+            from: Square::E7,
+            to: Square::E5,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -460,7 +510,7 @@ mod tests {
 
         pos.do_move(&mv);
 
-        assert_eq!(pos.en_passant_square, Some(parse_square("e6")));
+        assert_eq!(pos.en_passant_square, Some(Square::E6));
     }
 
     #[test]
@@ -469,8 +519,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e2"),
-            to: parse_square("e4"),
+            from: Square::E2,
+            to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
@@ -489,8 +539,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WK,
-            from: parse_square("e1"),
-            to: parse_square("f2"),
+            from: Square::E1,
+            to: Square::F2,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -509,8 +559,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e2"),
-            to: parse_square("e4"),
+            from: Square::E2,
+            to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -529,8 +579,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WQ,
-            from: parse_square("e2"),
-            to: parse_square("e7"),
+            from: Square::E2,
+            to: Square::E7,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -551,8 +601,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e2"),
-            to: parse_square("e4"),
+            from: Square::E2,
+            to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -566,8 +616,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::BP,
-            from: parse_square("e7"),
-            to: parse_square("e5"),
+            from: Square::E7,
+            to: Square::E5,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: pos.castling_rights,
@@ -588,8 +638,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::BP,
-            from: parse_square("e7"),
-            to: parse_square("e5"),
+            from: Square::E7,
+            to: Square::E5,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
@@ -603,8 +653,8 @@ mod tests {
 
         let mv = Move {
             piece: Piece::WP,
-            from: parse_square("e2"),
-            to: parse_square("e4"),
+            from: Square::E2,
+            to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
@@ -617,17 +667,116 @@ mod tests {
         assert_eq!(pos.full_move_counter, 1);
     }
 
-    fn parse_fen(str: &str) -> Position {
-        let pos = str.parse();
-        assert!(pos.is_ok());
+    #[test]
+    fn detect_threefold_repetition_from_start_position() {
+        let mut pos = Position::startpos();
 
-        pos.unwrap()
+        let moves = [
+            make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3
+            make_move(Piece::BN, Square::G8, Square::F6, None), // Nf6
+            make_move(Piece::WN, Square::F3, Square::G1, None), // Ng1
+            make_move(Piece::BN, Square::F6, Square::G8, None), // Ng8, first repetition
+            make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3
+            make_move(Piece::BN, Square::G8, Square::F6, None), // Nf6
+            make_move(Piece::WN, Square::F3, Square::G1, None), // Ng1
+            make_move(Piece::BN, Square::F6, Square::G8, None), // Ng8, second repetition, threefold
+        ];
+
+        for (index, mv) in moves.iter().enumerate() {
+            pos.do_move(&mv);
+
+            let expect_threefold_repetition = index == 7;
+            assert_eq!(
+                pos.is_threefold_repetition(),
+                expect_threefold_repetition,
+                "Position should {} a threefold repetition at ply {}",
+                if expect_threefold_repetition { "be" } else { "not be" },
+                index + 1
+            );
+        }
     }
 
-    fn parse_square(str: &str) -> Square {
-        let square = str.parse();
-        assert!(square.is_ok());
+    #[test]
+    fn detect_threefold_repetition_from_middle_game_position() {
+        let mut pos = parse_fen("1r1q1rk1/2p2pp1/2Q4p/pB2P3/P2P4/b6P/2R2PP1/3R2K1 b - - 10 33");
 
-        square.unwrap()
+        let moves = [
+            make_move(Piece::BR, Square::B8, Square::C8, None), // Rc8
+            make_move(Piece::WB, Square::B5, Square::A6, None), // Ba6
+            make_move(Piece::BR, Square::C8, Square::B8, None), // Rb8
+            make_move(Piece::WB, Square::A6, Square::B5, None), // Bb5, first repetition
+            make_move(Piece::BR, Square::B8, Square::C8, None), // Rc8
+            make_move(Piece::WB, Square::B5, Square::A6, None), // Ba6
+            make_move(Piece::BR, Square::C8, Square::B8, None), // Rb8
+            make_move(Piece::WB, Square::A6, Square::B5, None), // Bb5, second repetition, threefold
+        ];
+
+        for (index, mv) in moves.iter().enumerate() {
+            pos.do_move(&mv);
+
+            let expect_threefold_repetition = index == 7;
+            assert_eq!(
+                pos.is_threefold_repetition(),
+                expect_threefold_repetition,
+                "Position should {} a threefold repetition at ply {}",
+                if expect_threefold_repetition { "be" } else { "not be" },
+                index + 1
+            );
+        }
+    }
+
+    #[test]
+    fn threefold_repetition_not_counted_when_castling_rights_differ() {
+        let mut pos = Position::startpos();
+
+        let moves = [
+            make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3, the pieces revisit these squares later
+            make_move(Piece::BN, Square::G8, Square::F6, None), // Nf6
+            make_move(Piece::WR, Square::H1, Square::G1, None), // Rg1, removes white king-side castling rights
+            make_move(Piece::BN, Square::F6, Square::G8, None), // Ng8
+            make_move(Piece::WR, Square::G1, Square::H1, None), // Rh1, first repetition of piece placement
+            make_move(Piece::BN, Square::G8, Square::F6, None), // Nf6
+            make_move(Piece::WN, Square::F3, Square::G1, None), // Ng1
+            make_move(Piece::BN, Square::F6, Square::G8, None), // Ng8
+            make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3, second repetition but doesn't count due to castling rights
+        ];
+
+        for (index, mv) in moves.iter().enumerate() {
+            pos.do_move(&mv);
+
+            assert!(
+                !pos.is_threefold_repetition(),
+                "Position should not be considered a threefold repetition at ply {}",
+                index + 1
+            );
+        }
+    }
+
+    #[test]
+    fn threefold_repetition_not_counted_when_en_passant_availability_differs() {
+        let mut pos = parse_fen("4k3/4p3/8/3P4/8/8/8/4K1Nn w - - 0 1");
+
+        let moves = [
+            make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3
+            make_move(Piece::BP, Square::E7, Square::E5, None), // e5, the pieces revisit these squares later
+            make_move(Piece::WN, Square::F3, Square::G1, None), // Ng1, en passant availability expires
+            make_move(Piece::BN, Square::H1, Square::G3, None), // Ng3
+            make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3
+            make_move(Piece::BN, Square::G3, Square::H1, None), // Nh1, first repetition of piece placement
+            make_move(Piece::WN, Square::F3, Square::G1, None), // Ng1
+            make_move(Piece::BN, Square::H1, Square::G3, None), // Ng3
+            make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3
+            make_move(Piece::BN, Square::G3, Square::H1, None), // Nh1, second repetition but doesn't count due to en passant availability
+        ];
+
+        for (index, mv) in moves.iter().enumerate() {
+            pos.do_move(&mv);
+
+            assert!(
+                !pos.is_threefold_repetition(),
+                "Position should not be considered a threefold repetition at ply {}",
+                index + 1
+            );
+        }
     }
 }

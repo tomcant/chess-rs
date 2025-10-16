@@ -74,8 +74,8 @@ fn order_moves(moves: &mut [Move]) {
 mod tests {
     use super::*;
     use crate::piece::Piece;
-    use crate::position::CastlingRights;
     use crate::square::Square;
+    use crate::testing::*;
     use doubles::*;
 
     #[test]
@@ -117,13 +117,13 @@ mod tests {
 
     #[test]
     fn order_captures_by_mvv_lva_and_before_quiets() {
-        let quiet_move = make_move(Piece::WP, parse_square("c4"), parse_square("c5"), None);
-        let pawn_captures_pawn = make_move(Piece::WP, parse_square("c4"), parse_square("b5"), Some(Piece::BP));
-        let pawn_captures_queen = make_move(Piece::WP, parse_square("c4"), parse_square("d5"), Some(Piece::BQ));
-        let knight_captures_bishop = make_move(Piece::WN, parse_square("f4"), parse_square("d3"), Some(Piece::BB));
-        let knight_captures_queen = make_move(Piece::WN, parse_square("f4"), parse_square("d5"), Some(Piece::BQ));
-        let knight_captures_rook = make_move(Piece::WN, parse_square("f4"), parse_square("g6"), Some(Piece::BR));
-        let knight_captures_knight = make_move(Piece::WN, parse_square("f4"), parse_square("h3"), Some(Piece::BN));
+        let quiet_move = make_move(Piece::WP, Square::C4, Square::C5, None);
+        let pawn_captures_pawn = make_move(Piece::WP, Square::C4, Square::B5, Some(Piece::BP));
+        let pawn_captures_queen = make_move(Piece::WP, Square::C4, Square::D5, Some(Piece::BQ));
+        let knight_captures_bishop = make_move(Piece::WN, Square::F4, Square::D3, Some(Piece::BB));
+        let knight_captures_queen = make_move(Piece::WN, Square::F4, Square::D5, Some(Piece::BQ));
+        let knight_captures_rook = make_move(Piece::WN, Square::F4, Square::G6, Some(Piece::BR));
+        let knight_captures_knight = make_move(Piece::WN, Square::F4, Square::H3, Some(Piece::BN));
 
         let mut moves = [
             quiet_move,
@@ -149,33 +149,6 @@ mod tests {
                 quiet_move,
             ],
         );
-    }
-
-    fn make_move(piece: Piece, from: Square, to: Square, captured_piece: Option<Piece>) -> Move {
-        Move {
-            piece,
-            from,
-            to,
-            captured_piece,
-            promotion_piece: None,
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 0,
-            is_en_passant: false,
-        }
-    }
-
-    fn parse_fen(str: &str) -> Position {
-        let pos = str.parse();
-        assert!(pos.is_ok());
-
-        pos.unwrap()
-    }
-
-    fn parse_square(str: &str) -> Square {
-        let square = str.parse();
-        assert!(square.is_ok());
-
-        square.unwrap()
     }
 
     mod doubles {

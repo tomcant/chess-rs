@@ -202,8 +202,8 @@ mod tests {
             Ok(Position(
                 START_POS_FEN.to_string(),
                 vec![UciMove {
-                    from: parse_square("e2"),
-                    to: parse_square("e4"),
+                    from: Square::E2,
+                    to: Square::E4,
                     promotion_piece: None
                 }]
             ))
@@ -215,13 +215,13 @@ mod tests {
                 "4k3/8/8/8/8/8/8/4K3 w - - 0 1".to_string(),
                 vec![
                     UciMove {
-                        from: parse_square("d2"),
-                        to: parse_square("d4"),
+                        from: Square::D2,
+                        to: Square::D4,
                         promotion_piece: None
                     },
                     UciMove {
-                        from: parse_square("e7"),
-                        to: parse_square("e6"),
+                        from: Square::E7,
+                        to: Square::E6,
                         promotion_piece: None
                     }
                 ]
@@ -233,7 +233,7 @@ mod tests {
             Ok(Position(
                 START_POS_FEN.to_string(),
                 vec![UciMove {
-                    from: parse_square("e7"),
+                    from: Square::E7,
                     to: Square::E8,
                     promotion_piece: Some(Piece::WQ)
                 }]
@@ -245,7 +245,7 @@ mod tests {
             Ok(Position(
                 START_POS_FEN.to_string(),
                 vec![UciMove {
-                    from: parse_square("e2"),
+                    from: Square::E2,
                     to: Square::E1,
                     promotion_piece: Some(Piece::BR)
                 }]
@@ -301,12 +301,5 @@ mod tests {
     #[test]
     fn parse_quit_command() {
         assert_eq!("quit".parse(), Ok(Quit));
-    }
-
-    fn parse_square(str: &str) -> Square {
-        let square = str.parse();
-        assert!(square.is_ok());
-
-        square.unwrap()
     }
 }
