@@ -16,14 +16,17 @@ impl std::str::FromStr for Position {
             return Err(format!("FEN must contain {NUM_PARTS} parts, got {}", parts.len()));
         }
 
-        Ok(Position {
-            board: parse_board(parts[0])?,
-            colour_to_move: parse_colour_to_move(parts[1])?,
-            castling_rights: parse_castling_rights(parts[2])?,
-            en_passant_square: parse_en_passant_square(parts[3])?,
-            half_move_clock: parts[4].parse().unwrap(),
-            full_move_counter: parts[5].parse().unwrap(),
-        })
+        let half_move_clock = parts[4].parse().unwrap();
+        let full_move_counter = parts[5].parse().unwrap();
+
+        Ok(Position::new(
+            parse_board(parts[0])?,
+            parse_colour_to_move(parts[1])?,
+            parse_castling_rights(parts[2])?,
+            parse_en_passant_square(parts[3])?,
+            half_move_clock,
+            full_move_counter,
+        ))
     }
 }
 

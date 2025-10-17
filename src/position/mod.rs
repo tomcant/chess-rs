@@ -2,6 +2,7 @@ use crate::colour::Colour;
 use crate::movegen::Move;
 use crate::piece::Piece;
 use crate::square::Square;
+use smallvec::SmallVec;
 
 mod board;
 mod castling;
@@ -12,6 +13,8 @@ pub use board::Board;
 pub use castling::{CastlingRight, CastlingRights};
 pub use fen::START_POS_FEN;
 
+const MAX_HISTORY: usize = 256;
+
 #[derive(Debug, Clone)]
 pub struct Position {
     pub board: Board,
@@ -20,14 +23,35 @@ pub struct Position {
     pub en_passant_square: Option<Square>,
     pub half_move_clock: u8,
     pub full_move_counter: u8,
+    pub key_history: SmallVec<[u64; MAX_HISTORY]>,
 }
 
 impl Position {
+    pub fn new(
+        board: Board,
+        colour_to_move: Colour,
+        castling_rights: CastlingRights,
+        en_passant_square: Option<Square>,
+        half_move_clock: u8,
+        full_move_counter: u8,
+    ) -> Self {
+        Self {
+            board,
+            colour_to_move,
+            castling_rights,
+            en_passant_square,
+            half_move_clock,
+            full_move_counter,
+            key_history: SmallVec::new(),
+        }
+    }
+
     pub fn startpos() -> Self {
         START_POS_FEN.parse().unwrap()
     }
 
     pub fn do_move(&mut self, mv: &Move) {
+        self.key_history.push(self.key());
         self.half_move_clock += 1;
         self.en_passant_square = None;
 
@@ -125,6 +149,32 @@ impl Position {
         if self.colour_to_move == Colour::Black {
             self.full_move_counter -= 1;
         }
+
+        self.key_history.pop();
+    }
+
+    pub fn is_threefold_repetition(&self) -> bool {
+        if self.half_move_clock < 8 {
+            return false;
+        }
+
+        let current_key = self.key();
+        let len = self.key_history.len();
+        let max_back = len.min(self.half_move_clock as usize);
+        let mut found_first_repetition = false;
+        let mut offset = 2;
+
+        while offset <= max_back {
+            if self.key_history[len - offset] == current_key {
+                if found_first_repetition {
+                    return true;
+                }
+                found_first_repetition = true;
+            }
+            offset += 2;
+        }
+
+        false
     }
 
     pub fn opponent_colour(&self) -> Colour {
@@ -615,6 +665,128 @@ mod tests {
         pos.undo_move(&mv);
 
         assert_eq!(pos.full_move_counter, 1);
+    }
+
+    #[test]
+    fn detect_threefold_repetition() {
+        let positions = [
+            Position::startpos(),
+            parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 60 1"),
+        ];
+
+        let moves = [
+            (Piece::WN, "g1", "f3"), // Nf3
+            (Piece::BN, "g8", "f6"), // Nf6
+            (Piece::WN, "f3", "g1"), // Ng1
+            (Piece::BN, "f6", "g8"), // Ng8, first repetition
+            (Piece::WN, "g1", "f3"), // Nf3
+            (Piece::BN, "g8", "f6"), // Nf6
+            (Piece::WN, "f3", "g1"), // Ng1
+            (Piece::BN, "f6", "g8"), // Ng8, second repetition, threefold
+        ];
+
+        for mut pos in positions {
+            for (index, (piece, from, to)) in moves.iter().enumerate() {
+                let mv = Move {
+                    piece: *piece,
+                    from: parse_square(*from),
+                    to: parse_square(*to),
+                    captured_piece: None,
+                    promotion_piece: None,
+                    castling_rights: pos.castling_rights,
+                    half_move_clock: pos.half_move_clock,
+                    is_en_passant: false,
+                };
+
+                pos.do_move(&mv);
+
+                let expected_threefold_repetition = index == 7;
+                assert_eq!(
+                    pos.is_threefold_repetition(),
+                    expected_threefold_repetition,
+                    "Position should {} a threefold repetition at ply {}",
+                    if expected_threefold_repetition { "be" } else { "not be" },
+                    index + 1
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn threefold_repetition_not_counted_when_castling_rights_differ() {
+        let mut pos = Position::startpos();
+
+        let moves = [
+            (Piece::WN, "g1", "f3"), // Nf3, the pieces revisit these squares later
+            (Piece::BN, "g8", "f6"), // Nf6
+            (Piece::WR, "h1", "g1"), // Rg1, removes white king-side castling rights
+            (Piece::BN, "f6", "g8"), // Ng8
+            (Piece::WR, "g1", "h1"), // Rh1, first repetition of piece placement
+            (Piece::BN, "g8", "f6"), // Nf6
+            (Piece::WN, "f3", "g1"), // Ng1
+            (Piece::BN, "f6", "g8"), // Ng8
+            (Piece::WN, "g1", "f3"), // Nf3, second repetition but doesn't count due to castling rights
+        ];
+
+        for (index, (piece, from, to)) in moves.iter().enumerate() {
+            let mv = Move {
+                piece: *piece,
+                from: parse_square(*from),
+                to: parse_square(*to),
+                captured_piece: None,
+                promotion_piece: None,
+                castling_rights: pos.castling_rights,
+                half_move_clock: pos.half_move_clock,
+                is_en_passant: false,
+            };
+
+            pos.do_move(&mv);
+
+            assert!(
+                !pos.is_threefold_repetition(),
+                "Position should not be considered a threefold repetition at ply {}",
+                index + 1
+            );
+        }
+    }
+
+    #[test]
+    fn threefold_repetition_not_counted_when_en_passant_availability_differs() {
+        let mut pos = parse_fen("4k3/4p3/8/3P4/8/8/8/4K1Nn w - - 0 1");
+
+        let moves = [
+            (Piece::WN, "g1", "f3"), // Nf3
+            (Piece::BP, "e7", "e5"), // e5, the pieces revisit these squares later
+            (Piece::WN, "f3", "g1"), // Ng1, en passant availability expires
+            (Piece::BN, "h1", "g3"), // Ng3
+            (Piece::WN, "g1", "f3"), // Nf3
+            (Piece::BN, "g3", "h1"), // Nh1, first repetition of piece placement
+            (Piece::WN, "f3", "g1"), // Ng1
+            (Piece::BN, "h1", "g3"), // Ng3
+            (Piece::WN, "g1", "f3"), // Nf3
+            (Piece::BN, "g3", "h1"), // Nh1, second repetition but doesn't count due to en passant availability
+        ];
+
+        for (index, (piece, from, to)) in moves.iter().enumerate() {
+            let mv = Move {
+                piece: *piece,
+                from: parse_square(*from),
+                to: parse_square(*to),
+                captured_piece: None,
+                promotion_piece: None,
+                castling_rights: pos.castling_rights,
+                half_move_clock: pos.half_move_clock,
+                is_en_passant: false,
+            };
+
+            pos.do_move(&mv);
+
+            assert!(
+                !pos.is_threefold_repetition(),
+                "Position should not be considered a threefold repetition at ply {}",
+                index + 1
+            );
+        }
     }
 
     fn parse_fen(str: &str) -> Position {
