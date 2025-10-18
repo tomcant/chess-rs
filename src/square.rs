@@ -25,7 +25,7 @@ impl Square {
     pub const G8: Self = Self(62);
     pub const H8: Self = Self(63);
 
-    pub fn from_index(index: u8) -> Self {
+    pub const fn from_index(index: u8) -> Self {
         Self(index)
     }
 
@@ -141,9 +141,9 @@ mod tests {
 
     #[test]
     fn create_from_algebraic_notation() {
-        assert_eq!(parse_square("a1"), Square::A1);
-        assert_eq!(parse_square("h8"), Square::H8);
-        assert_eq!(parse_square("b5"), Square::from_index(33));
+        assert_eq!("a1".parse::<Square>(), Ok(Square::A1));
+        assert_eq!("h8".parse::<Square>(), Ok(Square::H8));
+        assert_eq!("b5".parse::<Square>(), Ok(Square::from_index(33)));
     }
 
     #[test]
@@ -180,16 +180,7 @@ mod tests {
 
     #[test]
     fn advance_a_square_given_a_colour() {
-        let square = parse_square("e4");
-
-        assert_eq!(parse_square("e5"), square.advance(Colour::White));
-        assert_eq!(parse_square("e3"), square.advance(Colour::Black));
-    }
-
-    fn parse_square(str: &str) -> Square {
-        let square = str.parse();
-        assert!(square.is_ok());
-
-        square.unwrap()
+        assert_eq!(Square::E5, Square::E4.advance(Colour::White));
+        assert_eq!(Square::E3, Square::E4.advance(Colour::Black));
     }
 }

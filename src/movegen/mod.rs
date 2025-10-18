@@ -241,6 +241,7 @@ fn get_black_castling(rights: CastlingRights, board: &Board) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::*;
 
     #[test]
     fn legal_move_count_in_checkmate_is_zero() {
@@ -553,12 +554,5 @@ mod tests {
 
     fn assert_castling_move_count(moves: &MoveList, count: usize) {
         assert_eq!(moves.iter().filter(|mv| mv.is_castling()).count(), count);
-    }
-
-    fn parse_fen(str: &str) -> Position {
-        let pos = str.parse();
-        assert!(pos.is_ok());
-
-        pos.unwrap()
     }
 }

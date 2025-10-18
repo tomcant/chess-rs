@@ -19,6 +19,10 @@ pub fn search(
         return 0;
     }
 
+    if pos.is_threefold_repetition() {
+        return EVAL_STALEMATE;
+    }
+
     if depth == 0 {
         if !is_in_check(pos.colour_to_move, &pos.board) {
             return quiescence::search(pos, alpha, beta, report);

@@ -8,6 +8,9 @@ mod search;
 mod square;
 mod uci;
 
+#[cfg(test)]
+mod testing;
+
 fn main() {
     println!("{}, {}", info::name(), info::author());
     uci::main();

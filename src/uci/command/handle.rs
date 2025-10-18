@@ -94,8 +94,8 @@ mod tests {
 
         position(fen, moves, &mut pos);
 
-        assert_eq!(pos.board.piece_at(parse_square("e4")), Some(Piece::WP));
-        assert_eq!(pos.board.piece_at(parse_square("e5")), Some(Piece::BP));
+        assert_eq!(pos.board.piece_at(Square::E4), Some(Piece::WP));
+        assert_eq!(pos.board.piece_at(Square::E5), Some(Piece::BP));
     }
 
     #[test]
@@ -122,9 +122,9 @@ mod tests {
 
         position(fen, moves, &mut pos);
 
-        assert_eq!(pos.board.piece_at(parse_square("d6")), Some(Piece::WP));
-        assert!(!pos.board.has_piece_at(parse_square("e5")));
-        assert!(!pos.board.has_piece_at(parse_square("d5")));
+        assert_eq!(pos.board.piece_at(Square::D6), Some(Piece::WP));
+        assert!(!pos.board.has_piece_at(Square::E5));
+        assert!(!pos.board.has_piece_at(Square::D5));
     }
 
     #[test]
@@ -137,22 +137,14 @@ mod tests {
 
         position(fen, moves, &mut pos);
 
-        assert_eq!(pos.board.piece_at(parse_square("e3")), Some(Piece::BP));
-        assert!(!pos.board.has_piece_at(parse_square("d4")));
-        assert!(!pos.board.has_piece_at(parse_square("e4")));
+        assert_eq!(pos.board.piece_at(Square::E3), Some(Piece::BP));
+        assert!(!pos.board.has_piece_at(Square::D4));
+        assert!(!pos.board.has_piece_at(Square::E4));
     }
 
     fn parse_command(str: &str) -> UciCommand {
         let command = str.parse();
         assert!(command.is_ok());
-
         command.unwrap()
-    }
-
-    fn parse_square(str: &str) -> Square {
-        let square = str.parse();
-        assert!(square.is_ok());
-
-        square.unwrap()
     }
 }

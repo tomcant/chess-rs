@@ -16,14 +16,17 @@ impl std::str::FromStr for Position {
             return Err(format!("FEN must contain {NUM_PARTS} parts, got {}", parts.len()));
         }
 
-        Ok(Position {
-            board: parse_board(parts[0])?,
-            colour_to_move: parse_colour_to_move(parts[1])?,
-            castling_rights: parse_castling_rights(parts[2])?,
-            en_passant_square: parse_en_passant_square(parts[3])?,
-            half_move_clock: parts[4].parse().unwrap(),
-            full_move_counter: parts[5].parse().unwrap(),
-        })
+        let half_move_clock = parts[4].parse().unwrap();
+        let full_move_counter = parts[5].parse().unwrap();
+
+        Ok(Position::new(
+            parse_board(parts[0])?,
+            parse_colour_to_move(parts[1])?,
+            parse_castling_rights(parts[2])?,
+            parse_en_passant_square(parts[3])?,
+            half_move_clock,
+            full_move_counter,
+        ))
     }
 }
 
@@ -132,7 +135,7 @@ mod tests {
         let parse = START_POS_FEN.parse::<Position>();
 
         assert!(parse.is_ok());
-        assert_eq!(parse.unwrap().board.piece_at(parse_square("e2")), Some(Piece::WP));
+        assert_eq!(parse.unwrap().board.piece_at(Square::E2), Some(Piece::WP));
     }
 
     #[test]
@@ -225,7 +228,7 @@ mod tests {
         let parse = "8/8/8/8/8/8/8/8 w - f3 0 1".parse::<Position>();
 
         assert!(parse.is_ok());
-        assert_eq!(parse.unwrap().en_passant_square, Some(parse_square("f3")));
+        assert_eq!(parse.unwrap().en_passant_square, Some(Square::F3));
     }
 
     #[test]
@@ -233,7 +236,7 @@ mod tests {
         let parse = "8/8/8/8/8/8/8/8 w - f6 0 1".parse::<Position>();
 
         assert!(parse.is_ok());
-        assert_eq!(parse.unwrap().en_passant_square, Some(parse_square("f6")));
+        assert_eq!(parse.unwrap().en_passant_square, Some(Square::F6));
     }
 
     #[test]
@@ -250,13 +253,6 @@ mod tests {
         let pos = parse.unwrap();
         assert_eq!(pos.half_move_clock, 10);
         assert_eq!(pos.full_move_counter, 20);
-    }
-
-    fn parse_square(str: &str) -> Square {
-        let square = str.parse();
-        assert!(square.is_ok());
-
-        square.unwrap()
     }
 
     fn assert_parse_error(fen: &str, err: &str) {

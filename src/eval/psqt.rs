@@ -129,7 +129,7 @@ const SQUARE_MAP: [[usize; 64]; 2] = [
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::position::Position;
+    use crate::testing::*;
 
     #[test]
     fn a_pawn_is_better_when_it_is_ready_to_promote() {
@@ -177,12 +177,5 @@ mod tests {
         let uncastled = parse_fen("8/8/8/8/8/8/8/4K3 w - - 0 1");
 
         assert!(eval(Colour::White, &castled.board) > eval(Colour::White, &uncastled.board));
-    }
-
-    fn parse_fen(str: &str) -> Position {
-        let pos = str.parse();
-        assert!(pos.is_ok());
-
-        pos.unwrap()
     }
 }
