@@ -47,13 +47,13 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
                 let captured_piece = pos.board.piece_at(to_square);
 
                 if piece.is_pawn() && to_square.is_back_rank() {
-                    for piece in Piece::promotions(colour_to_move) {
+                    for promotion_piece in Piece::promotions(colour_to_move) {
                         moves.push(Move {
                             piece: *piece,
                             from: from_square,
                             to: to_square,
                             captured_piece,
-                            promotion_piece: Some(*piece),
+                            promotion_piece: Some(*promotion_piece),
                             castling_rights: pos.castling_rights,
                             half_move_clock: pos.half_move_clock,
                             is_en_passant: false,
@@ -115,13 +115,13 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
                 let captured_piece = pos.board.piece_at(to_square);
 
                 if piece.is_pawn() && to_square.is_back_rank() {
-                    for piece in Piece::promotions(colour_to_move) {
+                    for promotion_piece in Piece::promotions(colour_to_move) {
                         moves.push(Move {
                             piece: *piece,
                             from: from_square,
                             to: to_square,
                             captured_piece,
-                            promotion_piece: Some(*piece),
+                            promotion_piece: Some(*promotion_piece),
                             castling_rights: pos.castling_rights,
                             half_move_clock: pos.half_move_clock,
                             is_en_passant: false,

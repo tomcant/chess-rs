@@ -125,11 +125,7 @@ impl Position {
             };
         }
 
-        let piece = match mv.promotion_piece {
-            Some(piece) => Piece::pawn(piece.colour()),
-            None => mv.piece,
-        };
-        self.board.put_piece(piece, mv.from);
+        self.board.put_piece(mv.piece, mv.from);
         self.board.remove_piece(mv.to);
 
         self.castling_rights = mv.castling_rights;
