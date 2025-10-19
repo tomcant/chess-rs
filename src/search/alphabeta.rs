@@ -33,7 +33,7 @@ pub fn search(
         depth = 1;
     }
 
-    let key = pos.key();
+    let key = pos.key;
     let mut tt_move = None;
 
     if let Some(entry) = tt.probe(key) {

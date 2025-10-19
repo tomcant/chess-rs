@@ -4,7 +4,7 @@ use crate::square::Square;
 use lazy_static::lazy_static;
 
 impl Position {
-    pub fn key(&self) -> u64 {
+    pub fn compute_key(&self) -> u64 {
         let mut key = 0;
 
         for piece in Piece::pieces() {
@@ -28,15 +28,15 @@ impl Position {
     }
 }
 
-struct Zobrist {
-    piece_square: [[u64; 64]; 12],
-    colour_to_move: u64,
-    castling_rights: [u64; 16],
-    en_passant_files: [u64; 8],
+pub struct Zobrist {
+    pub piece_square: [[u64; 64]; 12],
+    pub colour_to_move: u64,
+    pub castling_rights: [u64; 16],
+    pub en_passant_files: [u64; 8],
 }
 
 lazy_static! {
-    static ref ZOBRIST: Zobrist = {
+    pub static ref ZOBRIST: Zobrist = {
         let mut rand = XorShift64::new(RNG_SEED);
 
         let mut piece_square = [[0; 64]; 12];

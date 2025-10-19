@@ -12,6 +12,7 @@ mod zobrist;
 pub use board::Board;
 pub use castling::{CastlingRight, CastlingRights};
 pub use fen::START_POS_FEN;
+use zobrist::ZOBRIST;
 
 const MAX_HISTORY: usize = 256;
 
@@ -24,6 +25,7 @@ pub struct Position {
     pub half_move_clock: u8,
     pub full_move_counter: u8,
     pub key_history: SmallVec<[u64; MAX_HISTORY]>,
+    pub key: u64,
 }
 
 impl Position {
@@ -35,7 +37,7 @@ impl Position {
         half_move_clock: u8,
         full_move_counter: u8,
     ) -> Self {
-        Self {
+        let mut pos = Self {
             board,
             colour_to_move,
             castling_rights,
@@ -43,7 +45,10 @@ impl Position {
             half_move_clock,
             full_move_counter,
             key_history: SmallVec::new(),
-        }
+            key: 0,
+        };
+        pos.key = pos.compute_key();
+        pos
     }
 
     pub fn startpos() -> Self {
@@ -51,39 +56,56 @@ impl Position {
     }
 
     pub fn do_move(&mut self, mv: &Move) {
-        self.key_history.push(self.key());
-        self.half_move_clock += 1;
-        self.en_passant_square = None;
+        self.key_history.push(self.key);
 
-        if let Some(capture_square) = mv.capture_square() {
-            self.board.remove_piece(capture_square);
-            self.half_move_clock = 0;
+        if let Some(square) = self.en_passant_square {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
         }
 
-        let piece = mv.promotion_piece.unwrap_or(mv.piece);
+        self.en_passant_square = None;
+        self.half_move_clock += 1;
 
-        if piece.is_pawn() {
+        if let Some(capture_square) = mv.capture_square() {
+            self.half_move_clock = 0;
+            self.board.remove_piece(capture_square);
+            self.key ^= ZOBRIST.piece_square[mv.captured_piece.unwrap()][capture_square];
+        }
+
+        if mv.piece.is_pawn() {
             self.half_move_clock = 0;
 
             if mv.rank_diff() == 2 {
                 self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
+                self.key ^= ZOBRIST.en_passant_files[mv.from.file() as usize];
             }
         }
 
-        if piece.is_king() {
+        if mv.piece.is_king() {
             self.castling_rights.remove_for_colour(self.colour_to_move);
 
             if mv.is_castling() {
                 let rook = Piece::rook(self.colour_to_move);
 
-                match mv.to.file() {
-                    2 => {
-                        self.board.put_piece(rook, Square::from_file_and_rank(3, mv.to.rank()));
-                        self.board.remove_piece(Square::from_file_and_rank(0, mv.to.rank()));
+                match mv.to {
+                    Square::C1 | Square::C8 => {
+                        let rook_to = Square::from_file_and_rank(3, mv.to.rank());
+                        let rook_from = Square::from_file_and_rank(0, mv.to.rank());
+
+                        self.board.put_piece(rook, rook_to);
+                        self.board.remove_piece(rook_from);
+
+                        self.key ^= ZOBRIST.piece_square[rook][rook_to];
+                        self.key ^= ZOBRIST.piece_square[rook][rook_from];
                     }
-                    6 => {
-                        self.board.put_piece(rook, Square::from_file_and_rank(5, mv.to.rank()));
-                        self.board.remove_piece(Square::from_file_and_rank(7, mv.to.rank()));
+                    Square::G1 | Square::G8 => {
+                        let rook_to = Square::from_file_and_rank(5, mv.to.rank());
+                        let rook_from = Square::from_file_and_rank(7, mv.to.rank());
+
+                        self.board.put_piece(rook, rook_to);
+                        self.board.remove_piece(rook_from);
+
+                        self.key ^= ZOBRIST.piece_square[rook][rook_to];
+                        self.key ^= ZOBRIST.piece_square[rook][rook_from];
                     }
                     _ => unreachable!(),
                 };
@@ -98,35 +120,67 @@ impl Position {
             self.castling_rights.remove_for_square(mv.to);
         }
 
-        self.board.put_piece(piece, mv.to);
+        self.key ^= ZOBRIST.castling_rights[self.castling_rights];
+        self.key ^= ZOBRIST.castling_rights[mv.castling_rights];
+
+        let to_piece = mv.promotion_piece.unwrap_or(mv.piece);
+        self.board.put_piece(to_piece, mv.to);
         self.board.remove_piece(mv.from);
+
+        self.key ^= ZOBRIST.piece_square[to_piece][mv.to];
+        self.key ^= ZOBRIST.piece_square[mv.piece][mv.from];
 
         if self.colour_to_move == Colour::Black {
             self.full_move_counter += 1;
         }
 
         self.colour_to_move = self.opponent_colour();
+        self.key ^= ZOBRIST.colour_to_move;
+
+        debug_assert_eq!(self.key, self.compute_key());
     }
 
     pub fn undo_move(&mut self, mv: &Move) {
         if mv.is_castling() {
             let rook = Piece::rook(self.opponent_colour());
 
-            match mv.to.file() {
-                2 => {
-                    self.board.put_piece(rook, Square::from_file_and_rank(0, mv.to.rank()));
-                    self.board.remove_piece(Square::from_file_and_rank(3, mv.to.rank()));
+            match mv.to {
+                Square::C1 | Square::C8 => {
+                    let rook_to = Square::from_file_and_rank(0, mv.to.rank());
+                    let rook_from = Square::from_file_and_rank(3, mv.to.rank());
+
+                    self.board.put_piece(rook, rook_to);
+                    self.board.remove_piece(rook_from);
+
+                    self.key ^= ZOBRIST.piece_square[rook][rook_to];
+                    self.key ^= ZOBRIST.piece_square[rook][rook_from];
                 }
-                6 => {
-                    self.board.put_piece(rook, Square::from_file_and_rank(7, mv.to.rank()));
-                    self.board.remove_piece(Square::from_file_and_rank(5, mv.to.rank()));
+                Square::G1 | Square::G8 => {
+                    let rook_to = Square::from_file_and_rank(7, mv.to.rank());
+                    let rook_from = Square::from_file_and_rank(5, mv.to.rank());
+
+                    self.board.put_piece(rook, rook_to);
+                    self.board.remove_piece(rook_from);
+
+                    self.key ^= ZOBRIST.piece_square[rook][rook_to];
+                    self.key ^= ZOBRIST.piece_square[rook][rook_from];
                 }
                 _ => unreachable!(),
             };
         }
 
-        self.board.put_piece(mv.piece, mv.from);
         self.board.remove_piece(mv.to);
+        self.board.put_piece(mv.piece, mv.from);
+
+        self.key ^= ZOBRIST.piece_square[mv.promotion_piece.unwrap_or(mv.piece)][mv.to];
+        self.key ^= ZOBRIST.piece_square[mv.piece][mv.from];
+
+        if let Some(square) = self.en_passant_square {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
+        }
+
+        self.key ^= ZOBRIST.castling_rights[self.castling_rights];
+        self.key ^= ZOBRIST.castling_rights[mv.castling_rights];
 
         self.castling_rights = mv.castling_rights;
         self.half_move_clock = mv.half_move_clock;
@@ -134,19 +188,24 @@ impl Position {
 
         if let Some(capture_square) = mv.capture_square() {
             self.board.put_piece(mv.captured_piece.unwrap(), capture_square);
+            self.key ^= ZOBRIST.piece_square[mv.captured_piece.unwrap()][capture_square];
 
             if mv.is_en_passant {
                 self.en_passant_square = Some(mv.to);
+                self.key ^= ZOBRIST.en_passant_files[mv.to.file() as usize];
             }
         }
 
         self.colour_to_move = self.opponent_colour();
+        self.key ^= ZOBRIST.colour_to_move;
 
         if self.colour_to_move == Colour::Black {
             self.full_move_counter -= 1;
         }
 
         self.key_history.pop();
+
+        debug_assert_eq!(self.key, self.compute_key());
     }
 
     pub fn is_threefold_repetition(&self) -> bool {
@@ -154,14 +213,13 @@ impl Position {
             return false;
         }
 
-        let current_key = self.key();
         let len = self.key_history.len();
         let max_back = len.min(self.half_move_clock as usize);
         let mut found_first_repetition = false;
         let mut offset = 2;
 
         while offset <= max_back {
-            if self.key_history[len - offset] == current_key {
+            if self.key_history[len - offset] == self.key {
                 if found_first_repetition {
                     return true;
                 }
@@ -667,7 +725,7 @@ mod tests {
     fn detect_threefold_repetition_from_start_position() {
         let mut pos = Position::startpos();
 
-        let moves = [
+        let mut moves = [
             make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3
             make_move(Piece::BN, Square::G8, Square::F6, None), // Nf6
             make_move(Piece::WN, Square::F3, Square::G1, None), // Ng1
@@ -678,7 +736,8 @@ mod tests {
             make_move(Piece::BN, Square::F6, Square::G8, None), // Ng8, second repetition, threefold
         ];
 
-        for (index, mv) in moves.iter().enumerate() {
+        for (index, mv) in moves.iter_mut().enumerate() {
+            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             let expect_threefold_repetition = index == 7;
@@ -696,7 +755,7 @@ mod tests {
     fn detect_threefold_repetition_from_middle_game_position() {
         let mut pos = parse_fen("1r1q1rk1/2p2pp1/2Q4p/pB2P3/P2P4/b6P/2R2PP1/3R2K1 b - - 10 33");
 
-        let moves = [
+        let mut moves = [
             make_move(Piece::BR, Square::B8, Square::C8, None), // Rc8
             make_move(Piece::WB, Square::B5, Square::A6, None), // Ba6
             make_move(Piece::BR, Square::C8, Square::B8, None), // Rb8
@@ -707,7 +766,8 @@ mod tests {
             make_move(Piece::WB, Square::A6, Square::B5, None), // Bb5, second repetition, threefold
         ];
 
-        for (index, mv) in moves.iter().enumerate() {
+        for (index, mv) in moves.iter_mut().enumerate() {
+            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             let expect_threefold_repetition = index == 7;
@@ -725,7 +785,7 @@ mod tests {
     fn threefold_repetition_not_counted_when_castling_rights_differ() {
         let mut pos = Position::startpos();
 
-        let moves = [
+        let mut moves = [
             make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3, the pieces revisit these squares later
             make_move(Piece::BN, Square::G8, Square::F6, None), // Nf6
             make_move(Piece::WR, Square::H1, Square::G1, None), // Rg1, removes white king-side castling rights
@@ -737,7 +797,8 @@ mod tests {
             make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3, second repetition but doesn't count due to castling rights
         ];
 
-        for (index, mv) in moves.iter().enumerate() {
+        for (index, mv) in moves.iter_mut().enumerate() {
+            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             assert!(
@@ -752,7 +813,7 @@ mod tests {
     fn threefold_repetition_not_counted_when_en_passant_availability_differs() {
         let mut pos = parse_fen("4k3/4p3/8/3P4/8/8/8/4K1Nn w - - 0 1");
 
-        let moves = [
+        let mut moves = [
             make_move(Piece::WN, Square::G1, Square::F3, None), // Nf3
             make_move(Piece::BP, Square::E7, Square::E5, None), // e5, the pieces revisit these squares later
             make_move(Piece::WN, Square::F3, Square::G1, None), // Ng1, en passant availability expires
@@ -765,7 +826,8 @@ mod tests {
             make_move(Piece::BN, Square::G3, Square::H1, None), // Nh1, second repetition but doesn't count due to en passant availability
         ];
 
-        for (index, mv) in moves.iter().enumerate() {
+        for (index, mv) in moves.iter_mut().enumerate() {
+            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             assert!(
