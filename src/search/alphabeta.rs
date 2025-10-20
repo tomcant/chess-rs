@@ -59,6 +59,7 @@ pub fn search(
     report.nodes += 1;
 
     let mut has_legal_move = false;
+    let mut has_searched_one = false;
     let mut tt_bound = Bound::Upper;
 
     // Search the TT move before generating other moves because there's a good
@@ -92,6 +93,7 @@ pub fn search(
         }
 
         has_legal_move = true;
+        has_searched_one = true;
     }
 
     let colour_to_move = pos.colour_to_move;
@@ -114,8 +116,19 @@ pub fn search(
         has_legal_move = true;
         report.ply += 1;
 
+        let mut eval;
         let mut child_pv = MoveList::new();
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+
+        if has_searched_one && depth >= 3 {
+            eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut child_pv, tt, killers, report, stopper);
+
+            if eval > alpha && eval < beta {
+                child_pv = MoveList::new();
+                eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+            }
+        } else {
+            eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+        }
 
         report.ply -= 1;
         pos.undo_move(mv);
@@ -138,6 +151,8 @@ pub fn search(
             pv.push(*mv);
             pv.append(&mut child_pv);
         }
+
+        has_searched_one = true;
     }
 
     if !has_legal_move {
