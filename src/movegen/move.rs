@@ -36,4 +36,15 @@ impl Move {
     pub fn rank_diff(&self) -> u8 {
         self.from.rank_diff(self.to)
     }
+
+    // Compare only the parts of the move that define its semantics on the board.
+    // Ignore transient state like castling rights and half-move clock which can
+    // differ between sibling nodes at the same ply, preventing heuristic matches.
+    pub fn equals(&self, other: &Self) -> bool {
+        self.piece == other.piece
+            && self.from == other.from
+            && self.to == other.to
+            && self.promotion_piece == other.promotion_piece
+            && self.is_en_passant == other.is_en_passant
+    }
 }
