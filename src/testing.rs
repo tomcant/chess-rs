@@ -18,6 +18,7 @@ pub fn make_move(piece: Piece, from: Square, to: Square, captured_piece: Option<
         promotion_piece: None,
         castling_rights: CastlingRights::none(),
         half_move_clock: 0,
+        en_passant_square: None,
         is_en_passant: false,
     }
 }
