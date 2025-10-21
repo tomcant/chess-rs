@@ -11,6 +11,7 @@ pub struct Move {
     pub promotion_piece: Option<Piece>,
     pub castling_rights: CastlingRights,
     pub half_move_clock: u8,
+    pub en_passant_square: Option<Square>,
     pub is_en_passant: bool,
 }
 

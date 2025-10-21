@@ -180,21 +180,20 @@ impl Position {
             self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
         }
 
+        if let Some(square) = mv.en_passant_square {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
+        }
+
         self.key ^= ZOBRIST.castling_rights[self.castling_rights];
         self.key ^= ZOBRIST.castling_rights[mv.castling_rights];
 
         self.castling_rights = mv.castling_rights;
         self.half_move_clock = mv.half_move_clock;
-        self.en_passant_square = None;
+        self.en_passant_square = mv.en_passant_square;
 
         if let Some(capture_square) = mv.capture_square() {
             self.board.put_piece(mv.captured_piece.unwrap(), capture_square);
             self.key ^= ZOBRIST.piece_square[mv.captured_piece.unwrap()][capture_square];
-
-            if mv.is_en_passant {
-                self.en_passant_square = Some(mv.to);
-                self.key ^= ZOBRIST.en_passant_files[mv.to.file() as usize];
-            }
         }
 
         self.colour_to_move = self.opponent_colour();
@@ -258,6 +257,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -280,6 +280,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             half_move_clock: 0,
+            en_passant_square: None,
             is_en_passant: false,
         };
 
@@ -302,6 +303,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -323,6 +325,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             half_move_clock: 0,
+            en_passant_square: None,
             is_en_passant: false,
         };
 
@@ -344,6 +347,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -370,6 +374,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing]),
             half_move_clock: 0,
+            en_passant_square: None,
             is_en_passant: false,
         };
 
@@ -396,6 +401,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -416,6 +422,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -436,6 +443,7 @@ mod tests {
             promotion_piece: Some(Piece::WN),
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -457,6 +465,7 @@ mod tests {
             promotion_piece: Some(Piece::WN),
             castling_rights: CastlingRights::none(),
             half_move_clock: 1,
+            en_passant_square: None,
             is_en_passant: false,
         };
 
@@ -478,6 +487,7 @@ mod tests {
             promotion_piece: Some(Piece::WB),
             castling_rights: CastlingRights::none(),
             half_move_clock: 1,
+            en_passant_square: None,
             is_en_passant: false,
         };
 
@@ -499,6 +509,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: true,
         };
 
@@ -521,6 +532,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             half_move_clock: 1,
+            en_passant_square: Some(Square::E6),
             is_en_passant: true,
         };
 
@@ -544,6 +556,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -564,6 +577,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -584,12 +598,50 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             half_move_clock: 1,
+            en_passant_square: None,
             is_en_passant: false,
         };
 
         pos.undo_move(&mv);
 
         assert_eq!(pos.en_passant_square, None);
+    }
+
+    #[test]
+    fn restore_the_previous_en_passant_square_when_undoing_a_move() {
+        let mut pos = Position::startpos();
+
+        let mv = Move {
+            piece: Piece::WP,
+            from: Square::E2,
+            to: Square::E4,
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
+            is_en_passant: false,
+        };
+
+        pos.do_move(&mv);
+
+        let mv = Move {
+            piece: Piece::BN,
+            from: Square::G8,
+            to: Square::F6,
+            captured_piece: None,
+            promotion_piece: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
+            is_en_passant: false,
+        };
+
+        pos.do_move(&mv);
+
+        pos.undo_move(&mv);
+
+        assert_eq!(pos.en_passant_square, Some(Square::E3));
     }
 
     #[test]
@@ -604,6 +656,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -624,6 +677,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -644,6 +698,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -666,6 +721,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -681,6 +737,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: pos.castling_rights,
             half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -703,6 +760,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             half_move_clock: 0,
+            en_passant_square: Some(Square::E3),
             is_en_passant: false,
         };
 
@@ -718,6 +776,7 @@ mod tests {
             promotion_piece: None,
             castling_rights: CastlingRights::none(),
             half_move_clock: 0,
+            en_passant_square: None,
             is_en_passant: false,
         };
 
