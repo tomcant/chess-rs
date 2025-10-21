@@ -232,6 +232,10 @@ impl Position {
         false
     }
 
+    pub fn is_fifty_move_rule(&self) -> bool {
+        self.half_move_clock >= 100
+    }
+
     pub fn opponent_colour(&self) -> Colour {
         self.colour_to_move.flip()
     }
