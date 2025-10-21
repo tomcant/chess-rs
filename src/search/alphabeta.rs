@@ -19,7 +19,7 @@ pub fn search(
         return 0;
     }
 
-    if pos.is_threefold_repetition() {
+    if pos.is_fifty_move_rule() || pos.is_threefold_repetition() {
         return EVAL_STALEMATE;
     }
 
