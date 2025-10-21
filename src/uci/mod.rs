@@ -47,6 +47,7 @@ pub fn main() {
             IsReady => handle::is_ready(),
             NewGame => handle::new_game(&mut pos.lock().unwrap()),
             PrintBoard => handle::print_board(&pos.lock().unwrap()),
+            PrintFen => handle::print_fen(&pos.lock().unwrap()),
             Position(fen, moves) => handle::position(fen, moves, &mut pos.lock().unwrap()),
             Go(params) => {
                 let stopper_rx = Arc::clone(&stopper_rx);

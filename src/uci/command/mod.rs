@@ -10,6 +10,7 @@ pub enum UciCommand {
     IsReady,
     NewGame,
     PrintBoard,
+    PrintFen,
     Position(String, Vec<UciMove>),
     Go(GoParams),
     SetOption(String, Option<String>),

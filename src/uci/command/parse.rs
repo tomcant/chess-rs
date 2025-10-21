@@ -18,6 +18,7 @@ impl std::str::FromStr for UciCommand {
             "isready" => Ok(IsReady),
             "ucinewgame" => Ok(NewGame),
             "printboard" => Ok(PrintBoard),
+            "printfen" => Ok(PrintFen),
             "position" => Ok(parse_position(args)?),
             "go" => Ok(parse_go(args)?),
             "setoption" => Ok(parse_setoption(args)?),
@@ -177,6 +178,11 @@ mod tests {
     #[test]
     fn parse_printboard_command() {
         assert_eq!("printboard".parse(), Ok(PrintBoard));
+    }
+
+    #[test]
+    fn parse_printfen_command() {
+        assert_eq!("printfen".parse(), Ok(PrintFen));
     }
 
     #[test]

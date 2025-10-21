@@ -26,7 +26,11 @@ pub fn new_game(pos: &mut Position) {
 }
 
 pub fn print_board(pos: &Position) {
-    println!("{}", pos.board);
+    println!("{pos}");
+}
+
+pub fn print_fen(pos: &Position) {
+    println!("{}", pos.to_fen());
 }
 
 pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {

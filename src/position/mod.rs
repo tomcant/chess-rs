@@ -6,6 +6,7 @@ use smallvec::SmallVec;
 
 mod board;
 mod castling;
+mod display;
 mod fen;
 mod zobrist;
 
