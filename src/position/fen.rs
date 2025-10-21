@@ -5,6 +5,84 @@ use crate::square::Square;
 
 pub const START_POS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+impl Position {
+    pub fn to_fen(&self) -> String {
+        let board = board_to_fen(&self.board);
+        let colour = match self.colour_to_move {
+            Colour::White => 'w',
+            _ => 'b',
+        };
+        let castling = castling_rights_to_fen(self.castling_rights);
+        let en_passant = match self.en_passant_square {
+            Some(square) => square.to_string(),
+            None => "-".to_string(),
+        };
+
+        format!(
+            "{board} {colour} {castling} {en_passant} {} {}",
+            self.half_move_clock, self.full_move_counter
+        )
+    }
+}
+
+fn board_to_fen(board: &Board) -> String {
+    let mut output = String::new();
+
+    for rank in (0..8).rev() {
+        let mut empty_run = 0u8;
+
+        for file in 0..8 {
+            let square = Square::from_file_and_rank(file, rank);
+
+            match board.piece_at(square) {
+                Some(piece) => {
+                    if empty_run > 0 {
+                        output.push((b'0' + empty_run) as char);
+                        empty_run = 0;
+                    }
+                    output.push_str(&piece.to_string());
+                }
+                None => {
+                    empty_run += 1;
+                }
+            }
+        }
+
+        if empty_run > 0 {
+            output.push((b'0' + empty_run) as char);
+        }
+
+        if rank > 0 {
+            output.push('/');
+        }
+    }
+
+    output
+}
+
+pub fn castling_rights_to_fen(rights: CastlingRights) -> String {
+    let mut output = String::new();
+
+    if rights.has(CastlingRight::WhiteKing) {
+        output.push('K');
+    }
+    if rights.has(CastlingRight::WhiteQueen) {
+        output.push('Q');
+    }
+    if rights.has(CastlingRight::BlackKing) {
+        output.push('k');
+    }
+    if rights.has(CastlingRight::BlackQueen) {
+        output.push('q');
+    }
+
+    if output.is_empty() {
+        output.push('-');
+    }
+
+    output
+}
+
 impl std::str::FromStr for Position {
     type Err = String;
 
