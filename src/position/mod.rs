@@ -158,9 +158,6 @@ impl Position {
 
                     self.board.put_piece(rook, rook_to);
                     self.board.remove_piece(rook_from);
-
-                    self.key ^= ZOBRIST.piece_square[rook][rook_to];
-                    self.key ^= ZOBRIST.piece_square[rook][rook_from];
                 }
                 Square::G1 | Square::G8 => {
                     let rook_to = Square::from_file_and_rank(7, mv.to.rank());
@@ -168,9 +165,6 @@ impl Position {
 
                     self.board.put_piece(rook, rook_to);
                     self.board.remove_piece(rook_from);
-
-                    self.key ^= ZOBRIST.piece_square[rook][rook_to];
-                    self.key ^= ZOBRIST.piece_square[rook][rook_from];
                 }
                 _ => unreachable!(),
             };
@@ -179,41 +173,21 @@ impl Position {
         self.board.remove_piece(mv.to);
         self.board.put_piece(mv.piece, mv.from);
 
-        self.key ^= ZOBRIST.piece_square[mv.promotion_piece.unwrap_or(mv.piece)][mv.to];
-        self.key ^= ZOBRIST.piece_square[mv.piece][mv.from];
-
-        if let Some(square) = self.en_passant_square
-            && get_en_passant_attacks(square, self.colour_to_move, &self.board) != 0
-        {
-            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
-        }
-
-        if let Some(square) = mv.en_passant_square
-            && get_en_passant_attacks(square, self.opponent_colour(), &self.board) != 0
-        {
-            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
-        }
-
-        self.key ^= ZOBRIST.castling_rights[self.castling_rights];
-        self.key ^= ZOBRIST.castling_rights[mv.castling_rights];
-
         self.castling_rights = mv.castling_rights;
         self.en_passant_square = mv.en_passant_square;
         self.half_move_clock = mv.half_move_clock;
 
         if let Some(capture_square) = mv.capture_square() {
             self.board.put_piece(mv.captured_piece.unwrap(), capture_square);
-            self.key ^= ZOBRIST.piece_square[mv.captured_piece.unwrap()][capture_square];
         }
 
         self.colour_to_move = self.opponent_colour();
-        self.key ^= ZOBRIST.colour_to_move;
 
         if self.colour_to_move == Colour::Black {
             self.full_move_counter -= 1;
         }
 
-        self.key_history.pop();
+        self.key = self.key_history.pop().unwrap();
 
         debug_assert_eq!(self.key, self.compute_key());
     }
@@ -280,7 +254,7 @@ mod tests {
 
     #[test]
     fn undo_moving_a_piece() {
-        let mut pos = parse_fen("8/8/8/8/5R2/8/8/8 b - - 1 1");
+        let mut pos = parse_fen("4k3/8/8/8/8/8/8/4KR2 w - - 0 1");
 
         let mv = Move {
             piece: Piece::WR,
@@ -288,11 +262,12 @@ mod tests {
             to: Square::F4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 0,
-            en_passant_square: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
+        pos.do_move(&mv);
 
         pos.undo_move(&mv);
 
@@ -325,7 +300,7 @@ mod tests {
 
     #[test]
     fn undo_capturing_a_piece() {
-        let mut pos = parse_fen("8/8/8/5N2/8/8/8/8 b - - 1 1");
+        let mut pos = parse_fen("4k3/8/8/5p2/3N4/8/8/4K3 w - - 0 1");
 
         let mv = Move {
             piece: Piece::WN,
@@ -333,11 +308,12 @@ mod tests {
             to: Square::F5,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 0,
-            en_passant_square: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
+        pos.do_move(&mv);
 
         pos.undo_move(&mv);
 
@@ -374,7 +350,7 @@ mod tests {
 
     #[test]
     fn undo_castle_king_side() {
-        let mut pos = parse_fen("8/8/8/8/8/8/8/5RK1 b - - 1 1");
+        let mut pos = parse_fen("4k3/8/8/8/8/8/8/4K2R w K - 0 1");
 
         let mv = Move {
             piece: Piece::WK,
@@ -382,11 +358,12 @@ mod tests {
             to: Square::G1,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing]),
-            half_move_clock: 0,
-            en_passant_square: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
+        pos.do_move(&mv);
 
         pos.undo_move(&mv);
 
@@ -465,19 +442,20 @@ mod tests {
 
     #[test]
     fn undo_promoting_a_pawn() {
-        let mut pos = parse_fen("4N3/8/8/8/8/8/8/8 b - - 0 1");
+        let mut pos = parse_fen("4k3/2P5/8/8/8/8/8/4K3 w - - 0 1");
 
         let mv = Move {
             piece: Piece::WP,
-            from: Square::E7,
-            to: Square::E8,
+            from: Square::C7,
+            to: Square::C8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 1,
-            en_passant_square: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
+        pos.do_move(&mv);
 
         pos.undo_move(&mv);
 
@@ -487,19 +465,20 @@ mod tests {
 
     #[test]
     fn undo_promoting_a_pawn_with_capture() {
-        let mut pos = parse_fen("3B4/8/8/8/8/8/8/8 b - - 0 1");
+        let mut pos = parse_fen("1n2k3/2P5/8/8/8/8/8/4K3 w - - 0 1");
 
         let mv = Move {
             piece: Piece::WP,
-            from: Square::E7,
-            to: Square::D8,
-            captured_piece: Some(Piece::BQ),
-            promotion_piece: Some(Piece::WB),
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 1,
-            en_passant_square: None,
+            from: Square::C7,
+            to: Square::B8,
+            captured_piece: Some(Piece::BN),
+            promotion_piece: Some(Piece::WN),
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
+        pos.do_move(&mv);
 
         pos.undo_move(&mv);
 
@@ -532,7 +511,7 @@ mod tests {
 
     #[test]
     fn undo_capturing_a_pawn_en_passant() {
-        let mut pos = parse_fen("8/8/4P3/8/8/8/8/8 b - - 0 1");
+        let mut pos = parse_fen("4k3/8/8/3Pp3/8/8/8/4K3 w - e6 0 1");
 
         let mv = Move {
             piece: Piece::WP,
@@ -545,6 +524,7 @@ mod tests {
             en_passant_square: Some(Square::E6),
             is_en_passant: true,
         };
+        pos.do_move(&mv);
 
         pos.undo_move(&mv);
 
@@ -598,7 +578,7 @@ mod tests {
 
     #[test]
     fn reset_the_en_passant_square_when_undoing_a_double_pawn_advance() {
-        let mut pos = parse_fen("8/8/8/8/4P3/8/8/8 b - e3 0 1");
+        let mut pos = Position::startpos();
 
         let mv = Move {
             piece: Piece::WP,
@@ -606,11 +586,12 @@ mod tests {
             to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 1,
-            en_passant_square: None,
+            castling_rights: pos.castling_rights,
+            half_move_clock: pos.half_move_clock,
+            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
+        pos.do_move(&mv);
 
         pos.undo_move(&mv);
 
@@ -632,7 +613,6 @@ mod tests {
             en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
-
         pos.do_move(&mv);
 
         let mv = Move {
@@ -646,7 +626,6 @@ mod tests {
             en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
-
         pos.do_move(&mv);
 
         pos.undo_move(&mv);
@@ -719,11 +698,11 @@ mod tests {
 
     #[test]
     fn increment_the_full_move_counter_when_black_moves() {
-        let mut pos = parse_fen("8/4p3/8/8/8/8/4P3/8 w - - 0 1");
+        let mut pos = Position::startpos();
 
         assert_eq!(pos.full_move_counter, 1);
 
-        let mv = Move {
+        let white_move = Move {
             piece: Piece::WP,
             from: Square::E2,
             to: Square::E4,
@@ -734,12 +713,11 @@ mod tests {
             en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
-
-        pos.do_move(&mv);
+        pos.do_move(&white_move);
 
         assert_eq!(pos.full_move_counter, 1);
 
-        let mv = Move {
+        let black_move = Move {
             piece: Piece::BP,
             from: Square::E7,
             to: Square::E5,
@@ -750,47 +728,15 @@ mod tests {
             en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
-
-        pos.do_move(&mv);
-
-        assert_eq!(pos.full_move_counter, 2);
-    }
-
-    #[test]
-    fn decrement_the_full_move_counter_when_undoing_black_moves() {
-        let mut pos = parse_fen("8/8/8/4p3/4P3/8/8/8 w - - 0 2");
+        pos.do_move(&black_move);
 
         assert_eq!(pos.full_move_counter, 2);
 
-        let mv = Move {
-            piece: Piece::BP,
-            from: Square::E7,
-            to: Square::E5,
-            captured_piece: None,
-            promotion_piece: None,
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 0,
-            en_passant_square: Some(Square::E3),
-            is_en_passant: false,
-        };
-
-        pos.undo_move(&mv);
+        pos.undo_move(&black_move);
 
         assert_eq!(pos.full_move_counter, 1);
 
-        let mv = Move {
-            piece: Piece::WP,
-            from: Square::E2,
-            to: Square::E4,
-            captured_piece: None,
-            promotion_piece: None,
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 0,
-            en_passant_square: None,
-            is_en_passant: false,
-        };
-
-        pos.undo_move(&mv);
+        pos.undo_move(&white_move);
 
         assert_eq!(pos.full_move_counter, 1);
     }
