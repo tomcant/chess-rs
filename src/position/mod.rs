@@ -82,7 +82,7 @@ impl Position {
                 self.en_passant_square = Some(square);
 
                 if get_en_passant_attacks(square, self.opponent_colour(), &self.board) != 0 {
-                    self.key ^= ZOBRIST.en_passant_files[mv.from.file() as usize];
+                    self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
                 }
             }
         }
@@ -189,7 +189,7 @@ impl Position {
         }
 
         if let Some(square) = mv.en_passant_square
-            && get_en_passant_attacks(square, self.colour_to_move.flip(), &self.board) != 0
+            && get_en_passant_attacks(square, self.opponent_colour(), &self.board) != 0
         {
             self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
         }
@@ -198,8 +198,8 @@ impl Position {
         self.key ^= ZOBRIST.castling_rights[mv.castling_rights];
 
         self.castling_rights = mv.castling_rights;
-        self.half_move_clock = mv.half_move_clock;
         self.en_passant_square = mv.en_passant_square;
+        self.half_move_clock = mv.half_move_clock;
 
         if let Some(capture_square) = mv.capture_square() {
             self.board.put_piece(mv.captured_piece.unwrap(), capture_square);

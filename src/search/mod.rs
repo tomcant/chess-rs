@@ -16,7 +16,6 @@ mod quiescence;
 const MAX_DEPTH: u8 = u8::MAX;
 
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopper) {
-    let mut pv = MoveList::new();
     let mut tt = tt::Table::with_mb(tt::size_mb());
     let mut report = Report::new();
 
@@ -28,6 +27,7 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
     for depth in 1..=max_depth {
         report.depth = depth;
 
+        let mut pv = MoveList::new();
         let eval = alphabeta::search(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut tt, &mut report, stopper);
 
         if stopper.should_stop(&report) {
