@@ -1,4 +1,5 @@
 use super::*;
+use crate::movegen::get_en_passant_attacks;
 use crate::piece::Piece;
 use crate::square::Square;
 use lazy_static::lazy_static;
@@ -20,7 +21,9 @@ impl Position {
 
         key ^= ZOBRIST.castling_rights[self.castling_rights];
 
-        if let Some(square) = self.en_passant_square {
+        if let Some(square) = self.en_passant_square
+            && get_en_passant_attacks(square, self.colour_to_move, &self.board) != 0
+        {
             key ^= ZOBRIST.en_passant_files[square.file() as usize];
         }
 
