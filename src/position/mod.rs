@@ -1,5 +1,5 @@
 use crate::colour::Colour;
-use crate::movegen::Move;
+use crate::movegen::{Move, get_en_passant_attacks};
 use crate::piece::Piece;
 use crate::square::Square;
 use smallvec::SmallVec;
@@ -59,7 +59,9 @@ impl Position {
     pub fn do_move(&mut self, mv: &Move) {
         self.key_history.push(self.key);
 
-        if let Some(square) = self.en_passant_square {
+        if let Some(square) = self.en_passant_square
+            && get_en_passant_attacks(square, self.colour_to_move, &self.board) != 0
+        {
             self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
         }
 
@@ -76,8 +78,12 @@ impl Position {
             self.half_move_clock = 0;
 
             if mv.rank_diff() == 2 {
-                self.en_passant_square = Some(mv.from.advance(self.colour_to_move));
-                self.key ^= ZOBRIST.en_passant_files[mv.from.file() as usize];
+                let square = mv.from.advance(self.colour_to_move);
+                self.en_passant_square = Some(square);
+
+                if get_en_passant_attacks(square, self.opponent_colour(), &self.board) != 0 {
+                    self.key ^= ZOBRIST.en_passant_files[mv.from.file() as usize];
+                }
             }
         }
 
@@ -176,11 +182,15 @@ impl Position {
         self.key ^= ZOBRIST.piece_square[mv.promotion_piece.unwrap_or(mv.piece)][mv.to];
         self.key ^= ZOBRIST.piece_square[mv.piece][mv.from];
 
-        if let Some(square) = self.en_passant_square {
+        if let Some(square) = self.en_passant_square
+            && get_en_passant_attacks(square, self.colour_to_move, &self.board) != 0
+        {
             self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
         }
 
-        if let Some(square) = mv.en_passant_square {
+        if let Some(square) = mv.en_passant_square
+            && get_en_passant_attacks(square, self.colour_to_move.flip(), &self.board) != 0
+        {
             self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
         }
 
