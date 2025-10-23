@@ -81,7 +81,7 @@ pub fn search(
 
             pv.clear();
             pv.push(mv);
-            pv.append(&mut child_pv);
+            pv.extend(child_pv);
         }
 
         has_legal_move = true;
@@ -125,7 +125,7 @@ pub fn search(
 
             pv.clear();
             pv.push(*mv);
-            pv.append(&mut child_pv);
+            pv.extend(child_pv);
         }
     }
 

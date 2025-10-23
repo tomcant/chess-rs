@@ -2,7 +2,7 @@ use crate::colour::Colour;
 use crate::movegen::{Move, get_en_passant_attacks};
 use crate::piece::Piece;
 use crate::square::Square;
-use smallvec::SmallVec;
+use arrayvec::ArrayVec;
 
 mod board;
 mod castling;
@@ -25,7 +25,7 @@ pub struct Position {
     pub en_passant_square: Option<Square>,
     pub half_move_clock: u8,
     pub full_move_counter: u8,
-    pub key_history: SmallVec<[u64; MAX_HISTORY]>,
+    pub key_history: ArrayVec<u64, MAX_HISTORY>,
     pub key: u64,
 }
 
@@ -45,7 +45,7 @@ impl Position {
             en_passant_square,
             half_move_clock,
             full_move_counter,
-            key_history: SmallVec::new(),
+            key_history: ArrayVec::new(),
             key: 0,
         };
         pos.key = pos.compute_key();

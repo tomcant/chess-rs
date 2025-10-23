@@ -2,8 +2,8 @@ use crate::colour::Colour;
 use crate::piece::Piece;
 use crate::position::{Board, CastlingRight, CastlingRights, Position};
 use crate::square::Square;
+use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
-use smallvec::SmallVec;
 
 mod attacks;
 mod r#move;
@@ -12,7 +12,7 @@ pub use attacks::*;
 pub use r#move::Move;
 
 pub const MAX_MOVES: usize = 128;
-pub type MoveList = SmallVec<[Move; MAX_MOVES]>;
+pub type MoveList = ArrayVec<Move, MAX_MOVES>;
 
 const PAWN_START_RANKS: [u8; 2] = [1, 6];
 
