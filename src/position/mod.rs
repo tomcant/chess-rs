@@ -192,24 +192,30 @@ impl Position {
         debug_assert_eq!(self.key, self.compute_key());
     }
 
-    pub fn is_repetition_draw(&self) -> bool {
+    pub fn is_repetition_draw(&self, search_ply: u8) -> bool {
         if self.half_move_clock < 8 {
             return false;
         }
 
-        let len = self.key_history.len();
-        let max_back = len.min(self.half_move_clock as usize);
-        let mut found_first_repetition = false;
-        let mut offset = 2;
+        let mut counter = 0;
+        let keys = self.key_history.iter().rev();
 
-        while offset <= max_back {
-            if self.key_history[len - offset] == self.key {
-                if found_first_repetition {
-                    return true;
-                }
-                found_first_repetition = true;
+        for (distance, key) in keys.enumerate().take(self.half_move_clock as usize).skip(3).step_by(2) {
+            if *key != self.key {
+                continue;
             }
-            offset += 2;
+
+            // If the repetition occurred since the root node then we can assume that
+            // neither side has anything better than a draw since both are maximising
+            // their score. It's therefore safe to assume the cycle will repeat.
+            if distance < search_ply as usize {
+                return true;
+            }
+
+            counter += 1;
+            if counter == 2 {
+                return true;
+            }
         }
 
         false
@@ -762,7 +768,7 @@ mod tests {
 
             let expect_repetition_draw = index == 7;
             assert_eq!(
-                pos.is_repetition_draw(),
+                pos.is_repetition_draw(0),
                 expect_repetition_draw,
                 "Position should {} a repetition draw at ply {}",
                 if expect_repetition_draw { "be" } else { "not be" },
@@ -792,7 +798,7 @@ mod tests {
 
             let expect_repetition_draw = index == 7;
             assert_eq!(
-                pos.is_repetition_draw(),
+                pos.is_repetition_draw(0),
                 expect_repetition_draw,
                 "Position should {} a repetition draw at ply {}",
                 if expect_repetition_draw { "be" } else { "not be" },
@@ -822,7 +828,7 @@ mod tests {
             pos.do_move(&mv);
 
             assert!(
-                !pos.is_repetition_draw(),
+                !pos.is_repetition_draw(0),
                 "Position should not be considered a repetition draw at ply {}",
                 index + 1
             );
@@ -851,7 +857,7 @@ mod tests {
             pos.do_move(&mv);
 
             assert!(
-                !pos.is_repetition_draw(),
+                !pos.is_repetition_draw(0),
                 "Position should not be considered a repetition draw at ply {}",
                 index + 1
             );

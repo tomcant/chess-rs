@@ -45,7 +45,7 @@ fn sanitise_pv(mut pos: Position, (moves, eval): (MoveList, i32)) -> (MoveList, 
     for (index, mv) in moves.iter().enumerate() {
         pos.do_move(mv);
 
-        if pos.is_fifty_move_draw() || pos.is_repetition_draw() {
+        if pos.is_fifty_move_draw() || pos.is_repetition_draw(0) {
             return (MoveList::from_slice(&moves[..=index]), EVAL_DRAW);
         }
     }
