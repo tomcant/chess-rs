@@ -37,12 +37,6 @@ pub fn search(
     let mut tt_move = None;
 
     if let Some(entry) = tt.probe(key) {
-        if let Some(mv) = entry.mv {
-            tt_move = entry.mv;
-            pv.clear();
-            pv.push(mv);
-        }
-
         if entry.depth >= depth {
             match entry.bound {
                 Bound::Exact => return entry.eval,
@@ -51,6 +45,8 @@ pub fn search(
                 _ => (),
             };
         }
+
+        tt_move = entry.mv;
     }
 
     report.nodes += 1;
