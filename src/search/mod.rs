@@ -34,10 +34,25 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
             break;
         }
 
-        report.pv = Some((pv.clone(), eval));
+        if !pv.is_empty() {
+            report.pv = Some(sanitise_pv(pos.clone(), (pv.clone(), eval)));
+        }
+
         report.tt_stats = (tt.usage, tt.capacity);
         reporter.send(&report);
     }
+}
+
+fn sanitise_pv(mut pos: Position, (moves, eval): (MoveList, i32)) -> (MoveList, i32) {
+    for (index, mv) in moves.iter().enumerate() {
+        pos.do_move(mv);
+
+        if pos.is_fifty_move_draw() || pos.is_repetition_draw() {
+            return (MoveList::from_slice(&moves[..=index]), EVAL_DRAW);
+        }
+    }
+
+    (moves, eval)
 }
 
 fn order_moves(moves: &mut [Move]) {
