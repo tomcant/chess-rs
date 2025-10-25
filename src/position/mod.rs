@@ -192,7 +192,7 @@ impl Position {
         debug_assert_eq!(self.key, self.compute_key());
     }
 
-    pub fn is_threefold_repetition(&self) -> bool {
+    pub fn is_repetition_draw(&self) -> bool {
         if self.half_move_clock < 8 {
             return false;
         }
@@ -215,7 +215,7 @@ impl Position {
         false
     }
 
-    pub fn is_fifty_move_rule(&self) -> bool {
+    pub fn is_fifty_move_draw(&self) -> bool {
         self.half_move_clock >= 100
     }
 
@@ -742,7 +742,7 @@ mod tests {
     }
 
     #[test]
-    fn detect_threefold_repetition_from_start_position() {
+    fn detect_repetition_draw_from_start_position() {
         let mut pos = Position::startpos();
 
         let mut moves = [
@@ -760,19 +760,19 @@ mod tests {
             mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
-            let expect_threefold_repetition = index == 7;
+            let expect_repetition_draw = index == 7;
             assert_eq!(
-                pos.is_threefold_repetition(),
-                expect_threefold_repetition,
-                "Position should {} a threefold repetition at ply {}",
-                if expect_threefold_repetition { "be" } else { "not be" },
+                pos.is_repetition_draw(),
+                expect_repetition_draw,
+                "Position should {} a repetition draw at ply {}",
+                if expect_repetition_draw { "be" } else { "not be" },
                 index + 1
             );
         }
     }
 
     #[test]
-    fn detect_threefold_repetition_from_middle_game_position() {
+    fn detect_repetition_draw_from_middle_game_position() {
         let mut pos = parse_fen("1r1q1rk1/2p2pp1/2Q4p/pB2P3/P2P4/b6P/2R2PP1/3R2K1 b - - 10 33");
 
         let mut moves = [
@@ -790,19 +790,19 @@ mod tests {
             mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
-            let expect_threefold_repetition = index == 7;
+            let expect_repetition_draw = index == 7;
             assert_eq!(
-                pos.is_threefold_repetition(),
-                expect_threefold_repetition,
-                "Position should {} a threefold repetition at ply {}",
-                if expect_threefold_repetition { "be" } else { "not be" },
+                pos.is_repetition_draw(),
+                expect_repetition_draw,
+                "Position should {} a repetition draw at ply {}",
+                if expect_repetition_draw { "be" } else { "not be" },
                 index + 1
             );
         }
     }
 
     #[test]
-    fn threefold_repetition_not_counted_when_castling_rights_differ() {
+    fn repetition_draw_not_counted_when_castling_rights_differ() {
         let mut pos = Position::startpos();
 
         let mut moves = [
@@ -822,15 +822,15 @@ mod tests {
             pos.do_move(&mv);
 
             assert!(
-                !pos.is_threefold_repetition(),
-                "Position should not be considered a threefold repetition at ply {}",
+                !pos.is_repetition_draw(),
+                "Position should not be considered a repetition draw at ply {}",
                 index + 1
             );
         }
     }
 
     #[test]
-    fn threefold_repetition_not_counted_when_en_passant_availability_differs() {
+    fn repetition_draw_not_counted_when_en_passant_availability_differs() {
         let mut pos = parse_fen("4k3/4p3/8/3P4/8/8/8/4K1Nn w - - 0 1");
 
         let mut moves = [
@@ -851,8 +851,8 @@ mod tests {
             pos.do_move(&mv);
 
             assert!(
-                !pos.is_threefold_repetition(),
-                "Position should not be considered a threefold repetition at ply {}",
+                !pos.is_repetition_draw(),
+                "Position should not be considered a repetition draw at ply {}",
                 index + 1
             );
         }

@@ -19,8 +19,8 @@ pub fn search(
         return 0;
     }
 
-    if pos.is_fifty_move_rule() || pos.is_threefold_repetition() {
-        return EVAL_STALEMATE;
+    if pos.is_fifty_move_draw() || pos.is_repetition_draw() {
+        return EVAL_DRAW;
     }
 
     if depth == 0 {
@@ -129,7 +129,7 @@ pub fn search(
         return if is_in_check(colour_to_move, &pos.board) {
             -EVAL_CHECKMATE + report.ply as i32
         } else {
-            EVAL_STALEMATE
+            EVAL_DRAW
         };
     }
 
