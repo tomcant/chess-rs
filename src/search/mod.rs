@@ -1,4 +1,5 @@
 use self::{
+    killers::KillerMoves,
     report::{Report, Reporter},
     stopper::Stopper,
 };
@@ -11,12 +12,15 @@ pub mod stopper;
 pub mod tt;
 
 mod alphabeta;
+mod killers;
 mod quiescence;
 
 const MAX_DEPTH: u8 = u8::MAX;
 
+#[rustfmt::skip]
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopper) {
     let mut tt = tt::Table::with_mb(tt::size_mb());
+    let mut killers = KillerMoves::new();
     let mut report = Report::new();
 
     let max_depth = match stopper.max_depth() {
@@ -28,7 +32,7 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &impl Stopp
         report.depth = depth;
 
         let mut pv = MoveList::new();
-        let eval = alphabeta::search(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut tt, &mut report, stopper);
+        let eval = alphabeta::search(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut tt, &mut killers, &mut report, stopper);
 
         if stopper.should_stop(&report) {
             break;
@@ -55,41 +59,9 @@ fn sanitise_pv(mut pos: Position, (moves, eval): (MoveList, i32)) -> (MoveList, 
     (moves, eval)
 }
 
-fn order_moves(moves: &mut [Move]) {
-    moves.sort_unstable_by(|a, b| {
-        // 1) Captures before quiets
-        let a_is_capture = a.captured_piece.is_some();
-        let b_is_capture = b.captured_piece.is_some();
-
-        if a_is_capture != b_is_capture {
-            return b_is_capture.cmp(&a_is_capture);
-        }
-
-        if a_is_capture {
-            // 2) Both are captures, higher weighted victim first (MVV)
-            let a_victim = material::PIECE_WEIGHTS[a.captured_piece.unwrap()];
-            let b_victim = material::PIECE_WEIGHTS[b.captured_piece.unwrap()];
-
-            if a_victim != b_victim {
-                return b_victim.cmp(&a_victim);
-            }
-
-            // 3) Same victim, lower weighted attacker first (LVA)
-            let a_attacker = material::PIECE_WEIGHTS[a.piece];
-            let b_attacker = material::PIECE_WEIGHTS[b.piece];
-
-            return a_attacker.cmp(&b_attacker);
-        }
-
-        std::cmp::Ordering::Equal
-    });
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::piece::Piece;
-    use crate::square::Square;
     use crate::testing::*;
     use doubles::*;
 
@@ -99,7 +71,7 @@ mod tests {
 
         search(&mut Position::startpos(), &reporter, &StopperStub(3));
 
-        assert_eq!(vec![1, 2, 3], reporter.depths());
+        assert_eq!(reporter.depths(), vec![1, 2, 3]);
     }
 
     #[test]
@@ -117,7 +89,7 @@ mod tests {
 
         search(&mut Position::startpos(), &reporter, &StopperStub(1));
 
-        assert_eq!(21, reporter.last_nodes());
+        assert_eq!(reporter.last_nodes(), 21);
     }
 
     #[test]
@@ -128,42 +100,6 @@ mod tests {
         search(&mut pos, &reporter, &StopperStub(1));
 
         assert_eq!(reporter.last_moves_until_mate(), Some(1));
-    }
-
-    #[test]
-    fn order_captures_by_mvv_lva_and_before_quiets() {
-        let quiet_move = make_move(Piece::WP, Square::C4, Square::C5, None);
-        let pawn_captures_pawn = make_move(Piece::WP, Square::C4, Square::B5, Some(Piece::BP));
-        let pawn_captures_queen = make_move(Piece::WP, Square::C4, Square::D5, Some(Piece::BQ));
-        let knight_captures_bishop = make_move(Piece::WN, Square::F4, Square::D3, Some(Piece::BB));
-        let knight_captures_queen = make_move(Piece::WN, Square::F4, Square::D5, Some(Piece::BQ));
-        let knight_captures_rook = make_move(Piece::WN, Square::F4, Square::G6, Some(Piece::BR));
-        let knight_captures_knight = make_move(Piece::WN, Square::F4, Square::H3, Some(Piece::BN));
-
-        let mut moves = [
-            quiet_move,
-            pawn_captures_pawn,
-            pawn_captures_queen,
-            knight_captures_bishop,
-            knight_captures_queen,
-            knight_captures_rook,
-            knight_captures_knight,
-        ];
-
-        order_moves(&mut moves);
-
-        assert_eq!(
-            moves,
-            [
-                pawn_captures_queen,
-                knight_captures_queen,
-                knight_captures_rook,
-                knight_captures_bishop,
-                knight_captures_knight,
-                pawn_captures_pawn,
-                quiet_move,
-            ],
-        );
     }
 
     mod doubles {

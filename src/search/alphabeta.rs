@@ -1,9 +1,11 @@
 use super::{
+    killers::KillerMoves,
     tt::{Bound, Table},
     *,
 };
 use crate::movegen::{generate_all_moves, is_in_check};
 
+#[rustfmt::skip]
 #[allow(clippy::too_many_arguments)]
 pub fn search(
     pos: &mut Position,
@@ -12,6 +14,7 @@ pub fn search(
     beta: i32,
     pv: &mut MoveList,
     tt: &mut Table,
+    killers: &mut KillerMoves,
     report: &mut Report,
     stopper: &impl Stopper,
 ) -> i32 {
@@ -61,7 +64,7 @@ pub fn search(
         report.ply += 1;
 
         let mut child_pv = MoveList::new();
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, report, stopper);
+        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
 
         report.ply -= 1;
         pos.undo_move(&mv);
@@ -86,10 +89,10 @@ pub fn search(
     let colour_to_move = pos.colour_to_move;
 
     let mut moves = generate_all_moves(pos);
-    order_moves(&mut moves);
+    order_moves(&mut moves, killers, report.ply);
 
     for mv in &moves {
-        if tt_move.is_some() && *mv == tt_move.unwrap() {
+        if tt_move.is_some() && mv.equals(&tt_move.unwrap()) {
             continue;
         }
 
@@ -104,12 +107,16 @@ pub fn search(
         report.ply += 1;
 
         let mut child_pv = MoveList::new();
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, report, stopper);
+        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
 
         report.ply -= 1;
         pos.undo_move(mv);
 
         if eval >= beta {
+            if mv.captured_piece.is_none() && mv.promotion_piece.is_none() {
+                killers.store(report.ply, mv);
+            }
+
             tt.store(key, depth, beta, Bound::Lower, Some(*mv));
             return beta;
         }
@@ -136,4 +143,90 @@ pub fn search(
     tt.store(key, depth, alpha, tt_bound, tt_move);
 
     alpha
+}
+
+fn order_moves(moves: &mut [Move], killers: &KillerMoves, ply: u8) {
+    let killer1 = killers.probe(ply, 0);
+    let killer2 = killers.probe(ply, 1);
+
+    moves.sort_unstable_by_key(|mv| {
+        if let Some(victim) = mv.captured_piece {
+            let mvv = material::PIECE_WEIGHTS[victim];
+            let lva = material::PIECE_WEIGHTS[mv.piece];
+            return -(mvv * 100 - lva);
+        }
+
+        if mv.promotion_piece.is_some() {
+            return 1;
+        }
+
+        if let Some(killer) = killer1
+            && mv.equals(&killer)
+        {
+            return 2;
+        }
+
+        if let Some(killer) = killer2
+            && mv.equals(&killer)
+        {
+            return 3;
+        }
+
+        4
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::piece::Piece;
+    use crate::square::Square;
+    use crate::testing::*;
+
+    #[test]
+    fn order_moves_by_mvv_lva_and_killers() {
+        let quiet_move = make_move(Piece::WP, Square::C4, Square::C5, None);
+        let killer_move1 = make_move(Piece::WP, Square::A2, Square::A3, None);
+        let killer_move2 = make_move(Piece::WP, Square::B2, Square::B3, None);
+        let pawn_captures_pawn = make_move(Piece::WP, Square::C4, Square::B5, Some(Piece::BP));
+        let pawn_captures_queen = make_move(Piece::WP, Square::C4, Square::D5, Some(Piece::BQ));
+        let knight_captures_bishop = make_move(Piece::WN, Square::F4, Square::D3, Some(Piece::BB));
+        let knight_captures_queen = make_move(Piece::WN, Square::F4, Square::D5, Some(Piece::BQ));
+        let knight_captures_rook = make_move(Piece::WN, Square::F4, Square::G6, Some(Piece::BR));
+        let knight_captures_knight = make_move(Piece::WN, Square::F4, Square::H3, Some(Piece::BN));
+
+        let mut moves = [
+            quiet_move,
+            killer_move1,
+            killer_move2,
+            pawn_captures_pawn,
+            pawn_captures_queen,
+            knight_captures_bishop,
+            knight_captures_queen,
+            knight_captures_rook,
+            knight_captures_knight,
+        ];
+
+        let killer_ply = 0;
+        let mut killers = KillerMoves::new();
+        killers.store(killer_ply, &killer_move2);
+        killers.store(killer_ply, &killer_move1);
+
+        order_moves(&mut moves, &killers, killer_ply);
+
+        assert_eq!(
+            moves,
+            [
+                pawn_captures_queen,
+                knight_captures_queen,
+                knight_captures_rook,
+                knight_captures_bishop,
+                knight_captures_knight,
+                pawn_captures_pawn,
+                killer_move1,
+                killer_move2,
+                quiet_move,
+            ],
+        );
+    }
 }
