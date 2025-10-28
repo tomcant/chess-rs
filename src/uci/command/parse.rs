@@ -19,6 +19,7 @@ impl std::str::FromStr for UciCommand {
             "ucinewgame" => Ok(NewGame),
             "printboard" => Ok(PrintBoard),
             "printfen" => Ok(PrintFen),
+            "domove" => Ok(parse_domove(args)?),
             "position" => Ok(parse_position(args)?),
             "go" => Ok(parse_go(args)?),
             "setoption" => Ok(parse_setoption(args)?),
@@ -27,6 +28,14 @@ impl std::str::FromStr for UciCommand {
             _ => Err(format!("unknown command '{}'", parts[0])),
         }
     }
+}
+
+fn parse_domove(args: &[&str]) -> Result<UciCommand, String> {
+    if args.is_empty() {
+        return Err("missing move".to_string());
+    }
+
+    Ok(DoMove(args[0].parse()?))
 }
 
 fn parse_position(args: &[&str]) -> Result<UciCommand, String> {

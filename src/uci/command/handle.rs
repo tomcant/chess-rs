@@ -33,35 +33,34 @@ pub fn print_fen(pos: &Position) {
     println!("{}", pos.to_fen());
 }
 
+pub fn do_move(mv: UciMove, pos: &mut Position) {
+    let piece = pos.board.piece_at(mv.from).unwrap();
+    let is_en_passant = piece.is_pawn() && pos.en_passant_square == Some(mv.to);
+
+    let captured_piece = if is_en_passant {
+        Some(Piece::pawn(pos.colour_to_move.flip()))
+    } else {
+        pos.board.piece_at(mv.to)
+    };
+
+    pos.do_move(&Move {
+        piece,
+        from: mv.from,
+        to: mv.to,
+        captured_piece,
+        promotion_piece: mv.promotion_piece,
+        castling_rights: pos.castling_rights,
+        half_move_clock: pos.half_move_clock,
+        en_passant_square: pos.en_passant_square,
+        is_en_passant,
+    });
+}
+
 pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
     *pos = fen.parse().unwrap();
 
     for mv in moves {
-        let piece = pos.board.piece_at(mv.from).unwrap();
-
-        let is_en_passant = if let Some(en_passant_square) = pos.en_passant_square {
-            mv.to == en_passant_square && piece.is_pawn()
-        } else {
-            false
-        };
-
-        let captured_piece = if is_en_passant {
-            Some(Piece::pawn(pos.colour_to_move.flip()))
-        } else {
-            pos.board.piece_at(mv.to)
-        };
-
-        pos.do_move(&Move {
-            piece,
-            from: mv.from,
-            to: mv.to,
-            captured_piece,
-            promotion_piece: mv.promotion_piece,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
-            is_en_passant,
-        });
+        do_move(mv, pos);
     }
 }
 
