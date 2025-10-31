@@ -51,7 +51,7 @@ pub fn search(
 
     report.nodes += 1;
 
-    let mut has_legal_move = false;
+    let mut has_searched_one = false;
     let mut tt_bound = Bound::Upper;
 
     // Search the TT move before generating other moves because there's a good
@@ -80,7 +80,7 @@ pub fn search(
             pv.append(&mut child_pv);
         }
 
-        has_legal_move = true;
+        has_searched_one = true;
     }
 
     let colour_to_move = pos.colour_to_move;
@@ -100,11 +100,26 @@ pub fn search(
             continue;
         }
 
-        has_legal_move = true;
         report.ply += 1;
 
+        // Principal variation search: after one move has been searched with the
+        // full window (assumed best due to ordering), try the remaining moves
+        // with a narrow window. This is cheaper because it's not searching for
+        // the exact eval, just to show that it fails high or low. Only in the
+        // rare case the eval lies between alpha and beta do we pay the cost of
+        // a full window re-search to obtain the exact eval and PV.
+        let mut eval;
         let mut child_pv = MoveList::new();
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+
+        if has_searched_one {
+            eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, report, stopper);
+
+            if eval > alpha && eval < beta {
+                eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+            }
+        } else {
+            eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+        }
 
         report.ply -= 1;
         pos.undo_move(mv);
@@ -127,9 +142,11 @@ pub fn search(
             pv.push(*mv);
             pv.append(&mut child_pv);
         }
+
+        has_searched_one = true;
     }
 
-    if !has_legal_move {
+    if !has_searched_one {
         return if is_in_check(colour_to_move, &pos.board) {
             -EVAL_CHECKMATE + report.ply as i32
         } else {
