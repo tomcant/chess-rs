@@ -1,6 +1,6 @@
 use super::{
     killers::KillerMoves,
-    tt::{Bound, Table},
+    tt::{Bound, TranspositionTable},
     *,
 };
 use crate::movegen::{generate_all_moves, is_in_check};
@@ -13,7 +13,7 @@ pub fn search(
     mut alpha: i32,
     beta: i32,
     pv: &mut MoveList,
-    tt: &mut Table,
+    tt: &mut TranspositionTable,
     killers: &mut KillerMoves,
     report: &mut Report,
     stopper: &Stopper,
@@ -36,10 +36,9 @@ pub fn search(
         depth = 1;
     }
 
-    let key = pos.key;
     let mut tt_move = None;
 
-    if let Some(entry) = tt.probe(key) {
+    if let Some(entry) = tt.probe(pos.key) {
         if entry.depth >= depth {
             match entry.bound {
                 Bound::Exact => return entry.eval,
@@ -70,7 +69,7 @@ pub fn search(
         pos.undo_move(&mv);
 
         if eval >= beta {
-            tt.store(key, depth, beta, Bound::Lower, tt_move);
+            tt.store(pos.key, depth, beta, Bound::Lower, tt_move);
             return beta;
         }
 
@@ -117,7 +116,7 @@ pub fn search(
                 killers.store(report.ply, mv);
             }
 
-            tt.store(key, depth, beta, Bound::Lower, Some(*mv));
+            tt.store(pos.key, depth, beta, Bound::Lower, Some(*mv));
             return beta;
         }
 
@@ -140,7 +139,7 @@ pub fn search(
         };
     }
 
-    tt.store(key, depth, alpha, tt_bound, tt_move);
+    tt.store(pos.key, depth, alpha, tt_bound, tt_move);
 
     alpha
 }

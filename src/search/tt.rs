@@ -1,7 +1,7 @@
 use crate::movegen::Move;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-pub struct Table {
+pub struct TranspositionTable {
     entries: Vec<Entry>,
     pub usage: usize,
     pub capacity: usize,
@@ -23,9 +23,9 @@ pub enum Bound {
     Upper,
 }
 
-impl Table {
-    pub fn with_mb(size_mb: usize) -> Self {
-        let size_bytes = size_mb.saturating_mul(1024 * 1024);
+impl TranspositionTable {
+    pub fn new() -> Self {
+        let size_bytes = SIZE_MB.load(Ordering::Relaxed).saturating_mul(1024 * 1024);
         let capacity = size_bytes / std::mem::size_of::<Entry>();
 
         // We use the nearest lower power of two for capacity so that indexing can
@@ -81,15 +81,11 @@ pub const MIN_SIZE_MB: usize = 1;
 pub const MAX_SIZE_MB: usize = 4096;
 pub const DEFAULT_SIZE_MB: usize = 64;
 
+static SIZE_MB: AtomicUsize = AtomicUsize::new(DEFAULT_SIZE_MB);
+
 pub fn set_size_mb(size_mb: usize) {
     if !(MIN_SIZE_MB..=MAX_SIZE_MB).contains(&size_mb) {
         panic!("invalid transposition table size: {size_mb}mb");
     }
     SIZE_MB.store(size_mb, Ordering::Relaxed);
 }
-
-pub fn size_mb() -> usize {
-    SIZE_MB.load(Ordering::Relaxed)
-}
-
-static SIZE_MB: AtomicUsize = AtomicUsize::new(DEFAULT_SIZE_MB);

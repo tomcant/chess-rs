@@ -69,7 +69,7 @@ pub fn main() {
                             _ => (params.btime, params.binc),
                         };
 
-                        time_left.map_or(None, |t| calculate_allocated_time(t, time_inc))
+                        time_left.and_then(|t| calculate_allocated_time(t, time_inc))
                     });
                     stopper.at_elapsed(allocated_time);
 

@@ -2,6 +2,7 @@ use self::{
     killers::KillerMoves,
     report::{Report, Reporter},
     stopper::Stopper,
+    tt::TranspositionTable,
 };
 use crate::eval::*;
 use crate::movegen::{Move, MoveList};
@@ -20,7 +21,7 @@ const MAX_DEPTH: u8 = u8::MAX;
 #[rustfmt::skip]
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &Stopper) {
     let max_depth = stopper.depth.unwrap_or(MAX_DEPTH);
-    let mut tt = tt::Table::with_mb(tt::size_mb());
+    let mut tt = TranspositionTable::new();
     let mut killers = KillerMoves::new();
     let mut report = Report::new();
 
