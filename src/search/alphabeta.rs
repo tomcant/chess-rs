@@ -16,7 +16,7 @@ pub fn search(
     tt: &mut Table,
     killers: &mut KillerMoves,
     report: &mut Report,
-    stopper: &impl Stopper,
+    stopper: &Stopper,
 ) -> i32 {
     if stopper.should_stop(report) {
         return 0;

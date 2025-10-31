@@ -1,10 +1,10 @@
 use self::{
     command::{UciCommand::*, handle},
-    stopper::UciStopper,
     time::calculate_allocated_time,
 };
 use crate::colour::Colour;
 use crate::position::Position;
+use crate::search::stopper::Stopper;
 use std::{
     io,
     sync::{Arc, Mutex, mpsc},
@@ -12,7 +12,6 @@ use std::{
 };
 
 pub mod command;
-pub mod stopper;
 
 mod r#move;
 mod reporter;
@@ -56,9 +55,9 @@ pub fn main() {
 
                 thread::spawn(move || {
                     let rx_lock = stopper_rx.lock().unwrap();
-                    let mut stopper = UciStopper::new(&rx_lock);
+                    while rx_lock.try_recv().is_ok() {} // Clear any pending signals
 
-                    stopper.clear_stop_signal();
+                    let mut stopper = Stopper::new(&rx_lock);
                     stopper.at_depth(params.depth);
                     stopper.at_nodes(params.nodes);
 
@@ -70,10 +69,7 @@ pub fn main() {
                             _ => (params.btime, params.binc),
                         };
 
-                        match time_left {
-                            Some(t) => calculate_allocated_time(t, time_inc),
-                            _ => None,
-                        }
+                        time_left.map_or(None, |t| calculate_allocated_time(t, time_inc))
                     });
                     stopper.at_elapsed(allocated_time);
 

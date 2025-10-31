@@ -2,8 +2,8 @@ use crate::info;
 use crate::movegen::Move;
 use crate::piece::Piece;
 use crate::position::Position;
-use crate::search::{search, tt};
-use crate::uci::{r#move::UciMove, reporter::UciReporter, stopper::UciStopper};
+use crate::search::{search, stopper::Stopper, tt};
+use crate::uci::{r#move::UciMove, reporter::UciReporter};
 
 pub fn init() {
     println!("id name {}", info::name());
@@ -64,7 +64,7 @@ pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
     }
 }
 
-pub fn go(pos: &mut Position, stopper: &UciStopper) {
+pub fn go(pos: &mut Position, stopper: &Stopper) {
     let reporter = UciReporter::new();
     search(pos, &reporter, stopper);
 
