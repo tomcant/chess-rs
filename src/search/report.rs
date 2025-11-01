@@ -11,8 +11,6 @@ pub struct Report {
 }
 
 impl Report {
-    const EVAL_CHECKMATE_THRESHOLD: i32 = EVAL_CHECKMATE - MAX_DEPTH as i32;
-
     pub fn new() -> Self {
         Self {
             depth: 0,
@@ -31,7 +29,7 @@ impl Report {
     pub fn moves_until_mate(&self) -> Option<u8> {
         let (_, eval) = self.pv.clone()?;
 
-        if eval.abs() < Self::EVAL_CHECKMATE_THRESHOLD || eval.abs() > EVAL_CHECKMATE {
+        if eval.abs() < EVAL_CHECKMATE_THRESHOLD || eval.abs() > EVAL_CHECKMATE {
             return None;
         }
 

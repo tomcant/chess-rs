@@ -16,7 +16,7 @@ mod alphabeta;
 mod killers;
 mod quiescence;
 
-const MAX_DEPTH: u8 = u8::MAX;
+pub const MAX_DEPTH: u8 = u8::MAX;
 
 #[rustfmt::skip]
 pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &Stopper) {

@@ -1,8 +1,4 @@
-use super::{
-    killers::KillerMoves,
-    tt::{Bound, TranspositionTable},
-    *,
-};
+use super::{tt::Bound, *};
 use crate::movegen::{generate_all_moves, is_in_check};
 
 #[rustfmt::skip]
@@ -40,10 +36,12 @@ pub fn search(
 
     if let Some(entry) = tt.probe(pos.key) {
         if entry.depth >= depth {
+            let eval = tt::eval_out(entry.eval, report.ply);
+
             match entry.bound {
-                Bound::Exact => return entry.eval,
-                Bound::Lower if entry.eval >= beta => return beta,
-                Bound::Upper if entry.eval <= alpha => return alpha,
+                Bound::Exact => return eval,
+                Bound::Lower if eval >= beta => return beta,
+                Bound::Upper if eval <= alpha => return alpha,
                 _ => (),
             };
         }
@@ -69,7 +67,7 @@ pub fn search(
         pos.undo_move(&mv);
 
         if eval >= beta {
-            tt.store(pos.key, depth, beta, Bound::Lower, tt_move);
+            tt.store(pos.key, depth, tt::eval_in(eval, report.ply), Bound::Lower, tt_move);
             return beta;
         }
 
@@ -116,7 +114,7 @@ pub fn search(
                 killers.store(report.ply, mv);
             }
 
-            tt.store(pos.key, depth, beta, Bound::Lower, Some(*mv));
+            tt.store(pos.key, depth, tt::eval_in(eval, report.ply), Bound::Lower, Some(*mv));
             return beta;
         }
 
@@ -139,7 +137,7 @@ pub fn search(
         };
     }
 
-    tt.store(pos.key, depth, alpha, tt_bound, tt_move);
+    tt.store(pos.key, depth, tt::eval_in(alpha, report.ply), tt_bound, tt_move);
 
     alpha
 }

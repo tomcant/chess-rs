@@ -1,3 +1,4 @@
+use crate::eval::EVAL_CHECKMATE_THRESHOLD;
 use crate::movegen::Move;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -74,6 +75,34 @@ impl TranspositionTable {
     #[inline]
     fn index(&self, key: u64) -> usize {
         key as usize & (self.capacity - 1)
+    }
+}
+
+// Normalize an eval before storing it in the transposition table. For checkmate,
+// offset by the current ply to reflect distance to mate from the root. Non-mate
+// evals are returned unchanged.
+#[inline]
+pub fn eval_in(eval: i32, ply: u8) -> i32 {
+    if eval >= EVAL_CHECKMATE_THRESHOLD {
+        eval + ply as i32
+    } else if eval <= -EVAL_CHECKMATE_THRESHOLD {
+        eval - ply as i32
+    } else {
+        eval
+    }
+}
+
+// Denormalize an eval from the transposition table. Reverses `eval_in()` by
+// removing the ply offset from mate evals to recover the correct eval at the
+// current node. Non-mate evals are returned unchanged.
+#[inline]
+pub fn eval_out(eval: i32, ply: u8) -> i32 {
+    if eval >= EVAL_CHECKMATE_THRESHOLD {
+        eval - ply as i32
+    } else if eval <= -EVAL_CHECKMATE_THRESHOLD {
+        eval + ply as i32
+    } else {
+        eval
     }
 }
 
