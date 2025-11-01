@@ -1,5 +1,5 @@
 use crate::info;
-use crate::movegen::Move;
+use crate::movegen::{Move, perft};
 use crate::piece::Piece;
 use crate::position::Position;
 use crate::search::{search, stopper::Stopper, tt};
@@ -31,6 +31,10 @@ pub fn print_board(pos: &Position) {
 
 pub fn print_fen(pos: &Position) {
     println!("{}", pos.to_fen());
+}
+
+pub fn perft(depth: u8, pos: &Position) {
+    perft::divide(&mut pos.clone(), depth);
 }
 
 pub fn do_move(mv: UciMove, pos: &mut Position) {

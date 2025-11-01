@@ -19,6 +19,7 @@ impl std::str::FromStr for UciCommand {
             "ucinewgame" => Ok(NewGame),
             "printboard" => Ok(PrintBoard),
             "printfen" => Ok(PrintFen),
+            "perft" => Ok(parse_perft(args)?),
             "domove" => Ok(parse_domove(args)?),
             "position" => Ok(parse_position(args)?),
             "go" => Ok(parse_go(args)?),
@@ -28,6 +29,18 @@ impl std::str::FromStr for UciCommand {
             _ => Err(format!("unknown command '{}'", parts[0])),
         }
     }
+}
+
+fn parse_perft(args: &[&str]) -> Result<UciCommand, String> {
+    if args.is_empty() {
+        return Err("missing depth".to_string());
+    }
+
+    let depth = args[0]
+        .parse()
+        .map_err(|_| "could not parse value for depth".to_string())?;
+
+    Ok(Perft(depth))
 }
 
 fn parse_domove(args: &[&str]) -> Result<UciCommand, String> {
@@ -192,6 +205,11 @@ mod tests {
     #[test]
     fn parse_printfen_command() {
         assert_eq!("printfen".parse(), Ok(PrintFen));
+    }
+
+    #[test]
+    fn parse_perft_command() {
+        assert_eq!("perft 1".parse(), Ok(Perft(1)));
     }
 
     #[test]
