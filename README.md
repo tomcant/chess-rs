@@ -6,9 +6,22 @@ A UCI compatible chess engine written in Rust.
 
 ## Features
 
-- Bitboards for pseudo-legal move generation
-- Iterative deepening with alpha/beta optimised Negamax search
-- Transposition table with 64-bit Zobrist keys
-- TT move ordering combined with the MVV/LVA and Killer heuristics
-- Material and piece-square table evaluation
-- Play via any UCI compatible GUI
+- Move generation
+  - Bitboards for pseudo-legal move generation
+  - Sliding piece attack generation
+- Search
+  - Iterative deepening
+  - Negamax with alpha/beta pruning
+  - Principal variation search
+  - Quiescence search
+  - Transposition table with Zobrist keys
+  - Move ordering heuristics
+    - TT move
+    - MVV/LVA
+    - Killer moves
+- Evaluation
+  - Basic material counts
+  - Piece-square tables
+- Universal Chess Interface
+  - Play via any UCI compatible GUI
+  - Time management with `movetime` / `wtime` / `btime` / `winc` / `binc`
