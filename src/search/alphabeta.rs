@@ -18,7 +18,7 @@ pub fn search(
         return 0;
     }
 
-    if pos.is_fifty_move_draw() || pos.is_repetition_draw() {
+    if pos.is_fifty_move_draw() || pos.is_repetition_draw(report.ply) {
         return EVAL_DRAW;
     }
 
