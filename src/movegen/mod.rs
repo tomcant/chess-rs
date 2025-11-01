@@ -7,6 +7,7 @@ use smallvec::SmallVec;
 
 mod attacks;
 mod r#move;
+pub mod perft;
 
 pub use attacks::*;
 pub use r#move::Move;
@@ -416,24 +417,24 @@ mod tests {
     }
 
     mod perft {
-        use super::*;
+        use super::{super::perft::perft, *};
         use crate::position::START_POS_FEN;
 
         #[test]
         fn perft_start_position_shallow() {
-            assert_perft_for_fen(START_POS_FEN, 4, 197_281);
+            assert_perft(START_POS_FEN, 4, 197_281);
         }
 
         #[test]
         #[ignore]
         fn perft_start_position() {
-            assert_perft_for_fen(START_POS_FEN, 6, 119_060_324);
+            assert_perft(START_POS_FEN, 6, 119_060_324);
         }
 
         #[test]
         #[ignore]
         fn perft_position_2() {
-            assert_perft_for_fen(
+            assert_perft(
                 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                 5,
                 193_690_690,
@@ -443,13 +444,13 @@ mod tests {
         #[test]
         #[ignore]
         fn perft_position_3() {
-            assert_perft_for_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7, 178_633_661);
+            assert_perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7, 178_633_661);
         }
 
         #[test]
         #[ignore]
         fn perft_position_4() {
-            assert_perft_for_fen(
+            assert_perft(
                 "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
                 6,
                 706_045_033,
@@ -459,7 +460,7 @@ mod tests {
         #[test]
         #[ignore]
         fn perft_position_4_flipped() {
-            assert_perft_for_fen(
+            assert_perft(
                 "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
                 6,
                 706_045_033,
@@ -469,7 +470,7 @@ mod tests {
         #[test]
         #[ignore]
         fn perft_position_5() {
-            assert_perft_for_fen(
+            assert_perft(
                 "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
                 5,
                 89_941_194,
@@ -479,45 +480,15 @@ mod tests {
         #[test]
         #[ignore]
         fn perft_position_6() {
-            assert_perft_for_fen(
+            assert_perft(
                 "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
                 5,
                 164_075_551,
             );
         }
 
-        fn assert_perft_for_fen(fen: &str, depth: u8, expected_move_count: u32) {
-            assert_eq!(perft(&mut parse_fen(fen), depth, true), expected_move_count);
-        }
-
-        fn perft(pos: &mut Position, depth: u8, divide: bool) -> u32 {
-            if depth == 0 {
-                return 1;
-            }
-
-            let mut nodes = 0;
-
-            for mv in generate_all_moves(&pos) {
-                pos.do_move(&mv);
-
-                if !is_in_check(pos.opponent_colour(), &pos.board) {
-                    let nodes_divide = perft(pos, depth - 1, false);
-
-                    if divide {
-                        println!("{mv}: {nodes_divide}");
-                    }
-
-                    nodes += nodes_divide;
-                }
-
-                pos.undo_move(&mv);
-            }
-
-            if divide {
-                println!("Nodes: {nodes}");
-            }
-
-            nodes
+        fn assert_perft(fen: &str, depth: u8, expected_move_count: u32) {
+            assert_eq!(perft(&mut parse_fen(fen), depth), expected_move_count);
         }
 
         impl std::fmt::Display for Move {

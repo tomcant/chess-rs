@@ -11,6 +11,7 @@ pub enum UciCommand {
     NewGame,
     PrintBoard,
     PrintFen,
+    Perft(u8),
     DoMove(UciMove),
     Position(String, Vec<UciMove>),
     Go(GoParams),
