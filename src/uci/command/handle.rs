@@ -4,6 +4,7 @@ use crate::piece::Piece;
 use crate::position::Position;
 use crate::search::{search, stopper::Stopper, tt};
 use crate::uci::{r#move::UciMove, reporter::UciReporter};
+use std::time::Instant;
 
 pub fn init() {
     println!("id name {}", info::name());
@@ -34,7 +35,15 @@ pub fn print_fen(pos: &Position) {
 }
 
 pub fn perft(depth: u8, pos: &Position) {
-    perft::divide(&mut pos.clone(), depth);
+    let started_at = Instant::now();
+    let nodes = perft::divide(&mut pos.clone(), depth);
+    let elapsed = started_at.elapsed();
+    let ms = elapsed.as_millis();
+    let nps = nodes * 1000 / ms.max(1);
+
+    println!("\nnodes: {nodes}");
+    println!("time: {ms} ms");
+    println!("nps: {nps}\n");
 }
 
 pub fn do_move(mv: UciMove, pos: &mut Position) {

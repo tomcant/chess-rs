@@ -487,7 +487,7 @@ mod tests {
             );
         }
 
-        fn assert_perft(fen: &str, depth: u8, expected_move_count: u32) {
+        fn assert_perft(fen: &str, depth: u8, expected_move_count: u128) {
             assert_eq!(perft(&mut parse_fen(fen), depth), expected_move_count);
         }
 

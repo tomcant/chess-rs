@@ -2,9 +2,6 @@ use super::r#move::UciMove;
 use crate::search::report::{Report, Reporter};
 use std::cell::Cell;
 
-const NANOS_PER_SEC: u128 = 1_000_000_000;
-const HASHFULL_MAX: usize = 1000;
-
 pub struct UciReporter {
     best_move: Cell<Option<UciMove>>,
 }
@@ -26,8 +23,8 @@ impl Reporter for UciReporter {
         let mut info = vec![
             format!("depth {}", report.depth),
             format!("nodes {}", report.nodes),
-            format!("nps {}", report.nodes * NANOS_PER_SEC / report.elapsed().as_nanos()),
-            format!("hashfull {}", report.tt_stats.0 * HASHFULL_MAX / report.tt_stats.1),
+            format!("nps {}", report.nodes * 1000 / report.elapsed().as_millis().max(1)),
+            format!("hashfull {}", report.tt_stats.0 * 1000 / report.tt_stats.1),
             format!("time {}", report.elapsed().as_millis()),
         ];
 

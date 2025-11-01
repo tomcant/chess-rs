@@ -2,7 +2,7 @@ use super::{generate_all_moves, is_in_check};
 use crate::position::Position;
 use crate::uci::r#move::UciMove;
 
-pub fn perft(pos: &mut Position, depth: u8) -> u32 {
+pub fn perft(pos: &mut Position, depth: u8) -> u128 {
     if depth == 0 {
         return 1;
     }
@@ -22,9 +22,8 @@ pub fn perft(pos: &mut Position, depth: u8) -> u32 {
     nodes
 }
 
-pub fn divide(pos: &mut Position, depth: u8) -> u32 {
+pub fn divide(pos: &mut Position, depth: u8) -> u128 {
     if depth == 0 {
-        println!("\nTotal nodes: 1\n");
         return 1;
     }
 
@@ -41,8 +40,6 @@ pub fn divide(pos: &mut Position, depth: u8) -> u32 {
 
         pos.undo_move(&mv);
     }
-
-    println!("\nTotal nodes: {nodes}\n");
 
     nodes
 }
