@@ -12,6 +12,7 @@ A UCI compatible chess engine written in Rust.
 - Search
   - Iterative deepening
   - Negamax with alpha/beta pruning
+  - Aspiration search
   - Principal variation search
   - Quiescence search
   - Transposition table with Zobrist keys
