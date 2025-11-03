@@ -24,6 +24,7 @@ pub enum Bound {
     Upper,
 }
 
+#[allow(clippy::new_without_default)]
 impl TranspositionTable {
     pub fn new() -> Self {
         let size_bytes = SIZE_MB.load(Ordering::Relaxed).saturating_mul(1024 * 1024);

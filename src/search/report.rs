@@ -10,6 +10,7 @@ pub struct Report {
     started_at: Instant,
 }
 
+#[allow(clippy::new_without_default)]
 impl Report {
     pub fn new() -> Self {
         Self {
