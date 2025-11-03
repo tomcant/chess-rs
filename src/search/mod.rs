@@ -63,8 +63,9 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &Stopper) {
 
                 retries += 1;
                 if retries > ASP_MAX_RETRIES {
-                    eval_final = alphabeta::search(pos, depth, EVAL_MIN, EVAL_MAX, &mut pv, &mut tt, &mut killers, &mut report, stopper);
-                    break;
+                    alpha = EVAL_MIN;
+                    beta = EVAL_MAX;
+                    continue;
                 }
 
                 if eval <= alpha {
