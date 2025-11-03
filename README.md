@@ -15,6 +15,7 @@ A UCI compatible chess engine written in Rust.
   - Aspiration search
   - Principal variation search
   - Quiescence search
+  - Check extension
   - Transposition table with Zobrist keys
   - Move ordering heuristics
     - TT move
@@ -24,5 +25,5 @@ A UCI compatible chess engine written in Rust.
   - Basic material counts
   - Piece-square tables
 - Universal Chess Interface
-  - Play via any UCI compatible GUI
+  - Play via any UCI compatible GUI (e.g. Cute Chess, En Croissant)
   - Time management with `movetime` / `wtime` / `btime` / `winc` / `binc`
