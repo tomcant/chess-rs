@@ -1,6 +1,6 @@
 use crate::colour::Colour;
 
-const BACK_RANKS: u64 = 0xFF000000000000FF;
+pub const BACK_RANKS: u64 = 0xFF000000000000FF;
 const CORNERS: u64 = 0x8100000000000081;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
