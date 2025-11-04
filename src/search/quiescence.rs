@@ -1,5 +1,6 @@
 use super::*;
-use crate::movegen::{generate_capture_moves, is_in_check};
+use crate::movegen::{generate_non_quiet_moves, is_in_check};
+use crate::piece::Piece;
 
 pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, report: &mut Report) -> i32 {
     report.nodes += 1;
@@ -16,8 +17,8 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, report: &mut Report
 
     let colour_to_move = pos.colour_to_move;
 
-    let mut moves = generate_capture_moves(pos);
-    order_capture_moves(&mut moves);
+    let mut moves = generate_non_quiet_moves(pos);
+    order_moves(&mut moves);
 
     for mv in moves {
         pos.do_move(&mv);
@@ -43,10 +44,10 @@ pub fn search(pos: &mut Position, mut alpha: i32, beta: i32, report: &mut Report
     alpha
 }
 
-fn order_capture_moves(moves: &mut [Move]) {
+fn order_moves(moves: &mut [Move]) {
     moves.sort_unstable_by_key(|mv| {
-        let mvv = material::PIECE_WEIGHTS[mv.captured_piece.unwrap()];
-        let lva = material::PIECE_WEIGHTS[mv.piece];
+        let mvv = material::PIECE_WEIGHTS[mv.captured_piece.unwrap_or(Piece::pawn(mv.piece.colour()))];
+        let lva = material::PIECE_WEIGHTS[mv.promotion_piece.unwrap_or(mv.piece)];
         -(mvv * 100 - lva)
     });
 }
@@ -76,7 +77,7 @@ mod tests {
             knight_captures_knight,
         ];
 
-        order_capture_moves(&mut moves);
+        order_moves(&mut moves);
 
         assert_eq!(
             moves,

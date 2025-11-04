@@ -1,7 +1,7 @@
 use crate::colour::Colour;
 use crate::piece::Piece;
 use crate::position::{Board, CastlingRight, CastlingRights, Position};
-use crate::square::Square;
+use crate::square::{BACK_RANKS, Square};
 use lazy_static::lazy_static;
 use smallvec::SmallVec;
 
@@ -101,7 +101,7 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
     moves
 }
 
-pub fn generate_capture_moves(pos: &Position) -> MoveList {
+pub fn generate_non_quiet_moves(pos: &Position) -> MoveList {
     let mut moves = MoveList::new();
     let colour_to_move = pos.colour_to_move;
 
@@ -113,6 +113,10 @@ pub fn generate_capture_moves(pos: &Position) -> MoveList {
 
             let mut to_squares =
                 pos.board.pieces_by_colour(colour_to_move.flip()) & get_attacks(*piece, from_square, &pos.board);
+
+            if piece.is_pawn() {
+                to_squares |= get_pawn_advances(from_square, colour_to_move, &pos.board) & BACK_RANKS;
+            }
 
             while to_squares != 0 {
                 let to_square = Square::next(&mut to_squares);
