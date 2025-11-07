@@ -4,21 +4,27 @@ use crate::position::Board;
 use crate::square::Square;
 use lazy_static::lazy_static;
 
+// Include build-generated magic tables
+include!(concat!(env!("OUT_DIR"), "/magic.rs"));
+
 const FILE_A: u64 = 0x0101_0101_0101_0101;
 const FILE_B: u64 = 0x0202_0202_0202_0202;
 const FILE_G: u64 = 0x4040_4040_4040_4040;
 const FILE_H: u64 = 0x8080_8080_8080_8080;
 
+#[inline]
 pub fn is_in_check(colour: Colour, board: &Board) -> bool {
     let king_square = Square::first(board.pieces(Piece::king(colour)));
 
     is_attacked(king_square, colour.flip(), board)
 }
 
+#[inline]
 pub fn is_attacked(square: Square, colour: Colour, board: &Board) -> bool {
     get_attackers(square, colour, board) != 0
 }
 
+#[inline]
 pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
     let pawn_attacks = get_pawn_attacks(square, colour.flip(), board);
     let knight_attacks = get_knight_attacks(square);
@@ -35,6 +41,7 @@ pub fn get_attackers(square: Square, colour: Colour, board: &Board) -> u64 {
         | (board.pieces(Piece::king(colour)) & king_attacks)
 }
 
+#[inline]
 pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
     match piece {
         WP | BP => get_pawn_attacks(square, piece.colour(), board),
@@ -46,64 +53,40 @@ pub fn get_attacks(piece: Piece, square: Square, board: &Board) -> u64 {
     }
 }
 
+#[inline]
 pub fn get_en_passant_attacks(en_passant_square: Square, colour: Colour, board: &Board) -> u64 {
     PAWN_ATTACKS[colour.flip()][en_passant_square] & board.pieces(Piece::pawn(colour))
 }
 
+#[inline]
 fn get_pawn_attacks(square: Square, colour: Colour, board: &Board) -> u64 {
     PAWN_ATTACKS[colour][square] & board.pieces_by_colour(colour.flip())
 }
 
+#[inline]
 fn get_knight_attacks(square: Square) -> u64 {
     KNIGHT_ATTACKS[square]
 }
 
+#[inline]
 fn get_bishop_attacks(square: Square, board: &Board) -> u64 {
-    let mut attacks = 0;
+    let magic = &BISHOP_MAGICS[square];
+    let occupancy = board.occupancy() & magic.mask;
+    let index = ((occupancy.wrapping_mul(magic.num)) >> magic.shift) as usize;
 
-    for direction in 0..4 {
-        let attack_ray = BISHOP_ATTACK_RAYS[square][direction];
-        let blockers_on_ray = attack_ray & board.occupancy();
-
-        if blockers_on_ray == 0 {
-            attacks |= attack_ray;
-            continue;
-        }
-
-        let first_blocking_square = match direction {
-            0 | 1 => Square::first(blockers_on_ray),
-            _ => Square::last(blockers_on_ray),
-        };
-
-        attacks |= attack_ray ^ BISHOP_ATTACK_RAYS[first_blocking_square][direction];
-    }
-
-    attacks
+    BISHOP_ATTACKS[magic.offset + index]
 }
 
+#[inline]
 fn get_rook_attacks(square: Square, board: &Board) -> u64 {
-    let mut attacks = 0;
+    let magic = &ROOK_MAGICS[square];
+    let occupancy = board.occupancy() & magic.mask;
+    let index = ((occupancy.wrapping_mul(magic.num)) >> magic.shift) as usize;
 
-    for direction in 0..4 {
-        let attack_ray = ROOK_ATTACK_RAYS[square][direction];
-        let blockers_on_ray = attack_ray & board.occupancy();
-
-        if blockers_on_ray == 0 {
-            attacks |= attack_ray;
-            continue;
-        }
-
-        let first_blocking_square = match direction {
-            0 | 1 => Square::first(blockers_on_ray),
-            _ => Square::last(blockers_on_ray),
-        };
-
-        attacks |= attack_ray ^ ROOK_ATTACK_RAYS[first_blocking_square][direction];
-    }
-
-    attacks
+    ROOK_ATTACKS[magic.offset + index]
 }
 
+#[inline]
 fn get_king_attacks(square: Square) -> u64 {
     KING_ATTACKS[square]
 }
@@ -146,140 +129,6 @@ lazy_static! {
         }
 
         attacks
-    };
-
-    static ref BISHOP_ATTACK_RAYS: [[u64; 4]; 64] = {
-        fn up_right_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut file = square.file() as i8 + 1;
-            let mut rank = square.rank() as i8 + 1;
-
-            while file < 8 && rank < 8 {
-                ray += Square::from_file_and_rank(file as u8, rank as u8).u64();
-                file += 1;
-                rank += 1;
-            }
-
-            ray
-        }
-
-        fn up_left_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut file = square.file() as i8 - 1;
-            let mut rank = square.rank() as i8 + 1;
-
-            while file >= 0 && rank < 8 {
-                ray += Square::from_file_and_rank(file as u8, rank as u8).u64();
-                file -= 1;
-                rank += 1;
-            }
-
-            ray
-        }
-
-        fn down_right_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut file = square.file() as i8 + 1;
-            let mut rank = square.rank() as i8 - 1;
-
-            while file < 8 && rank >= 0 {
-                ray += Square::from_file_and_rank(file as u8, rank as u8).u64();
-                file += 1;
-                rank -= 1;
-            }
-
-            ray
-        }
-
-        fn down_left_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut file = square.file() as i8 - 1;
-            let mut rank = square.rank() as i8 - 1;
-
-            while file >= 0 && rank >= 0 {
-                ray += Square::from_file_and_rank(file as u8, rank as u8).u64();
-                file -= 1;
-                rank -= 1;
-            }
-
-            ray
-        }
-
-        let mut rays = [[0; 4]; 64];
-
-        for square in SQUARES.iter() {
-            rays[*square] = [
-                up_left_ray_from(*square),
-                up_right_ray_from(*square),
-                down_left_ray_from(*square),
-                down_right_ray_from(*square),
-            ];
-        }
-
-        rays
-    };
-
-    static ref ROOK_ATTACK_RAYS: [[u64; 4]; 64] = {
-        fn up_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut rank = square.rank() as i8 + 1;
-
-            while rank < 8 {
-                ray += Square::from_file_and_rank(square.file(), rank as u8).u64();
-                rank += 1;
-            }
-
-            ray
-        }
-
-        fn right_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut file = square.file() as i8 + 1;
-
-            while file < 8 {
-                ray += Square::from_file_and_rank(file as u8, square.rank()).u64();
-                file += 1;
-            }
-
-            ray
-        }
-
-        fn left_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut file = square.file() as i8 - 1;
-
-            while file >= 0 {
-                ray += Square::from_file_and_rank(file as u8, square.rank()).u64();
-                file -= 1;
-            }
-
-            ray
-        }
-
-        fn down_ray_from(square: Square) -> u64 {
-            let mut ray = 0;
-            let mut rank = square.rank() as i8 - 1;
-
-            while rank >= 0 {
-                ray += Square::from_file_and_rank(square.file(), rank as u8).u64();
-                rank -= 1;
-            }
-
-            ray
-        }
-
-        let mut rays = [[0; 4]; 64];
-
-        for square in SQUARES.iter() {
-            rays[*square] = [
-                up_ray_from(*square),
-                right_ray_from(*square),
-                left_ray_from(*square),
-                down_ray_from(*square),
-            ];
-        }
-
-        rays
     };
 
     static ref KING_ATTACKS: [u64; 64] = {
