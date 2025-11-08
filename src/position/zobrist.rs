@@ -1,8 +1,12 @@
 use super::*;
 use crate::movegen::get_en_passant_attacks;
 use crate::piece::Piece;
+use crate::rng::XorShift64;
 use crate::square::Square;
 use lazy_static::lazy_static;
+
+// https://en.wikipedia.org/wiki/Hash_function#Fibonacci_hashing
+const RNG_SEED: u64 = 0x9E3779B97F4A7C15;
 
 impl Position {
     pub fn compute_key(&self) -> u64 {
@@ -46,21 +50,21 @@ lazy_static! {
         for piece in Piece::pieces() {
             for file in 0..8 {
                 for rank in 0..8 {
-                    piece_square[*piece][Square::from_file_and_rank(file, rank)] = rand.next();
+                    piece_square[*piece][Square::from_file_and_rank(file, rank)] = rand.next().unwrap();
                 }
             }
         }
 
-        let colour_to_move = rand.next();
+        let colour_to_move = rand.next().unwrap();
 
         let mut castling_rights = [0; 16];
         for right in castling_rights.iter_mut() {
-            *right = rand.next();
+            *right = rand.next().unwrap();
         }
 
         let mut en_passant_files = [0; 8];
         for file in en_passant_files.iter_mut() {
-            *file = rand.next();
+            *file = rand.next().unwrap();
         }
 
         Zobrist {
@@ -70,25 +74,4 @@ lazy_static! {
             en_passant_files,
         }
     };
-}
-
-// https://en.wikipedia.org/wiki/Hash_function#Fibonacci_hashing
-const RNG_SEED: u64 = 0x9E3779B97F4A7C15;
-
-// https://en.wikipedia.org/wiki/Xorshift
-struct XorShift64(u64);
-
-impl XorShift64 {
-    fn new(seed: u64) -> Self {
-        Self(seed)
-    }
-
-    fn next(&mut self) -> u64 {
-        let mut x = self.0;
-        x ^= x << 13;
-        x ^= x >> 7;
-        x ^= x << 17;
-        self.0 = x;
-        x
-    }
 }
