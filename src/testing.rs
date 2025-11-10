@@ -1,6 +1,6 @@
 use crate::movegen::Move;
 use crate::piece::Piece;
-use crate::position::{CastlingRights, Position};
+use crate::position::Position;
 use crate::square::Square;
 
 pub fn parse_fen(str: &str) -> Position {
@@ -16,9 +16,6 @@ pub fn make_move(piece: Piece, from: Square, to: Square, captured_piece: Option<
         to,
         captured_piece,
         promotion_piece: None,
-        castling_rights: CastlingRights::none(),
-        half_move_clock: 0,
-        en_passant_square: None,
         is_en_passant: false,
     }
 }

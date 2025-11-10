@@ -1,5 +1,4 @@
 use crate::piece::Piece;
-use crate::position::CastlingRights;
 use crate::square::Square;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -9,9 +8,6 @@ pub struct Move {
     pub to: Square,
     pub captured_piece: Option<Piece>,
     pub promotion_piece: Option<Piece>,
-    pub castling_rights: CastlingRights,
-    pub half_move_clock: u8,
-    pub en_passant_square: Option<Square>,
     pub is_en_passant: bool,
 }
 
@@ -39,8 +35,8 @@ impl Move {
     }
 
     // Compare only the parts of the move that define its semantics on the board.
-    // Ignore transient state like castling rights and half-move clock which can
-    // differ between sibling nodes at the same ply, preventing heuristic matches.
+    // Ignore transient state which can differ between sibling nodes at the same
+    // ply, preventing heuristic matches.
     pub fn equals(&self, other: &Self) -> bool {
         self.piece == other.piece
             && self.from == other.from
