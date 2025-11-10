@@ -25,8 +25,16 @@ pub struct Position {
     pub en_passant_square: Option<Square>,
     pub half_move_clock: u8,
     pub full_move_counter: u8,
-    pub key_history: SmallVec<[u64; MAX_HISTORY]>,
     pub key: u64,
+    history: SmallVec<[HistoryEntry; MAX_HISTORY]>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct HistoryEntry {
+    castling_rights: CastlingRights,
+    en_passant_square: Option<Square>,
+    half_move_clock: u8,
+    key: u64,
 }
 
 impl Position {
@@ -45,8 +53,8 @@ impl Position {
             en_passant_square,
             half_move_clock,
             full_move_counter,
-            key_history: SmallVec::new(),
             key: 0,
+            history: SmallVec::new(),
         };
         pos.key = pos.compute_key();
         pos
@@ -57,7 +65,13 @@ impl Position {
     }
 
     pub fn do_move(&mut self, mv: &Move) {
-        self.key_history.push(self.key);
+        let history = HistoryEntry {
+            castling_rights: self.castling_rights,
+            en_passant_square: self.en_passant_square,
+            half_move_clock: self.half_move_clock,
+            key: self.key,
+        };
+        self.history.push(history);
 
         if let Some(square) = self.en_passant_square
             && get_en_passant_attacks(square, self.colour_to_move, &self.board) != 0
@@ -128,7 +142,7 @@ impl Position {
         }
 
         self.key ^= ZOBRIST.castling_rights[self.castling_rights];
-        self.key ^= ZOBRIST.castling_rights[mv.castling_rights];
+        self.key ^= ZOBRIST.castling_rights[history.castling_rights];
 
         let to_piece = mv.promotion_piece.unwrap_or(mv.piece);
         self.board.put_piece(to_piece, mv.to);
@@ -148,6 +162,12 @@ impl Position {
     }
 
     pub fn undo_move(&mut self, mv: &Move) {
+        let history = self.history.pop().unwrap();
+        self.castling_rights = history.castling_rights;
+        self.en_passant_square = history.en_passant_square;
+        self.half_move_clock = history.half_move_clock;
+        self.key = history.key;
+
         if mv.is_castling() {
             let rook = Piece::rook(self.opponent_colour());
 
@@ -173,10 +193,6 @@ impl Position {
         self.board.remove_piece(mv.to);
         self.board.put_piece(mv.piece, mv.from);
 
-        self.castling_rights = mv.castling_rights;
-        self.en_passant_square = mv.en_passant_square;
-        self.half_move_clock = mv.half_move_clock;
-
         if let Some(capture_square) = mv.capture_square() {
             self.board.put_piece(mv.captured_piece.unwrap(), capture_square);
         }
@@ -187,8 +203,6 @@ impl Position {
             self.full_move_counter -= 1;
         }
 
-        self.key = self.key_history.pop().unwrap();
-
         debug_assert_eq!(self.key, self.compute_key());
     }
 
@@ -198,10 +212,10 @@ impl Position {
         }
 
         let mut counter = 0;
-        let keys = self.key_history.iter().rev();
+        let keys = self.history.iter().map(|h| h.key).rev();
 
         for (distance, key) in keys.enumerate().take(self.half_move_clock as usize).skip(3).step_by(2) {
-            if *key != self.key {
+            if key != self.key {
                 continue;
             }
 
@@ -245,9 +259,6 @@ mod tests {
             to: Square::F4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -268,9 +279,6 @@ mod tests {
             to: Square::F4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -292,9 +300,6 @@ mod tests {
             to: Square::F5,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -314,9 +319,6 @@ mod tests {
             to: Square::F5,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -337,9 +339,6 @@ mod tests {
             to: Square::G1,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -364,9 +363,6 @@ mod tests {
             to: Square::G1,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -392,9 +388,6 @@ mod tests {
             to: Square::G1,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -413,9 +406,6 @@ mod tests {
             to: Square::A1,
             captured_piece: Some(Piece::WR),
             promotion_piece: None,
-            castling_rights: CastlingRights::from(&[CastlingRight::WhiteKing, CastlingRight::WhiteQueen]),
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -434,9 +424,6 @@ mod tests {
             to: Square::E8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -456,9 +443,6 @@ mod tests {
             to: Square::C8,
             captured_piece: None,
             promotion_piece: Some(Piece::WN),
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -479,9 +463,6 @@ mod tests {
             to: Square::B8,
             captured_piece: Some(Piece::BN),
             promotion_piece: Some(Piece::WN),
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -502,9 +483,6 @@ mod tests {
             to: Square::E6,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: true,
         };
 
@@ -525,9 +503,6 @@ mod tests {
             to: Square::E6,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: CastlingRights::none(),
-            half_move_clock: 1,
-            en_passant_square: Some(Square::E6),
             is_en_passant: true,
         };
         pos.do_move(&mv);
@@ -550,9 +525,6 @@ mod tests {
             to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -571,9 +543,6 @@ mod tests {
             to: Square::E5,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -592,9 +561,6 @@ mod tests {
             to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -614,9 +580,6 @@ mod tests {
             to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -627,9 +590,6 @@ mod tests {
             to: Square::F6,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&mv);
@@ -649,9 +609,6 @@ mod tests {
             to: Square::F2,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -670,9 +627,6 @@ mod tests {
             to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -691,9 +645,6 @@ mod tests {
             to: Square::E7,
             captured_piece: Some(Piece::BP),
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
 
@@ -714,9 +665,6 @@ mod tests {
             to: Square::E4,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&white_move);
@@ -729,9 +677,6 @@ mod tests {
             to: Square::E5,
             captured_piece: None,
             promotion_piece: None,
-            castling_rights: pos.castling_rights,
-            half_move_clock: pos.half_move_clock,
-            en_passant_square: pos.en_passant_square,
             is_en_passant: false,
         };
         pos.do_move(&black_move);
@@ -763,7 +708,6 @@ mod tests {
         ];
 
         for (index, mv) in moves.iter_mut().enumerate() {
-            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             let expect_repetition_draw = index == 7;
@@ -793,7 +737,6 @@ mod tests {
         ];
 
         for (index, mv) in moves.iter_mut().enumerate() {
-            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             let expect_repetition_draw = index == 7;
@@ -824,7 +767,6 @@ mod tests {
         ];
 
         for (index, mv) in moves.iter_mut().enumerate() {
-            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             assert!(
@@ -853,7 +795,6 @@ mod tests {
         ];
 
         for (index, mv) in moves.iter_mut().enumerate() {
-            mv.castling_rights = pos.castling_rights;
             pos.do_move(&mv);
 
             assert!(

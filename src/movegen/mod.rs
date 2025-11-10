@@ -55,9 +55,6 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
                             to: to_square,
                             captured_piece,
                             promotion_piece: Some(*promotion_piece),
-                            castling_rights: pos.castling_rights,
-                            half_move_clock: pos.half_move_clock,
-                            en_passant_square: pos.en_passant_square,
                             is_en_passant: false,
                         });
                     }
@@ -71,9 +68,6 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
                     to: to_square,
                     captured_piece,
                     promotion_piece: None,
-                    castling_rights: pos.castling_rights,
-                    half_move_clock: pos.half_move_clock,
-                    en_passant_square: pos.en_passant_square,
                     is_en_passant: false,
                 });
             }
@@ -90,9 +84,6 @@ pub fn generate_all_moves(pos: &Position) -> MoveList {
                 to: en_passant_square,
                 captured_piece: Some(Piece::pawn(colour_to_move.flip())),
                 promotion_piece: None,
-                castling_rights: pos.castling_rights,
-                half_move_clock: pos.half_move_clock,
-                en_passant_square: pos.en_passant_square,
                 is_en_passant: true,
             });
         }
@@ -130,9 +121,6 @@ pub fn generate_non_quiet_moves(pos: &Position) -> MoveList {
                             to: to_square,
                             captured_piece,
                             promotion_piece: Some(*promotion_piece),
-                            castling_rights: pos.castling_rights,
-                            half_move_clock: pos.half_move_clock,
-                            en_passant_square: pos.en_passant_square,
                             is_en_passant: false,
                         });
                     }
@@ -146,9 +134,6 @@ pub fn generate_non_quiet_moves(pos: &Position) -> MoveList {
                     to: to_square,
                     captured_piece,
                     promotion_piece: None,
-                    castling_rights: pos.castling_rights,
-                    half_move_clock: pos.half_move_clock,
-                    en_passant_square: pos.en_passant_square,
                     is_en_passant: false,
                 });
             }
@@ -165,9 +150,6 @@ pub fn generate_non_quiet_moves(pos: &Position) -> MoveList {
                 to: en_passant_square,
                 captured_piece: Some(Piece::pawn(colour_to_move.flip())),
                 promotion_piece: None,
-                castling_rights: pos.castling_rights,
-                half_move_clock: pos.half_move_clock,
-                en_passant_square: pos.en_passant_square,
                 is_en_passant: true,
             });
         }
