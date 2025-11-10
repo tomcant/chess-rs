@@ -8,11 +8,12 @@ A UCI compatible chess engine written in Rust.
 
 - Move generation
   - Bitboards for pseudo-legal move generation
-  - Sliding piece attack generation
+  - [Fancy magic](https://www.chessprogramming.org/Magic_Bitboards#Fancy) sliding piece attacks
 - Search
   - Iterative deepening
-  - Negamax with alpha/beta pruning
   - Aspiration search
+  - Negamax with alpha/beta pruning
+  - Null-move pruning
   - Principal variation search
   - Quiescence search
   - Check extension

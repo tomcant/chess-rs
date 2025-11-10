@@ -206,6 +206,50 @@ impl Position {
         debug_assert_eq!(self.key, self.compute_key());
     }
 
+    pub fn do_null_move(&mut self) {
+        let history = HistoryEntry {
+            castling_rights: self.castling_rights,
+            en_passant_square: self.en_passant_square,
+            half_move_clock: self.half_move_clock,
+            key: self.key,
+        };
+        self.history.push(history);
+
+        if let Some(square) = self.en_passant_square
+            && get_en_passant_attacks(square, self.colour_to_move, &self.board) != 0
+        {
+            self.key ^= ZOBRIST.en_passant_files[square.file() as usize];
+        }
+
+        self.en_passant_square = None;
+        self.half_move_clock += 1;
+
+        if self.colour_to_move == Colour::Black {
+            self.full_move_counter += 1;
+        }
+
+        self.colour_to_move = self.opponent_colour();
+        self.key ^= ZOBRIST.colour_to_move;
+
+        debug_assert_eq!(self.key, self.compute_key());
+    }
+
+    pub fn undo_null_move(&mut self) {
+        let history = self.history.pop().unwrap();
+        self.castling_rights = history.castling_rights;
+        self.en_passant_square = history.en_passant_square;
+        self.half_move_clock = history.half_move_clock;
+        self.key = history.key;
+
+        self.colour_to_move = self.opponent_colour();
+
+        if self.colour_to_move == Colour::Black {
+            self.full_move_counter -= 1;
+        }
+
+        debug_assert_eq!(self.key, self.compute_key());
+    }
+
     pub fn is_repetition_draw(&self, search_ply: u8) -> bool {
         if self.half_move_clock < 8 {
             return false;
