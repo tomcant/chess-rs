@@ -1,5 +1,8 @@
 use super::{tt::Bound, *};
+use crate::colour::Colour;
 use crate::movegen::{generate_all_moves, is_in_check};
+use crate::piece::Piece;
+use crate::position::Board;
 
 #[rustfmt::skip]
 #[allow(clippy::too_many_arguments)]
@@ -51,6 +54,27 @@ pub fn search(
 
     report.nodes += 1;
 
+    let colour_to_move = pos.colour_to_move;
+    let in_check = is_in_check(colour_to_move, &pos.board);
+
+    // Null-move pruning: if not in check and with sufficient depth/material, try
+    // a null move to quickly detect beta cutoffs.
+    if depth >= 3 && !in_check && has_non_pawn_material(&pos.board, colour_to_move) {
+        pos.do_null_move();
+        report.ply += 1;
+
+        let r = if depth > 6 { 3 } else { 2 };
+        let null_eval = -search(pos, depth - r - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, report, stopper);
+
+        report.ply -= 1;
+        pos.undo_null_move();
+
+        if null_eval >= beta {
+            tt.store(pos.key, depth, tt::eval_in(null_eval, report.ply), Bound::Lower, None);
+            return beta;
+        }
+    }
+
     let mut has_searched_one = false;
     let mut tt_bound = Bound::Upper;
 
@@ -82,8 +106,6 @@ pub fn search(
 
         has_searched_one = true;
     }
-
-    let colour_to_move = pos.colour_to_move;
 
     let mut moves = generate_all_moves(pos);
     order_moves(&mut moves, killers, report.ply);
@@ -147,7 +169,7 @@ pub fn search(
     }
 
     if !has_searched_one {
-        return if is_in_check(colour_to_move, &pos.board) {
+        return if in_check {
             -EVAL_CHECKMATE + report.ply as i32
         } else {
             EVAL_DRAW
@@ -157,6 +179,15 @@ pub fn search(
     tt.store(pos.key, depth, tt::eval_in(alpha, report.ply), tt_bound, tt_move);
 
     alpha
+}
+
+fn has_non_pawn_material(board: &Board, colour: Colour) -> bool {
+    let knights = board.count_pieces(Piece::knight(colour));
+    let bishops = board.count_pieces(Piece::bishop(colour));
+    let rooks = board.count_pieces(Piece::rook(colour));
+    let queens = board.count_pieces(Piece::queen(colour));
+
+    (knights + bishops + rooks + queens) > 0
 }
 
 fn order_moves(moves: &mut [Move], killers: &KillerMoves, ply: u8) {
