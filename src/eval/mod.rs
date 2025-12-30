@@ -8,8 +8,8 @@ mod psqt;
 pub const EVAL_MAX: i32 = 10_000;
 pub const EVAL_MIN: i32 = -EVAL_MAX;
 pub const EVAL_DRAW: i32 = 0;
-pub const EVAL_CHECKMATE: i32 = EVAL_MAX;
-pub const EVAL_CHECKMATE_THRESHOLD: i32 = EVAL_CHECKMATE - MAX_DEPTH as i32;
+pub const EVAL_MATE: i32 = EVAL_MAX;
+pub const EVAL_MATE_THRESHOLD: i32 = EVAL_MATE - MAX_DEPTH as i32;
 
 pub fn eval(pos: &Position) -> i32 {
     let eval = (material::eval(White, &pos.board) - material::eval(Black, &pos.board))

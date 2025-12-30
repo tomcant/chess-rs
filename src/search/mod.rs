@@ -37,7 +37,7 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &Stopper) {
         let mut pv = MoveList::new();
 
         // Bypass aspiration search for shallow depths or near-mate situations
-        let do_aspiration_search = depth >= ASP_MIN_DEPTH && last_eval.abs() < EVAL_CHECKMATE_THRESHOLD;
+        let do_aspiration_search = depth >= ASP_MIN_DEPTH && last_eval.abs() < EVAL_MATE_THRESHOLD;
         let (mut delta_low, mut delta_high) = (ASP_BASE_DELTA, ASP_BASE_DELTA);
 
         let (mut alpha, mut beta) = if do_aspiration_search {

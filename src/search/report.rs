@@ -30,11 +30,11 @@ impl Report {
     pub fn moves_until_mate(&self) -> Option<u8> {
         let (_, eval) = self.pv.clone()?;
 
-        if eval.abs() < EVAL_CHECKMATE_THRESHOLD || eval.abs() > EVAL_CHECKMATE {
+        if eval.abs() < EVAL_MATE_THRESHOLD || eval.abs() > EVAL_MATE {
             return None;
         }
 
-        Some((EVAL_CHECKMATE - eval.abs()) as u8)
+        Some((EVAL_MATE - eval.abs()) as u8)
     }
 }
 
