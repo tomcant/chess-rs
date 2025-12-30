@@ -76,6 +76,7 @@ pub fn search(
     }
 
     let mut has_searched_one = false;
+    let mut has_legal_move = false;
     let mut tt_bound = Bound::Upper;
 
     // Search the TT move before generating other moves because there's a good
@@ -105,7 +106,20 @@ pub fn search(
         }
 
         has_searched_one = true;
+        has_legal_move = true;
     }
+
+    let futility_base_eval = if !in_check
+        && report.ply > 0
+        && depth <= 3
+        && beta - alpha == 1 // PVS null window so not a PV node
+        && alpha > -EVAL_MATE_THRESHOLD
+        && beta < EVAL_MATE_THRESHOLD
+    {
+        Some(eval(pos))
+    } else {
+        None
+    };
 
     let mut moves = generate_all_moves(pos);
     order_moves(&mut moves, killers, report.ply);
@@ -118,6 +132,21 @@ pub fn search(
         pos.do_move(mv);
 
         if is_in_check(colour_to_move, &pos.board) {
+            pos.undo_move(mv);
+            continue;
+        }
+
+        has_legal_move = true;
+
+        // Futility pruning: if the static eval plus a margin is not enough to
+        // improve alpha and the move is a quiet non-promotion then prune this
+        // move. This helps skip hopeless quiet moves near leaf nodes.
+        if let Some(eval) = futility_base_eval
+            && mv.captured_piece.is_none()
+            && mv.promotion_piece.is_none()
+            && !is_in_check(pos.colour_to_move, &pos.board)
+            && eval + depth as i32 * 100 <= alpha
+        {
             pos.undo_move(mv);
             continue;
         }
@@ -168,12 +197,8 @@ pub fn search(
         has_searched_one = true;
     }
 
-    if !has_searched_one {
-        return if in_check {
-            -EVAL_CHECKMATE + report.ply as i32
-        } else {
-            EVAL_DRAW
-        };
+    if !has_legal_move {
+        return if in_check { -EVAL_MATE + report.ply as i32 } else { EVAL_DRAW };
     }
 
     tt.store(pos.key, depth, tt::eval_in(alpha, report.ply), tt_bound, tt_move);

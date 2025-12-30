@@ -14,6 +14,7 @@ A UCI compatible chess engine written in Rust.
   - Aspiration search
   - Negamax with alpha/beta pruning
   - Null-move pruning
+  - Futility pruning
   - Principal variation search
   - Quiescence search
   - Check extension
