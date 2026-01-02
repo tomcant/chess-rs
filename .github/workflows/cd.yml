@@ -44,10 +44,10 @@ jobs:
           args: --release --target ${{ matrix.target }}
       - name: Package
         run: |
-          mv ./target/${{ matrix.target }}/release/chess-rs .
-          tar -czvf chess-rs-${{ matrix.build }}.tar.gz ./chess-rs
+          mv ./target/${{ matrix.target }}/release/anodos .
+          tar -czvf anodos-${{ matrix.build }}.tar.gz ./anodos
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./chess-rs-${{ matrix.build }}.tar.gz
+            ./anodos-${{ matrix.build }}.tar.gz

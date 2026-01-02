@@ -1,6 +1,6 @@
 <div align="center">
 
-  ![Anodos logo][./anodos.png]
+  ![Anodos logo](./anodos.png)
 
   <h1>Anodos – Chess Engine</h1>
 
@@ -89,12 +89,12 @@ Beyond the UCI protocol, the engine supports these debugging/utility commands:
 | `domove <move>` | Make a move on the current position (e.g., `domove e2e4`) |
 
 
-[build-link]: https://github.com/tomcant/chess-rs/actions/workflows/ci.yml
-[build-badge]: https://img.shields.io/github/actions/workflow/status/tomcant/chess-rs/ci.yml?style=for-the-badge&branch=main&logo=github
+[build-link]: https://github.com/tomcant/anodos/actions/workflows/ci.yml
+[build-badge]: https://img.shields.io/github/actions/workflow/status/tomcant/anodos/ci.yml?style=for-the-badge&branch=main&logo=github
 
-[latest-link]: https://github.com/tomcant/chess-rs/releases/latest
-[latest-badge]: https://img.shields.io/github/v/release/tomcant/chess-rs?style=for-the-badge&label=latest%20release
+[latest-link]: https://github.com/tomcant/anodos/releases/latest
+[latest-badge]: https://img.shields.io/github/v/release/tomcant/anodos?style=for-the-badge&label=latest%20release
 
-[downloads-badge]: https://img.shields.io/github/downloads/tomcant/chess-rs/total?style=for-the-badge&color=blue
+[downloads-badge]: https://img.shields.io/github/downloads/tomcant/anodos/total?style=for-the-badge&color=blue
 
 [fancy-magic-link]: https://www.chessprogramming.org/Magic_Bitboards#Fancy
