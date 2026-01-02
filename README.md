@@ -1,8 +1,8 @@
 <div align="center">
 
-  ![chess-rs logo][logo]
+  ![Anodos logo][./anodos.png]
 
-  <h1>chess-rs</h1>
+  <h1>Anodos – Chess Engine</h1>
 
   [![Build][build-badge]][build-link]
   [![Release][latest-badge]][latest-link]
@@ -12,7 +12,7 @@
 
 ## Overview
 
-chess-rs is a UCI-compatible chess engine written in Rust. Built from scratch with bitboard-based move generation and alpha-beta optimised search.
+Anodos is a UCI-compatible chess engine written in Rust. Built from scratch with bitboard-based move generation and alpha-beta optimised search.
 
 ## Features
 
@@ -88,8 +88,6 @@ Beyond the UCI protocol, the engine supports these debugging/utility commands:
 | `printfen` | Output the current position as a FEN string |
 | `domove <move>` | Make a move on the current position (e.g., `domove e2e4`) |
 
-
-[logo]: https://github.com/user-attachments/assets/26ede457-a615-4d81-b893-369424103baa
 
 [build-link]: https://github.com/tomcant/chess-rs/actions/workflows/ci.yml
 [build-badge]: https://img.shields.io/github/actions/workflow/status/tomcant/chess-rs/ci.yml?style=for-the-badge&branch=main&logo=github

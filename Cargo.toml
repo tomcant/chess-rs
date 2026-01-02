@@ -1,5 +1,5 @@
 [package]
-name = "chess-rs"
+name = "anodos"
 version = "0.7.0"
 authors = ["Tom Cant"]
 edition = "2024"
