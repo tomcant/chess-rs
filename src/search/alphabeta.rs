@@ -109,14 +109,30 @@ pub fn search(
         has_legal_move = true;
     }
 
+    // Static eval used for futility pruning heuristics at non-PV nodes. This is
+    // intentionally restricted to a PVS null-window so we don't prune PV nodes
+    // where we need accurate scores.
     let futility_base_eval = if !in_check
         && report.ply > 0
-        && depth <= 3
-        && beta - alpha == 1 // PVS null window so not a PV node
+        && depth <= 5
+        && beta - alpha == 1 // PVS null-window
         && alpha > -EVAL_MATE_THRESHOLD
         && beta < EVAL_MATE_THRESHOLD
     {
-        Some(eval(pos))
+        let eval = eval(pos);
+
+        // Reverse futility pruning: if the static eval is already well above
+        // beta at shallow depths, assume this node will fail-high.
+        if eval - depth as i32 * 100 >= beta {
+            tt.store(pos.key, depth, tt::eval_in(beta, report.ply), Bound::Lower, tt_move);
+            return beta;
+        }
+
+        if depth <= 3 {
+            Some(eval)
+        } else {
+            None
+        }
     } else {
         None
     };
