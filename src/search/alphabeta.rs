@@ -57,6 +57,38 @@ pub fn search(
     let colour_to_move = pos.colour_to_move;
     let in_check = is_in_check(colour_to_move, &pos.board);
 
+    // Static eval used for futility pruning heuristics at non-PV nodes. This is
+    // intentionally restricted to a PVS null-window so we don't prune PV nodes
+    // where we need accurate scores.
+    let futility_base_eval = if !in_check
+        && report.ply > 0
+        && depth <= 5
+        && beta - alpha == 1 // PVS null-window
+        && alpha > -EVAL_MATE_THRESHOLD
+        && beta < EVAL_MATE_THRESHOLD
+    {
+        let eval = eval(pos);
+
+        // Reverse futility pruning: if the static eval is already well above
+        // beta at shallow depths, assume this node will fail high.
+        let safe_to_prune = match tt_move {
+            Some(mv) => mv.captured_piece.is_none(),
+            None => true
+        };
+        if safe_to_prune && eval - depth as i32 * 100 >= beta {
+            tt.store(pos.key, depth, tt::eval_in(beta, report.ply), Bound::Lower, tt_move);
+            return beta;
+        }
+
+        if depth <= 3 {
+            Some(eval)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     // Null-move pruning: if not in check and with sufficient depth/material, try
     // a null move to quickly detect beta cutoffs.
     if depth >= 3 && !in_check && has_non_pawn_material(&pos.board, colour_to_move) {
@@ -108,18 +140,6 @@ pub fn search(
         has_searched_one = true;
         has_legal_move = true;
     }
-
-    let futility_base_eval = if !in_check
-        && report.ply > 0
-        && depth <= 3
-        && beta - alpha == 1 // PVS null window so not a PV node
-        && alpha > -EVAL_MATE_THRESHOLD
-        && beta < EVAL_MATE_THRESHOLD
-    {
-        Some(eval(pos))
-    } else {
-        None
-    };
 
     let mut moves = generate_all_moves(pos);
     order_moves(&mut moves, killers, report.ply);
