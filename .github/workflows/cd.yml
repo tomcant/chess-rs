@@ -17,6 +17,7 @@ jobs:
         build:
           - x86_64-linux-gnu
           - x86_64-macos
+          - aarch64-macos
         include:
           - build: x86_64-linux-gnu
             target: x86_64-unknown-linux-gnu
@@ -28,20 +29,14 @@ jobs:
             target: aarch64-apple-darwin
             os: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
+        run: cargo build --locked --release --target ${{ matrix.target }}
       - name: Package
         run: |
           mv ./target/${{ matrix.target }}/release/anodos .
