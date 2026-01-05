@@ -3,11 +3,15 @@ use crate::search::{
     report::{Report, Reporter},
     search,
     stopper::Stopper,
+    tt,
 };
 use std::cell::Cell;
 use std::io::{self, IsTerminal, Write};
 use std::sync::mpsc;
 use std::time::Instant;
+
+const BENCH_DEFAULT_DEPTH: u8 = 12;
+const BENCH_DEFAULT_TT_MB: usize = tt::DEFAULT_SIZE_MB;
 
 // The start position and 49 positions chosen at random from the "Win at Chess" suite.
 // https://www.chessprogramming.org/Win_at_Chess
@@ -64,25 +68,34 @@ const BENCH_FENS: &[&str] = &[
     "5r1k/p5pp/8/1P1pq3/P1p2nR1/Q7/5BPP/6K1 b - - 0 1",
 ];
 
-const BENCH_DEPTH: u8 = 12;
+pub fn run(cli_args: &[String]) {
+    let mut depth = BENCH_DEFAULT_DEPTH;
+    let mut tt_mb = BENCH_DEFAULT_TT_MB;
+    let mut iter = cli_args.iter();
 
-pub fn run() {
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--depth" => depth = iter.next().unwrap().parse().unwrap(),
+            "--tt-mb" => tt_mb = iter.next().unwrap().parse().unwrap(),
+            _ => {}
+        }
+    }
+
+    tt::set_size_mb(tt_mb);
+
+    println!("\nRunning benchmark with:");
+    println!("- Depth: {depth}");
+    println!("- TT size: {tt_mb} MB\n");
+
     let stdout = io::stdout();
     let mut out = stdout.lock();
     let is_tty = stdout.is_terminal();
     let (c1, c2) = if is_tty { ("\x1b[90m", "\x1b[0m") } else { ("", "") };
 
-    writeln!(
-        out,
-        "Running benchmark... {}\n",
-        if is_tty { "(Ctrl+C to stop)" } else { "" }
-    )
-    .unwrap();
-
     let reporter = BenchReporter::new();
     let (_, rx) = mpsc::channel();
     let mut stopper = Stopper::new(&rx);
-    stopper.at_depth(Some(BENCH_DEPTH));
+    stopper.at_depth(Some(depth));
 
     let mut total_nodes = 0;
     let total_fens = BENCH_FENS.len();

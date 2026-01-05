@@ -76,7 +76,7 @@ stop
 quit
 ```
 
-## Additional Commands
+## Non-standard Commands
 
 Beyond the UCI protocol, the engine supports these debugging/utility commands:
 
@@ -86,6 +86,17 @@ Beyond the UCI protocol, the engine supports these debugging/utility commands:
 | `printboard` | Display the current position |
 | `printfen` | Output the current position as a FEN string |
 | `domove <move>` | Make a move on the current position (e.g., `domove e2e4`) |
+
+## Benchmarking
+
+To measure the engine's nodes-per-second performance, run the binary as follows:
+
+```sh
+./anodos bench [--depth <DEPTH>] [--tt-mb <MB>]
+```
+
+- `--depth` (default: 12) sets the search depth for each position
+- `--tt-mb` (default: 64) sets the transposition table size in MB
 
 
 [build-link]: https://github.com/tomcant/anodos/actions/workflows/ci.yml
