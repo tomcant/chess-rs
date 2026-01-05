@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v[0-9]+.*"
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -30,19 +31,46 @@ jobs:
             os: macos-latest
     steps:
       - uses: actions/checkout@v6
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+          components: llvm-tools-preview
+
       - uses: Swatinem/rust-cache@v2
-      - name: Build
-        run: cargo build --locked --release --target ${{ matrix.target }}
+
+      - name: Install cargo-pgo
+        run: cargo install cargo-pgo
+
+      - name: Build PGO instrumented binary
+        run: cargo pgo build -- --target ${{ matrix.target }}
+
+      - name: Collect PGO profiles
+        run: cargo pgo run -- bench
+
+      - name: Build optimized binary
+        run: cargo pgo optimize
+
+      - name: Benchmark optimized binary for comparison
+        run: ./target/${{ matrix.target }}/release/anodos bench
+
       - name: Package
         run: |
           mv ./target/${{ matrix.target }}/release/anodos .
-          tar -czvf anodos-${{ matrix.build }}.tar.gz ./anodos
+          tar -czvf anodos-${{ matrix.build }}.tar.gz ./anodos ./README.md ./LICENSE
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ./anodos-${{ matrix.build }}.tar.gz
+        if: ${{ github.event_name == 'push' }}
+
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: anodos-${{ matrix.build }}.tar.gz
+          path: ./anodos-${{ matrix.build }}.tar.gz
+          retention-days: 1
+        if: ${{ github.event_name == 'workflow_dispatch' }}
