@@ -4,7 +4,10 @@ use self::{
 };
 use crate::colour::Colour;
 use crate::position::Position;
-use crate::search::stopper::Stopper;
+use crate::search::{
+    stopper::Stopper,
+    tt::{self, TranspositionTable},
+};
 use std::{
     io,
     sync::{Arc, Mutex, mpsc},
@@ -22,6 +25,7 @@ pub fn main() {
     let (stopper_tx, stopper_rx) = mpsc::channel();
     let stopper_rx = Arc::new(Mutex::new(stopper_rx));
     let pos = Arc::new(Mutex::new(Position::startpos()));
+    let tt = Arc::new(Mutex::new(TranspositionTable::new(tt::DEFAULT_SIZE_MB)));
 
     thread::spawn(move || {
         loop {
@@ -53,6 +57,7 @@ pub fn main() {
             Go(params) => {
                 let stopper_rx = Arc::clone(&stopper_rx);
                 let pos = Arc::clone(&pos);
+                let tt = Arc::clone(&tt);
 
                 thread::spawn(move || {
                     let rx_lock = stopper_rx.lock().unwrap();
@@ -77,10 +82,10 @@ pub fn main() {
                     // Clone the position so that searching doesn't block
                     // this thread and we can still handle other commands.
                     let mut pos = pos.lock().unwrap().clone();
-                    handle::go(&mut pos, &stopper);
+                    handle::go(&mut pos, &mut tt.lock().unwrap(), &stopper);
                 });
             }
-            SetOption(name, value) => handle::set_option(name, value),
+            SetOption(name, value) => handle::set_option(name, value, &mut tt.lock().unwrap()),
             Stop => stopper_tx.send(true).unwrap(),
             Quit => break,
         }

@@ -3,7 +3,7 @@ use crate::search::{
     report::{Report, Reporter},
     search,
     stopper::Stopper,
-    tt,
+    tt::{self, TranspositionTable},
 };
 use std::cell::Cell;
 use std::io::{self, IsTerminal, Write};
@@ -81,8 +81,6 @@ pub fn run(cli_args: &[String]) {
         }
     }
 
-    tt::set_size_mb(tt_mb);
-
     println!("\nRunning benchmark with:");
     println!("- Depth: {depth}");
     println!("- TT size: {tt_mb} MB\n");
@@ -92,6 +90,7 @@ pub fn run(cli_args: &[String]) {
     let is_tty = stdout.is_terminal();
     let (c1, c2) = if is_tty { ("\x1b[90m", "\x1b[0m") } else { ("", "") };
 
+    let mut tt = TranspositionTable::new(tt_mb);
     let reporter = BenchReporter::new();
     let (_, rx) = mpsc::channel();
     let mut stopper = Stopper::new(&rx);
@@ -122,7 +121,7 @@ pub fn run(cli_args: &[String]) {
             writeln!(out, "{running_line}").unwrap();
         }
 
-        search(&mut pos, &reporter, &stopper);
+        search(&mut pos, &mut tt, &reporter, &stopper);
 
         let elapsed = search_started_at.elapsed();
         let nodes = reporter.nodes();

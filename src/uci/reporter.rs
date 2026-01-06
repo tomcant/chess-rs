@@ -24,7 +24,7 @@ impl Reporter for UciReporter {
             format!("depth {}", report.depth),
             format!("nodes {}", report.nodes),
             format!("nps {}", report.nodes * 1000 / report.elapsed().as_millis().max(1)),
-            format!("hashfull {}", report.tt_stats.0 * 1000 / report.tt_stats.1),
+            format!("hashfull {}", report.tt_usage),
             format!("time {}", report.elapsed().as_millis()),
         ];
 
