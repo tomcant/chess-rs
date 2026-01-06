@@ -19,6 +19,7 @@ jobs:
           - x86_64-linux-gnu
           - x86_64-macos
           - aarch64-macos
+          - x86_64-windows-msvc
         include:
           - build: x86_64-linux-gnu
             target: x86_64-unknown-linux-gnu
@@ -29,6 +30,9 @@ jobs:
           - build: aarch64-macos
             target: aarch64-apple-darwin
             os: macos-latest
+          - build: x86_64-windows-msvc
+            target: x86_64-pc-windows-msvc
+            os: windows-latest
     steps:
       - uses: actions/checkout@v6
 
@@ -54,23 +58,31 @@ jobs:
 
       - name: Benchmark optimized binary for comparison
         run: ./target/${{ matrix.target }}/release/anodos bench
+        if: ${{ runner.os != 'Windows' }}
 
-      - name: Package
+      - name: Package (Unix)
         run: |
           mv ./target/${{ matrix.target }}/release/anodos .
           tar -czvf anodos-${{ matrix.build }}.tar.gz ./anodos ./README.md ./LICENSE
+        if: ${{ runner.os != 'Windows' }}
+
+      - name: Package (Windows)
+        run: |
+          move .\target\${{ matrix.target }}\release\anodos.exe .
+          7z a anodos-${{ matrix.build }}.zip .\anodos.exe .\README.md .\LICENSE
+        if: ${{ runner.os == 'Windows' }}
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./anodos-${{ matrix.build }}.tar.gz
+            ./anodos-${{ matrix.build }}.*
         if: ${{ github.event_name == 'push' }}
 
       - name: Upload packaged artifact
         uses: actions/upload-artifact@v6
         with:
-          name: anodos-${{ matrix.build }}.tar.gz
-          path: ./anodos-${{ matrix.build }}.tar.gz
+          name: anodos-${{ matrix.build }}
+          path: ./anodos-${{ matrix.build }}.*
           retention-days: 1
         if: ${{ github.event_name == 'workflow_dispatch' }}
