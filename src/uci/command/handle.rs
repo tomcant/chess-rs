@@ -2,7 +2,11 @@ use crate::info;
 use crate::movegen::{Move, perft};
 use crate::piece::Piece;
 use crate::position::Position;
-use crate::search::{search, stopper::Stopper, tt};
+use crate::search::{
+    search,
+    stopper::Stopper,
+    tt::{self, TranspositionTable},
+};
 use crate::uci::{r#move::UciMove, reporter::UciReporter};
 use std::time::Instant;
 
@@ -74,9 +78,9 @@ pub fn position(fen: String, moves: Vec<UciMove>, pos: &mut Position) {
     }
 }
 
-pub fn go(pos: &mut Position, stopper: &Stopper) {
+pub fn go(pos: &mut Position, tt: &mut TranspositionTable, stopper: &Stopper) {
     let reporter = UciReporter::new();
-    search(pos, &reporter, stopper);
+    search(pos, tt, &reporter, stopper);
 
     match reporter.best_move() {
         Some(mv) => println!("bestmove {mv}"),
@@ -84,9 +88,12 @@ pub fn go(pos: &mut Position, stopper: &Stopper) {
     }
 }
 
-pub fn set_option(name: String, value: Option<String>) {
+pub fn set_option(name: String, value: Option<String>, tt: &mut TranspositionTable) {
     match name.as_str() {
-        "hash" => tt::set_size_mb(value.unwrap().parse().unwrap()),
+        "hash" => {
+            let size_mb = value.unwrap().parse().unwrap();
+            *tt = TranspositionTable::new(size_mb);
+        }
         _ => panic!("unknown option '{name}'"),
     }
 }

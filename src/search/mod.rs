@@ -25,8 +25,9 @@ const ASP_EXPANSION_FACTOR: i32 = 2;
 const ASP_MAX_RETRIES: u8 = 3;
 
 #[rustfmt::skip]
-pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &Stopper) {
-    let mut tt = TranspositionTable::new();
+pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl Reporter, stopper: &Stopper) {
+    tt.clear();
+
     let mut killers = KillerMoves::new();
     let mut report = Report::new();
 
@@ -54,7 +55,7 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &Stopper) {
             let mut retries = 0;
 
             loop {
-                let eval = alphabeta::search(pos, depth, alpha, beta, &mut pv, &mut tt, &mut killers, &mut report, stopper);
+                let eval = alphabeta::search(pos, depth, alpha, beta, &mut pv, tt, &mut killers, &mut report, stopper);
 
                 if (eval > alpha && eval < beta) || stopper.should_stop(&report) {
                     eval_final = eval;
@@ -86,7 +87,7 @@ pub fn search(pos: &mut Position, reporter: &impl Reporter, stopper: &Stopper) {
 
         report.depth = depth;
         report.pv = Some(sanitise_pv(pos.clone(), (pv.clone(), last_eval)));
-        report.tt_stats = (tt.usage, tt.capacity);
+        report.tt_usage = tt.usage();
 
         reporter.send(&report);
     }

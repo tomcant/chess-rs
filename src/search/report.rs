@@ -6,7 +6,7 @@ pub struct Report {
     pub ply: u8,
     pub nodes: u128,
     pub pv: Option<(MoveList, i32)>,
-    pub tt_stats: (usize, usize),
+    pub tt_usage: usize,
     started_at: Instant,
 }
 
@@ -18,7 +18,7 @@ impl Report {
             ply: 0,
             nodes: 0,
             pv: None,
-            tt_stats: (0, 0),
+            tt_usage: 0,
             started_at: Instant::now(),
         }
     }
