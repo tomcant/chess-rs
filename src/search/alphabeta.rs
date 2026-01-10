@@ -1,4 +1,8 @@
-use super::{history::HistoryTable, tt::Bound, *};
+use super::{
+    history::{HISTORY_SCORE_MAX, HistoryTable},
+    tt::Bound,
+    *,
+};
 use crate::colour::Colour;
 use crate::movegen::{generate_all_moves, is_in_check};
 use crate::piece::Piece;
@@ -143,7 +147,7 @@ pub fn search(
     }
 
     let mut moves = generate_all_moves(pos);
-    order_moves(&mut moves, killers, history, report.ply, colour_to_move);
+    order_moves(&mut moves, killers, history, colour_to_move, report.ply);
 
     for mv in &moves {
         if tt_move.is_some() && mv.equals(&tt_move.unwrap()) {
@@ -237,7 +241,13 @@ fn has_non_pawn_material(board: &Board, colour: Colour) -> bool {
     (knights + bishops + rooks + queens) > 0
 }
 
-fn order_moves(moves: &mut [Move], killers: &KillerMoves, history: &HistoryTable, ply: u8, side: Colour) {
+const MOVE_ORDER_CAPTURE: i32 = 0;
+const MOVE_ORDER_PROMOTION: i32 = 1;
+const MOVE_ORDER_KILLER_1: i32 = 2;
+const MOVE_ORDER_KILLER_2: i32 = 3;
+const MOVE_ORDER_HISTORY: i32 = HISTORY_SCORE_MAX + MOVE_ORDER_KILLER_2 + 1;
+
+fn order_moves(moves: &mut [Move], killers: &KillerMoves, history: &HistoryTable, colour: Colour, ply: u8) {
     let killer1 = killers.probe(ply, 0);
     let killer2 = killers.probe(ply, 1);
 
@@ -245,26 +255,26 @@ fn order_moves(moves: &mut [Move], killers: &KillerMoves, history: &HistoryTable
         if let Some(victim) = mv.captured_piece {
             let mvv = material::PIECE_WEIGHTS[victim];
             let lva = material::PIECE_WEIGHTS[mv.piece];
-            return -(mvv * 100 - lva);
+            return MOVE_ORDER_CAPTURE - mvv * 100 + lva;
         }
 
         if mv.promotion_piece.is_some() {
-            return 1;
+            return MOVE_ORDER_PROMOTION;
         }
 
         if let Some(killer) = killer1
             && mv.equals(&killer)
         {
-            return 2;
+            return MOVE_ORDER_KILLER_1;
         }
 
         if let Some(killer) = killer2
             && mv.equals(&killer)
         {
-            return 3;
+            return MOVE_ORDER_KILLER_2;
         }
 
-        20000 - history.probe(side, mv.from, mv.to)
+        MOVE_ORDER_HISTORY - history.probe(colour, mv.from, mv.to)
     });
 }
 
@@ -305,7 +315,7 @@ mod tests {
         killers.store(killer_ply, &killer_move1);
 
         let history = HistoryTable::new();
-        order_moves(&mut moves, &killers, &history, killer_ply, Colour::White);
+        order_moves(&mut moves, &killers, &history, Colour::White, killer_ply);
 
         assert_eq!(
             moves,

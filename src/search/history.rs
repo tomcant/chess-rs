@@ -1,7 +1,7 @@
 use crate::colour::Colour;
 use crate::square::Square;
 
-const HISTORY_SCORE_MAX: i32 = 16384;
+pub const HISTORY_SCORE_MAX: i32 = 16384;
 
 pub struct HistoryTable {
     table: [[[i32; 64]; 64]; 2],
