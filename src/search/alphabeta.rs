@@ -7,6 +7,7 @@ use crate::colour::Colour;
 use crate::movegen::is_in_check;
 use crate::piece::Piece;
 use crate::position::Board;
+use smallvec::SmallVec;
 
 #[rustfmt::skip]
 #[allow(clippy::too_many_arguments)]
@@ -18,6 +19,7 @@ pub fn search(
     pv: &mut MoveList,
     tt: &mut TranspositionTable,
     killers: &mut KillerMoves,
+    history: &mut HistoryTable,
     report: &mut Report,
     stopper: &Stopper,
 ) -> i32 {
@@ -100,7 +102,7 @@ pub fn search(
         report.ply += 1;
 
         let r = if depth > 6 { 3 } else { 2 };
-        let null_eval = -search(pos, depth - r - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, report, stopper);
+        let null_eval = -search(pos, depth - r - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, history, report, stopper);
 
         report.ply -= 1;
         pos.undo_null_move();
@@ -111,6 +113,7 @@ pub fn search(
         }
     }
 
+    let mut searched_quiets: SmallVec<[_; 32]> = SmallVec::new();
     let mut has_searched_one = false;
     let mut has_legal_move = false;
     let mut tt_bound = Bound::Upper;
@@ -122,14 +125,25 @@ pub fn search(
         report.ply += 1;
 
         let mut child_pv = MoveList::new();
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
 
         report.ply -= 1;
         pos.undo_move(&mv);
 
         if eval >= beta {
+            if mv.is_quiet() {
+                killers.store(report.ply, &mv);
+
+                let history_bonus = depth as i32 * depth as i32;
+                history.store(history_bonus, mv.piece, mv.to);
+            }
+
             tt.store(pos.key, depth, tt::eval_in(eval, report.ply), Bound::Lower, tt_move);
             return beta;
+        }
+
+        if mv.is_quiet() {
+            searched_quiets.push((mv.piece, mv.to));
         }
 
         if eval > alpha {
@@ -145,7 +159,7 @@ pub fn search(
         has_legal_move = true;
     }
 
-    let mut move_picker = MovePicker::new(pos, MovePickerMode::AllMoves { killers, ply: report.ply });
+    let mut move_picker = MovePicker::new(pos, MovePickerMode::AllMoves { killers, history, ply: report.ply });
 
     while let Some(mv) = move_picker.pick() {
         if tt_move.is_some() && mv.equals(&tt_move.unwrap()) {
@@ -164,9 +178,8 @@ pub fn search(
         // Futility pruning: if the static eval plus a margin is not enough to
         // improve alpha and the move is a quiet non-promotion then prune this
         // move. This helps skip hopeless quiet moves near leaf nodes.
-        if let Some(eval) = futility_base_eval
-            && mv.captured_piece.is_none()
-            && mv.promotion_piece.is_none()
+        if mv.is_quiet()
+            && let Some(eval) = futility_base_eval
             && !is_in_check(pos.colour_to_move, &pos.board)
             && eval + depth as i32 * 100 <= alpha
         {
@@ -186,25 +199,36 @@ pub fn search(
         let mut child_pv = MoveList::new();
 
         if has_searched_one {
-            eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, report, stopper);
+            eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, history, report, stopper);
 
             if eval > alpha && eval < beta {
-                eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+                eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
             }
         } else {
-            eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+            eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
         }
 
         report.ply -= 1;
         pos.undo_move(&mv);
 
         if eval >= beta {
-            if mv.captured_piece.is_none() && mv.promotion_piece.is_none() {
+            if mv.is_quiet() {
                 killers.store(report.ply, &mv);
+
+                let history_bonus = depth as i32 * depth as i32;
+                history.store(history_bonus, mv.piece, mv.to);
+
+                for &(piece, to) in &searched_quiets {
+                    history.store(-history_bonus, piece, to);
+                }
             }
 
             tt.store(pos.key, depth, tt::eval_in(eval, report.ply), Bound::Lower, Some(mv));
             return beta;
+        }
+
+        if mv.is_quiet() {
+            searched_quiets.push((mv.piece, mv.to));
         }
 
         if eval > alpha {
