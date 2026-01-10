@@ -1,4 +1,4 @@
-use super::{tt::Bound, *};
+use super::{history::HistoryTable, tt::Bound, *};
 use crate::colour::Colour;
 use crate::movegen::{generate_all_moves, is_in_check};
 use crate::piece::Piece;
@@ -14,6 +14,7 @@ pub fn search(
     pv: &mut MoveList,
     tt: &mut TranspositionTable,
     killers: &mut KillerMoves,
+    history: &mut HistoryTable,
     report: &mut Report,
     stopper: &Stopper,
 ) -> i32 {
@@ -96,7 +97,7 @@ pub fn search(
         report.ply += 1;
 
         let r = if depth > 6 { 3 } else { 2 };
-        let null_eval = -search(pos, depth - r - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, report, stopper);
+        let null_eval = -search(pos, depth - r - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, history, report, stopper);
 
         report.ply -= 1;
         pos.undo_null_move();
@@ -118,7 +119,7 @@ pub fn search(
         report.ply += 1;
 
         let mut child_pv = MoveList::new();
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
 
         report.ply -= 1;
         pos.undo_move(&mv);
@@ -142,7 +143,7 @@ pub fn search(
     }
 
     let mut moves = generate_all_moves(pos);
-    order_moves(&mut moves, killers, report.ply);
+    order_moves(&mut moves, killers, history, report.ply, colour_to_move);
 
     for mv in &moves {
         if tt_move.is_some() && mv.equals(&tt_move.unwrap()) {
@@ -183,13 +184,13 @@ pub fn search(
         let mut child_pv = MoveList::new();
 
         if has_searched_one {
-            eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, report, stopper);
+            eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, history, report, stopper);
 
             if eval > alpha && eval < beta {
-                eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+                eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
             }
         } else {
-            eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, report, stopper);
+            eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
         }
 
         report.ply -= 1;
@@ -198,6 +199,7 @@ pub fn search(
         if eval >= beta {
             if mv.captured_piece.is_none() && mv.promotion_piece.is_none() {
                 killers.store(report.ply, mv);
+                history.store(colour_to_move, mv.from, mv.to, depth);
             }
 
             tt.store(pos.key, depth, tt::eval_in(eval, report.ply), Bound::Lower, Some(*mv));
@@ -235,7 +237,7 @@ fn has_non_pawn_material(board: &Board, colour: Colour) -> bool {
     (knights + bishops + rooks + queens) > 0
 }
 
-fn order_moves(moves: &mut [Move], killers: &KillerMoves, ply: u8) {
+fn order_moves(moves: &mut [Move], killers: &KillerMoves, history: &HistoryTable, ply: u8, side: Colour) {
     let killer1 = killers.probe(ply, 0);
     let killer2 = killers.probe(ply, 1);
 
@@ -262,7 +264,7 @@ fn order_moves(moves: &mut [Move], killers: &KillerMoves, ply: u8) {
             return 3;
         }
 
-        4
+        20000 - history.probe(side, mv.from, mv.to)
     });
 }
 
@@ -302,7 +304,8 @@ mod tests {
         killers.store(killer_ply, &killer_move2);
         killers.store(killer_ply, &killer_move1);
 
-        order_moves(&mut moves, &killers, killer_ply);
+        let history = HistoryTable::new();
+        order_moves(&mut moves, &killers, &history, killer_ply, Colour::White);
 
         assert_eq!(
             moves,
