@@ -5,7 +5,7 @@ use self::{
     tt::TranspositionTable,
 };
 use crate::eval::*;
-use crate::movegen::{Move, MoveList};
+use crate::movegen::MoveList;
 use crate::position::Position;
 
 pub mod report;
@@ -14,6 +14,7 @@ pub mod tt;
 
 mod alphabeta;
 mod killers;
+mod movepicker;
 mod quiescence;
 
 pub const MAX_DEPTH: u8 = u8::MAX;

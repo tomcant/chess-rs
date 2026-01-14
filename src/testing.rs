@@ -1,3 +1,4 @@
+use crate::colour::Colour;
 use crate::movegen::Move;
 use crate::piece::Piece;
 use crate::position::Position;
@@ -16,6 +17,17 @@ pub fn make_move(piece: Piece, from: Square, to: Square, captured_piece: Option<
         to,
         captured_piece,
         promotion_piece: None,
+        is_en_passant: false,
+    }
+}
+
+pub fn make_promotion_move(colour: Colour, from: Square, to: Square, piece: Piece) -> Move {
+    Move {
+        piece: Piece::pawn(colour),
+        from,
+        to,
+        captured_piece: None,
+        promotion_piece: Some(piece),
         is_en_passant: false,
     }
 }
