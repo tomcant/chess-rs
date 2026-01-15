@@ -87,6 +87,69 @@ Beyond the UCI protocol, the engine supports these debugging/utility commands:
 | `printfen` | Output the current position as a FEN string |
 | `domove <move>` | Make a move on the current position (e.g., `domove e2e4`) |
 
+## Compilation
+
+This project uses Rust edition 2024, so you'll need Rust 1.85+ (stable).
+
+### Building and Running
+
+For the best performance, always use release mode:
+
+```sh
+cargo build --release
+./target/release/anodos
+```
+
+Alternatively, you can run in release mode directly:
+
+```sh
+cargo run --release
+```
+
+To enable debug assertions (useful during development for catching bugs), use:
+
+```sh
+cargo run
+```
+
+Only use debug mode for testing and development; release mode is strongly recommended for actual games or benchmarks.
+
+### PGO (Profile-guided Optimisation)
+
+Binaries published on the [Releases][releases-link] page are built with PGO (see [.github/workflows/cd.yml][cd.yml-link]).
+
+To run a local PGO build:
+
+```sh
+rustup component add llvm-tools-preview
+cargo install cargo-pgo
+
+# Build an instrumented binary
+cargo pgo build
+
+# Collect profiles by running the benchmark command
+cargo pgo run -- bench
+
+# Build the optimised (PGO) binary
+cargo pgo optimize
+```
+
+## Testing
+
+Run the test suite:
+
+```sh
+cargo test
+```
+
+This includes a shallow perft check from the starting position (depth 5).
+
+To run the deeper perft test suite (ignored by default), include ignored tests and use release mode:
+
+```sh
+cargo test --release -- --include-ignored
+```
+
 ## Benchmarking
 
 To measure the engine's nodes-per-second performance, run the binary as follows:
@@ -108,3 +171,6 @@ To measure the engine's nodes-per-second performance, run the binary as follows:
 [downloads-badge]: https://img.shields.io/github/downloads/tomcant/anodos/total?style=for-the-badge&color=blue
 
 [fancy-magic-link]: https://www.chessprogramming.org/Magic_Bitboards#Fancy
+
+[releases-link]: https://github.com/tomcant/anodos/releases
+[cd.yml-link]: https://github.com/tomcant/anodos/blob/main/.github/workflows/cd.yml
