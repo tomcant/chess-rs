@@ -16,6 +16,10 @@ impl KillerMoves {
         self.moves[ply as usize][index]
     }
 
+    pub fn is_killer(&self, ply: u8, mv: &Move) -> bool {
+        self.moves[ply as usize].iter().any(|k| k.is_some_and(|k| *mv == k))
+    }
+
     pub fn store(&mut self, ply: u8, mv: &Move) {
         let moves = &mut self.moves[ply as usize];
 
