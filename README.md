@@ -6,7 +6,6 @@
 
   [![Build][build-badge]][build-link]
   [![Release][latest-badge]][latest-link]
-  ![Downloads][downloads-badge]
 
 </div>
 
@@ -36,10 +35,10 @@ Anodos is a UCI-compatible chess engine written in Rust. Built from scratch with
     - History heuristic
 - Evaluation
   - Basic material counting
-  - Piece-square tables
+  - MG/EG PSQTs (currently with game phase tapering for the king only)
 - Universal Chess Interface
   - Play via any UCI-compatible GUI (e.g. Cute Chess, En Croissant)
-  - Time management with `movetime` / `wtime` / `btime` / `winc` / `binc`
+  - Basic time management with `movetime` / `wtime` / `btime` / `winc` / `binc`
 
 ## Roadmap
 
@@ -49,12 +48,9 @@ Anodos is a UCI-compatible chess engine written in Rust. Built from scratch with
   - Static exchange evaluation
   - Multi-threading
 - Evaluation
-  - Tapered PSQTs by game phase
-  - Pawn structure, king safety, piece activity
   - Insufficient material draw detection
+  - Tapered PSQTs for all other pieces
   - Syzygy tablebase support
-- Testing
-  - Super-fast perft with a dedicated transposition table
 
 ## Universal Chess Interface
 
@@ -167,8 +163,6 @@ To measure the engine's nodes-per-second performance, run the binary as follows:
 
 [latest-link]: https://github.com/tomcant/anodos/releases/latest
 [latest-badge]: https://img.shields.io/github/v/release/tomcant/anodos?style=for-the-badge&label=latest%20release
-
-[downloads-badge]: https://img.shields.io/github/downloads/tomcant/anodos/total?style=for-the-badge&color=blue
 
 [fancy-magic-link]: https://www.chessprogramming.org/Magic_Bitboards#Fancy
 
