@@ -1,4 +1,5 @@
 use self::{
+    history::HistoryTable,
     killers::KillerMoves,
     report::{Report, Reporter},
     stopper::Stopper,
@@ -13,6 +14,7 @@ pub mod stopper;
 pub mod tt;
 
 mod alphabeta;
+mod history;
 mod killers;
 mod movepicker;
 mod quiescence;
@@ -30,6 +32,7 @@ pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl R
     tt.clear();
 
     let mut killers = KillerMoves::new();
+    let mut history = HistoryTable::new();
     let mut report = Report::new();
 
     let mut last_eval: i32 = 0;
@@ -56,7 +59,7 @@ pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl R
             let mut retries = 0;
 
             loop {
-                let eval = alphabeta::search(pos, depth, alpha, beta, &mut pv, tt, &mut killers, &mut report, stopper);
+                let eval = alphabeta::search(pos, depth, alpha, beta, &mut pv, tt, &mut killers, &mut history, &mut report, stopper);
 
                 if (eval > alpha && eval < beta) || stopper.should_stop(&report) {
                     eval_final = eval;

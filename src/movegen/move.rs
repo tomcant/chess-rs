@@ -22,6 +22,10 @@ impl Move {
         }
     }
 
+    pub fn is_quiet(&self) -> bool {
+        self.captured_piece.is_none() && self.promotion_piece.is_none()
+    }
+
     pub fn is_castling(&self) -> bool {
         self.piece.is_king() && self.file_diff() > 1
     }
