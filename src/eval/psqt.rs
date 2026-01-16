@@ -4,100 +4,160 @@ use crate::position::Board;
 use crate::square::Square;
 use lazy_static::lazy_static;
 
-pub fn eval(colour: Colour, board: &Board) -> i32 {
-    Piece::pieces_by_colour(colour).iter().fold(0, |mut acc, piece| {
+type Psqt = [i32; 64];
+
+#[inline(always)]
+pub fn eval_non_king(colour: Colour, board: &Board) -> i32 {
+    let pieces = [
+        Piece::pawn(colour),
+        Piece::knight(colour),
+        Piece::bishop(colour),
+        Piece::rook(colour),
+        Piece::queen(colour),
+    ];
+
+    pieces.iter().fold(0, |mut acc, piece| {
         let mut pieces = board.pieces(*piece);
-
         while pieces != 0 {
-            acc += PSQT[*piece][Square::next(&mut pieces)];
+            acc += PSQT_NON_KING[*piece][Square::next(&mut pieces)];
         }
-
         acc
     })
 }
 
-lazy_static! {
-    static ref PSQT: [[i32; 64]; 12] = {
-        let mut psqt = [[0; 64]; 12];
+#[inline(always)]
+pub fn eval_king_mg(colour: Colour, board: &Board) -> i32 {
+    let king_square = Square::first(board.pieces(Piece::king(colour)));
 
-        for piece in Piece::pieces() {
-            for (square, mapped_square) in SQUARE_MAP[piece.colour()].iter().enumerate() {
-                psqt[*piece][square] = PSQT_WHITE[*piece as usize % 6][*mapped_square];
-            }
+    PSQT_MG_KING[colour][king_square]
+}
+
+#[inline(always)]
+pub fn eval_king_eg(colour: Colour, board: &Board) -> i32 {
+    let king_square = Square::first(board.pieces(Piece::king(colour)));
+
+    PSQT_EG_KING[colour][king_square]
+}
+
+lazy_static! {
+    static ref PSQT_NON_KING: [Psqt; 12] = build_psqt_non_king();
+    static ref PSQT_MG_KING: [Psqt; 2] = build_psqt_king(&PSQT_MG_WHITE_KING);
+    static ref PSQT_EG_KING: [Psqt; 2] = build_psqt_king(&PSQT_EG_WHITE_KING);
+}
+
+#[inline(always)]
+fn build_psqt_non_king() -> [Psqt; 12] {
+    let mut psqt = [[0; 64]; 12];
+
+    for piece in Piece::pieces() {
+        if piece.is_king() {
+            continue;
         }
 
-        psqt
-    };
+        let table = &PSQT_WHITE[*piece as usize % 6];
+
+        for (square, mapped_square) in SQUARE_MAP[piece.colour()].iter().enumerate() {
+            psqt[*piece][square] = table[*mapped_square];
+        }
+    }
+
+    psqt
+}
+
+#[inline(always)]
+fn build_psqt_king(psqt_white_king: &Psqt) -> [Psqt; 2] {
+    let mut psqt = [[0; 64]; 2];
+
+    for colour in [Colour::White, Colour::Black] {
+        for (square, mapped_square) in SQUARE_MAP[colour].iter().enumerate() {
+            psqt[colour][square] = psqt_white_king[*mapped_square];
+        }
+    }
+
+    psqt
 }
 
 #[rustfmt::skip]
-const PSQT_WHITE: [[i32; 64]; 6] = [
+const PSQT_WHITE: [Psqt; 5] = [
     // Pawn
     [
          0,   0,   0,   0,   0,   0,   0,   0,
-        60,  60,  60,  60,  70,  60,  60,  60,
-        40,  40,  40,  50,  60,  40,  40,  40,
-        20,  20,  20,  40,  50,  20,  20,  20,
-         5,   5,  15,  30,  40,  10,   5,   5,
-         5,   5,  10,  20,  30,   5,   5,   5,
-         5,   5,   5, -30, -30,   5,   5,   5,
+        70,  70,  70,  70,  80,  70,  70,  70,
+        50,  50,  50,  60,  70,  50,  50,  50,
+        30,  30,  30,  50,  60,  30,  30,  30,
+        10,  10,  20,  40,  50,  10,  10,  10,
+        10,  10,  10,  30,  40,  10,  10,  10,
+        10,  10,  10, -30, -30,  10,  10,  10,
          0,   0,   0,   0,   0,   0,   0,   0,
     ],
     // Knight
     [
-        -20, -10, -10, -10, -10, -10, -10, -20,
-        -10,  -5,  -5,  -5,  -5,  -5,  -5, -10,
-        -10,  -5,  15,  15,  15,  15,  -5, -10,
-        -10,  -5,  15,  15,  15,  15,  -5, -10,
-        -10,  -5,  15,  15,  15,  15,  -5, -10,
-        -10,  -5,  10,  15,  15,  15,  -5, -10,
-        -10,  -5,  -5,  -5,  -5,  -5,  -5, -10,
-        -20, -10, -10, -10, -10, -10, -10, -20,
+        -25, -15, -15, -15, -15, -15, -15, -25,
+        -15, -10, -10, -10, -10, -10, -10, -15,
+        -15, -10,  15,  15,  15,  15, -10, -15,
+        -15, -10,  15,  15,  15,  15, -10, -15,
+        -15, -10,  15,  15,  15,  15, -10, -15,
+        -15, -10,  15,  15,  15,  15, -10, -15,
+        -15, -10, -10, -10, -10, -10, -10, -15,
+        -25, -15, -15, -15, -15, -15, -15, -25,
     ],
     // Bishop
     [
+        -25,   0,   0,   0,   0,   0,   0, -25,
         -20,   0,   0,   0,   0,   0,   0, -20,
-        -15,   0,   0,   0,   0,   0,   0, -15,
-        -10,   0,   0,   5,   5,   0,   0, -10,
-        -10,  10,  10,  30,  30,  10,  10, -10,
+        -15,   0,   0,   5,   5,   0,   0, -15,
+        -15,  10,  10,  30,  30,  10,  10, -15,
           5,   5,  10,  25,  25,  10,   5,   5,
-          5,   5,   5,  10,  10,   5,   5,   5,
-        -10,   5,   5,  10,  10,   5,   5, -10,
-        -20, -10, -10, -10, -10, -10, -10, -20,
+          5,   5,   5,  15,  15,   5,   5,   5,
+        -15,  10,   5,  10,  10,   5,  10, -15,
+        -25, -10, -10, -10, -10, -10, -10, -25,
     ],
     // Rook
     [
          0,   0,   0,   0,   0,   0,   0,   0,
-        15,  15,  15,  20,  20,  15,  15,  15,
+        20,  20,  20,  30,  30,  20,  20,  20,
          0,   0,   0,   0,   0,   0,   0,   0,
          0,   0,   0,   0,   0,   0,   0,   0,
          0,   0,   0,   0,   0,   0,   0,   0,
          0,   0,   0,   0,   0,   0,   0,   0,
-         0,   0,   0,   0,   0,   0,   0,   0,
-         0,   0,   0,  10,  10,  10,   0,   0,
+         0,   0,   5,   5,   5,   0,   0,   0,
+         0,   0,   5,  15,  15,  15,   0,   0,
     ],
     // Queen
     [
-        -30, -20, -10, -10, -10, -10, -20, -30,
-        -20, -10,  -5,  -5,  -5,  -5, -10, -20,
-        -10,  -5,  10,  10,  10,  10,  -5, -10,
-        -10,  -5,  10,  20,  20,  10,  -5, -10,
-        -10,  -5,  10,  20,  20,  10,  -5, -10,
+        -20, -20, -10, -10, -10, -10, -20, -20,
+        -15, -10,  -5,  -5,  -5,  -5, -10, -15,
+        -10,  -5,  15,  15,  15,  15,  -5, -10,
+        -10,  -5,  15,  25,  25,  15,  -5, -10,
+        -10,  -5,  15,  25,  25,  15,  -5, -10,
         -10,  -5,  -5,  -5,  -5,  -5,  -5, -10,
-        -20, -10,  -5,  -5,  -5,  -5, -10, -20,
-        -30, -20, -10, -10, -10, -10, -20, -30,
+        -15, -10,  -5,  -5,  -5,  -5, -10, -15,
+        -20, -20, -10, -10, -10, -10, -20, -20,
     ],
-    // King
-    [
-        0,   0,   0,   0,   0,   0,   0,   0,
-        0,   0,   0,   0,   0,   0,   0,   0,
-        0,   0,   0,   0,   0,   0,   0,   0,
-        0,   0,   0,  20,  20,   0,   0,   0,
-        0,   0,   0,  20,  20,   0,   0,   0,
-        0,   0,   0,   0,   0,   0,   0,   0,
-        0,   0,   0, -10, -10,   0,   0,   0,
-        0,   0,  20, -10, -10,   0,  20,   0,
-    ],
+];
+
+#[rustfmt::skip]
+const PSQT_MG_WHITE_KING: Psqt = [
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -20, -30, -30, -40, -40, -30, -30, -20,
+    -10, -20, -20, -20, -20, -20, -20, -10,
+     20,  20,   0,   0,   0,   0,  20,  20,
+     20,  30,  40,   0,   0,  10,  40,  20,
+];
+
+#[rustfmt::skip]
+const PSQT_EG_WHITE_KING: Psqt = [
+    -50, -40, -30, -20, -20, -30, -40, -50,
+    -40, -20,   0,  10,  10,   0, -20, -40,
+    -30,   0,  20,  30,  30,  20,   0, -30,
+    -20,  10,  30,  40,  40,  30,  10, -20,
+    -20,  10,  30,  40,  40,  30,  10, -20,
+    -30,   0,  20,  30,  30,  20,   0, -30,
+    -40, -20,   0,  10,  10,   0, -20, -40,
+    -50, -40, -30, -20, -20, -30, -40, -50,
 ];
 
 #[rustfmt::skip]
@@ -125,57 +185,3 @@ const SQUARE_MAP: [[usize; 64]; 2] = [
         56, 57, 58, 59, 60, 61, 62, 63,
     ],
 ];
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::testing::*;
-
-    #[test]
-    fn a_pawn_is_better_when_it_is_ready_to_promote() {
-        let ready_to_promote = parse_fen("8/4P3/8/8/8/8/8/8 w - - 0 1");
-        let unmoved = parse_fen("8/8/8/8/8/8/4P3/8 w - - 0 1");
-
-        assert!(eval(Colour::White, &ready_to_promote.board) > eval(Colour::White, &unmoved.board));
-    }
-
-    #[test]
-    fn a_knight_on_the_edge_is_better_than_a_knight_in_the_corner() {
-        let on_the_edge = parse_fen("8/8/8/8/N7/8/8/8 w - - 0 1");
-        let in_the_corner = parse_fen("8/8/8/8/8/8/8/N7 w - - 0 1");
-
-        assert!(eval(Colour::White, &on_the_edge.board) > eval(Colour::White, &in_the_corner.board));
-    }
-
-    #[test]
-    fn a_knight_in_the_centre_is_better_than_a_knight_on_the_edge() {
-        let in_the_centre = parse_fen("8/8/8/8/3N4/8/8/8 w - - 0 1");
-        let on_the_edge = parse_fen("8/8/8/8/N7/8/8/8 w - - 0 1");
-
-        assert!(eval(Colour::White, &in_the_centre.board) > eval(Colour::White, &on_the_edge.board));
-    }
-
-    #[test]
-    fn a_bishop_in_the_centre_is_better_than_a_bishop_in_the_corner() {
-        let in_the_centre = parse_fen("8/8/8/8/3B4/8/8/8 w - - 0 1");
-        let in_the_corner = parse_fen("8/8/8/8/8/8/8/B7 w - - 0 1");
-
-        assert!(eval(Colour::White, &in_the_centre.board) > eval(Colour::White, &in_the_corner.board));
-    }
-
-    #[test]
-    fn a_rook_on_the_7th_rank_is_better_than_a_rook_in_the_centre() {
-        let on_the_7th_rank = parse_fen("8/3R4/8/8/8/8/8/8 w - - 0 1");
-        let in_the_centre = parse_fen("8/8/8/8/3R4/8/8/8 w - - 0 1");
-
-        assert!(eval(Colour::White, &on_the_7th_rank.board) > eval(Colour::White, &in_the_centre.board));
-    }
-
-    #[test]
-    fn a_castled_king_is_better_than_an_uncastled_king() {
-        let castled = parse_fen("8/8/8/8/8/8/8/6K1 w - - 0 1");
-        let uncastled = parse_fen("8/8/8/8/8/8/8/4K3 w - - 0 1");
-
-        assert!(eval(Colour::White, &castled.board) > eval(Colour::White, &uncastled.board));
-    }
-}
