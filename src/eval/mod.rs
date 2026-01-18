@@ -16,14 +16,14 @@ pub const EVAL_MATE_THRESHOLD: i32 = EVAL_MATE - MAX_DEPTH as i32;
 
 pub fn eval(pos: &Position) -> i32 {
     let material = material::eval(White, &pos.board) - material::eval(Black, &pos.board);
-    let non_king_psqt = psqt::eval_non_king(White, &pos.board) - psqt::eval_non_king(Black, &pos.board);
+    let psqt_non_king = psqt::eval_non_king(White, &pos.board) - psqt::eval_non_king(Black, &pos.board);
 
     // King PSQT is the only tapered (MG/EG) term for now.
-    let king_mg = psqt::eval_king_mg(White, &pos.board) - psqt::eval_king_mg(Black, &pos.board);
-    let king_eg = psqt::eval_king_eg(White, &pos.board) - psqt::eval_king_eg(Black, &pos.board);
+    let psqt_mg_king = psqt::eval_king_mg(White, &pos.board) - psqt::eval_king_mg(Black, &pos.board);
+    let psqt_eg_king = psqt::eval_king_eg(White, &pos.board) - psqt::eval_king_eg(Black, &pos.board);
 
-    let eval_mg = material + non_king_psqt + king_mg;
-    let eval_eg = material + non_king_psqt + king_eg;
+    let eval_mg = material + psqt_non_king + psqt_mg_king;
+    let eval_eg = material + psqt_non_king + psqt_eg_king;
 
     let phase = phase(&pos.board);
     let eval = (eval_mg * phase + eval_eg * (MAX_PHASE - phase)) / MAX_PHASE;
