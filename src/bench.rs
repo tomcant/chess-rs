@@ -10,7 +10,7 @@ use std::io::{self, IsTerminal, Write};
 use std::sync::mpsc;
 use std::time::Instant;
 
-const BENCH_DEFAULT_DEPTH: u8 = 12;
+const BENCH_DEFAULT_DEPTH: u8 = 13;
 const BENCH_DEFAULT_TT_MB: usize = tt::DEFAULT_SIZE_MB;
 
 // The start position and 49 positions chosen at random from the "Win at Chess" suite.
