@@ -1,4 +1,4 @@
-name: CD
+name: Release
 
 on:
   push:
@@ -10,7 +10,11 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  test:
+    uses: tomcant/anodos/.github/workflows/test.yml@main
+
   release:
+    needs: test
     name: Release
     runs-on: ${{ matrix.os }}
     strategy:
@@ -55,10 +59,6 @@ jobs:
 
       - name: Build optimized binary
         run: cargo pgo optimize
-
-      - name: Benchmark optimized binary for comparison
-        run: ./target/${{ matrix.target }}/release/anodos bench
-        if: ${{ runner.os != 'Windows' }}
 
       - name: Package (Unix)
         run: |

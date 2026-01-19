@@ -158,8 +158,8 @@ To measure the engine's nodes-per-second performance, run the binary as follows:
 - `--tt-mb` (default: 64) sets the transposition table size in MB
 
 
-[build-link]: https://github.com/tomcant/anodos/actions/workflows/ci.yml
-[build-badge]: https://img.shields.io/github/actions/workflow/status/tomcant/anodos/ci.yml?style=for-the-badge&branch=main&logo=github
+[build-link]: https://github.com/tomcant/anodos/actions/workflows/test.yml
+[build-badge]: https://img.shields.io/github/actions/workflow/status/tomcant/anodos/test.yml?style=for-the-badge&branch=main&logo=github
 
 [latest-link]: https://github.com/tomcant/anodos/releases/latest
 [latest-badge]: https://img.shields.io/github/v/release/tomcant/anodos?style=for-the-badge&label=latest%20release
