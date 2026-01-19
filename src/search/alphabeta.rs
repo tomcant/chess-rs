@@ -1,4 +1,5 @@
 use super::{
+    history::HISTORY_SCORE_MAX,
     movepicker::{MovePicker, MovePickerMode},
     tt::Bound,
     *,
@@ -8,6 +9,8 @@ use crate::movegen::is_in_check;
 use crate::piece::Piece;
 use crate::position::Board;
 use smallvec::SmallVec;
+
+const LMR_HISTORY_THRESHOLD: i32 = HISTORY_SCORE_MAX / 4;
 
 #[rustfmt::skip]
 #[allow(clippy::too_many_arguments)]
@@ -60,16 +63,17 @@ pub fn search(
 
     report.nodes += 1;
 
+    let is_pv_node = beta - alpha > 1;
     let colour_to_move = pos.colour_to_move;
     let in_check = is_in_check(colour_to_move, &pos.board);
 
     // Static eval used for futility pruning heuristics at non-PV nodes. This is
     // intentionally restricted to a PVS null-window so we don't prune PV nodes
     // where we need accurate scores.
-    let futility_base_eval = if !in_check
+    let futility_base_eval = if !is_pv_node
+        && !in_check
         && report.ply > 0
         && depth <= 5
-        && beta - alpha == 1 // PVS null-window
         && alpha > -EVAL_MATE_THRESHOLD
         && beta < EVAL_MATE_THRESHOLD
     {
@@ -101,8 +105,8 @@ pub fn search(
         pos.do_null_move();
         report.ply += 1;
 
-        let r = if depth > 6 { 3 } else { 2 };
-        let null_eval = -search(pos, depth - r - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, history, report, stopper);
+        let reduction = if depth > 6 { 3 } else { 2 };
+        let null_eval = -search(pos, depth - reduction - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, history, report, stopper);
 
         report.ply -= 1;
         pos.undo_null_move();
@@ -113,10 +117,10 @@ pub fn search(
         }
     }
 
+    let mut tt_bound = Bound::Upper;
     let mut searched_quiets: SmallVec<[_; 32]> = SmallVec::new();
     let mut has_searched_one = false;
-    let mut has_legal_move = false;
-    let mut tt_bound = Bound::Upper;
+    let mut move_number = 0;
 
     // Search the TT move before generating other moves because there's a good
     // chance it leads to a cutoff
@@ -142,10 +146,6 @@ pub fn search(
             return beta;
         }
 
-        if mv.is_quiet() {
-            searched_quiets.push((mv.piece, mv.to));
-        }
-
         if eval > alpha {
             alpha = eval;
             tt_bound = Bound::Exact;
@@ -155,8 +155,12 @@ pub fn search(
             pv.append(&mut child_pv);
         }
 
+        if mv.is_quiet() {
+            searched_quiets.push((mv.piece, mv.to));
+        }
+
         has_searched_one = true;
-        has_legal_move = true;
+        move_number = 1;
     }
 
     let mut move_picker = MovePicker::new(pos, MovePickerMode::AllMoves { killers, history, ply: report.ply });
@@ -173,14 +177,16 @@ pub fn search(
             continue;
         }
 
-        has_legal_move = true;
+        move_number += 1;
+
+        let gives_check = is_in_check(pos.colour_to_move, &pos.board);
 
         // Futility pruning: if the static eval plus a margin is not enough to
         // improve alpha and the move is a quiet non-promotion then prune this
         // move. This helps skip hopeless quiet moves near leaf nodes.
-        if mv.is_quiet()
+        if !gives_check
+            && mv.is_quiet()
             && let Some(eval) = futility_base_eval
-            && !is_in_check(pos.colour_to_move, &pos.board)
             && eval + depth as i32 * 100 <= alpha
         {
             pos.undo_move(&mv);
@@ -199,8 +205,33 @@ pub fn search(
         let mut child_pv = MoveList::new();
 
         if has_searched_one {
-            eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, history, report, stopper);
+            // Late Move Reductions: for moves that are quiet, non-checking, and
+            // played later in the move order, we search them at reduced depth
+            // because they're less likely to raise alpha.
+            let reduction = if !is_pv_node
+                && depth >= 3
+                && move_number >= 4
+                && !in_check
+                && !gives_check
+                && mv.is_quiet()
+                && !killers.is_killer(report.ply - 1, &mv)
+                && history.probe(mv.piece, mv.to) < LMR_HISTORY_THRESHOLD
+            {
+                (log2(depth) * log2(move_number) / 3).min(depth.saturating_sub(2))
+            } else {
+                0
+            };
 
+            eval = -search(pos, depth - reduction - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, history, report, stopper);
+
+            // If the reduced search raised alpha then re-search at full depth
+            // to see if the move is actually good.
+            if eval > alpha && reduction > 0 {
+                eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, history, report, stopper);
+            }
+
+            // If the zero-window PVS raised alpha then re-search at full window
+            // to obtain the exact eval and PV.
             if eval > alpha && eval < beta {
                 eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
             }
@@ -244,7 +275,7 @@ pub fn search(
         has_searched_one = true;
     }
 
-    if !has_legal_move {
+    if move_number == 0 {
         return if in_check { -EVAL_MATE + report.ply as i32 } else { EVAL_DRAW };
     }
 
@@ -253,6 +284,7 @@ pub fn search(
     alpha
 }
 
+#[inline]
 fn has_non_pawn_material(board: &Board, colour: Colour) -> bool {
     let knights = board.count_pieces(Piece::knight(colour));
     let bishops = board.count_pieces(Piece::bishop(colour));
@@ -260,4 +292,10 @@ fn has_non_pawn_material(board: &Board, colour: Colour) -> bool {
     let queens = board.count_pieces(Piece::queen(colour));
 
     (knights + bishops + rooks + queens) > 0
+}
+
+#[inline]
+fn log2(n: u8) -> u8 {
+    debug_assert!(n > 0);
+    7 - n.leading_zeros() as u8
 }
