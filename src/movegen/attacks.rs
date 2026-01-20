@@ -1,16 +1,11 @@
 use crate::colour::Colour;
 use crate::piece::Piece::{self, *};
 use crate::position::Board;
-use crate::square::Square;
+use crate::square::{FILES, Square};
 use lazy_static::lazy_static;
 
 // Include build-generated magic tables
 include!(concat!(env!("OUT_DIR"), "/magic.rs"));
-
-const FILE_A: u64 = 0x0101_0101_0101_0101;
-const FILE_B: u64 = 0x0202_0202_0202_0202;
-const FILE_G: u64 = 0x4040_4040_4040_4040;
-const FILE_H: u64 = 0x8080_8080_8080_8080;
 
 #[inline]
 pub fn is_in_check(colour: Colour, board: &Board) -> bool {
@@ -101,10 +96,10 @@ lazy_static! {
             let square_u64 = square.u64();
 
             attacks[Colour::White][*square] =
-                  (square_u64 & !FILE_A) << 7 | (square_u64 & !FILE_H) << 9;
+                  (square_u64 & !FILES[0]) << 7 | (square_u64 & !FILES[7]) << 9;
 
             attacks[Colour::Black][*square] =
-                  (square_u64 & !FILE_H) >> 7 | (square_u64 & !FILE_A) >> 9;
+                  (square_u64 & !FILES[7]) >> 7 | (square_u64 & !FILES[0]) >> 9;
         }
 
         attacks
@@ -117,15 +112,15 @@ lazy_static! {
             let square_u64 = square.u64();
 
             attacks[*square] =
-                  (square_u64 & !FILE_A & !FILE_B) << 6  // up 1, left 2
-                | (square_u64 & !FILE_G & !FILE_H) << 10 // up 1, right 2
-                | (square_u64 & !FILE_A) << 15           // up 2, left 1
-                | (square_u64 & !FILE_H) << 17           // up 2, right 1
+                  (square_u64 & !FILES[0] & !FILES[1]) << 6  // up 1, left 2
+                | (square_u64 & !FILES[6] & !FILES[7]) << 10 // up 1, right 2
+                | (square_u64 & !FILES[0]) << 15             // up 2, left 1
+                | (square_u64 & !FILES[7]) << 17             // up 2, right 1
 
-                | (square_u64 & !FILE_G & !FILE_H) >> 6  // down 1, right 2
-                | (square_u64 & !FILE_A & !FILE_B) >> 10 // down 1, left 2
-                | (square_u64 & !FILE_H) >> 15           // down 2, right 1
-                | (square_u64 & !FILE_A) >> 17;          // down 2, left 1
+                | (square_u64 & !FILES[6] & !FILES[7]) >> 6  // down 1, right 2
+                | (square_u64 & !FILES[0] & !FILES[1]) >> 10 // down 1, left 2
+                | (square_u64 & !FILES[7]) >> 15             // down 2, right 1
+                | (square_u64 & !FILES[0]) >> 17;            // down 2, left 1
         }
 
         attacks
@@ -138,16 +133,16 @@ lazy_static! {
             let square_u64 = square.u64();
 
             attacks[*square] =
-                  (square_u64 & !FILE_H) << 1
-                | (square_u64 & !FILE_A) >> 1
+                  (square_u64 & !FILES[7]) << 1
+                | (square_u64 & !FILES[0]) >> 1
 
                 | square_u64 << 8
-                | (square_u64 & !FILE_A) << 7
-                | (square_u64 & !FILE_H) << 9
+                | (square_u64 & !FILES[0]) << 7
+                | (square_u64 & !FILES[7]) << 9
 
                 | square_u64 >> 8
-                | (square_u64 & !FILE_H) >> 7
-                | (square_u64 & !FILE_A) >> 9;
+                | (square_u64 & !FILES[7]) >> 7
+                | (square_u64 & !FILES[0]) >> 9;
         }
 
         attacks

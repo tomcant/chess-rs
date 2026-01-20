@@ -1,7 +1,23 @@
 use crate::colour::Colour;
 
-pub const BACK_RANKS: u64 = 0xFF000000000000FF;
-const CORNERS: u64 = 0x8100000000000081;
+const FILE_A: u64 = 0x0101_0101_0101_0101;
+
+const RANK_1: u64 = 0x0000_0000_0000_00FF;
+
+const CORNERS: u64 = 0x8100_0000_0000_0081;
+
+pub const BACK_RANKS: u64 = RANK_1 | (RANK_1 << 56);
+
+pub const FILES: [u64; 8] = [
+    FILE_A,
+    FILE_A << 1,
+    FILE_A << 2,
+    FILE_A << 3,
+    FILE_A << 4,
+    FILE_A << 5,
+    FILE_A << 6,
+    FILE_A << 7,
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Square(u8);

@@ -3,11 +3,12 @@ use crate::position::Board;
 
 mod material;
 mod mobility;
+mod pawns;
 mod psqt;
 
 pub use material::PIECE_WEIGHTS;
 
-pub const TERMS: [fn(Colour, &Board) -> EvalTerm; 3] = [material::eval, psqt::eval, mobility::eval];
+pub const TERMS: [fn(Colour, &Board) -> EvalTerm; 4] = [material::eval, mobility::eval, pawns::eval, psqt::eval];
 
 #[derive(Debug, Clone, Copy)]
 pub struct EvalTerm(i32, i32);

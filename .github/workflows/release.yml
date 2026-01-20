@@ -12,11 +12,9 @@ env:
 jobs:
   test:
     uses: tomcant/anodos/.github/workflows/test.yml@main
-    if: ${{ github.event_name == 'push' }}
 
   release:
     needs: test
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || needs.test.result == 'success') }}
     name: Release
     runs-on: ${{ matrix.os }}
     strategy:

@@ -4,6 +4,7 @@
 mod colour;
 #[path = "src/rng.rs"]
 mod rng;
+#[allow(dead_code)]
 #[path = "src/square.rs"]
 mod square;
 
