@@ -2,7 +2,7 @@ use super::{
     history::{HISTORY_SCORE_MAX, HistoryTable},
     killers::KillerMoves,
 };
-use crate::eval::material;
+use crate::eval::terms::PIECE_WEIGHTS;
 use crate::movegen::{MAX_MOVES, Move, generate_all_moves, generate_non_quiet_moves};
 use crate::piece::Piece;
 use crate::position::Position;
@@ -43,8 +43,8 @@ impl MovePicker {
 
                 let score = |mv: &Move| {
                     if let Some(victim) = mv.captured_piece {
-                        let mvv = material::PIECE_WEIGHTS[victim];
-                        let lva = material::PIECE_WEIGHTS[mv.piece];
+                        let mvv = PIECE_WEIGHTS[victim];
+                        let lva = PIECE_WEIGHTS[mv.piece];
                         return SCORE_CAPTURE - mvv * 100 + lva;
                     }
 
@@ -72,8 +72,8 @@ impl MovePicker {
             }
             MovePickerMode::NonQuiets => {
                 for mv in moves {
-                    let mvv = material::PIECE_WEIGHTS[mv.captured_piece.unwrap_or(Piece::pawn(mv.piece.colour()))];
-                    let lva = material::PIECE_WEIGHTS[mv.promotion_piece.unwrap_or(mv.piece)];
+                    let mvv = PIECE_WEIGHTS[mv.captured_piece.unwrap_or(Piece::pawn(mv.piece.colour()))];
+                    let lva = PIECE_WEIGHTS[mv.promotion_piece.unwrap_or(mv.piece)];
                     scored_moves.push((mv, SCORE_CAPTURE - mvv * 100 + lva));
                 }
             }

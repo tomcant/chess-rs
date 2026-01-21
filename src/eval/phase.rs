@@ -1,9 +1,16 @@
+use super::terms::EvalTerm;
 use crate::piece::Piece;
 use crate::position::Board;
 
-pub const MAX_PHASE: i32 = 24;
+const MAX_PHASE: i32 = 24;
 
-pub fn phase(board: &Board) -> i32 {
+pub fn phase_eval(eval: EvalTerm, board: &Board) -> i32 {
+    let phase = phase(board);
+
+    (eval.mg() * phase + eval.eg() * (MAX_PHASE - phase)) / MAX_PHASE
+}
+
+fn phase(board: &Board) -> i32 {
     let knights = board.count_pieces(Piece::WN) + board.count_pieces(Piece::BN);
     let bishops = board.count_pieces(Piece::WB) + board.count_pieces(Piece::BB);
     let rooks = board.count_pieces(Piece::WR) + board.count_pieces(Piece::BR);
