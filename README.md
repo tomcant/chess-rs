@@ -37,6 +37,7 @@ Anodos is a UCI-compatible chess engine written in Rust. Built from scratch with
 - Evaluation
   - Basic material counting
   - MG/EG PSQTs (currently with game phase tapering for the king only)
+  - Piece mobility
 - Universal Chess Interface
   - Play via any UCI-compatible GUI (e.g. Cute Chess, En Croissant)
   - Basic time management with `movetime` / `wtime` / `btime` / `winc` / `binc`
@@ -112,7 +113,7 @@ Only use debug mode for testing and development; release mode is strongly recomm
 
 ### PGO (Profile-guided Optimisation)
 
-Binaries published on the [Releases][releases-link] page are built with PGO (see [.github/workflows/cd.yml][cd.yml-link]).
+Binaries published on the [Releases][releases-link] page are built with PGO (see [.github/workflows/release.yml][release.yml-link]).
 
 To run a local PGO build:
 
@@ -167,4 +168,4 @@ To measure the engine's nodes-per-second performance, run the binary as follows:
 [fancy-magic-link]: https://www.chessprogramming.org/Magic_Bitboards#Fancy
 
 [releases-link]: https://github.com/tomcant/anodos/releases
-[cd.yml-link]: https://github.com/tomcant/anodos/blob/main/.github/workflows/cd.yml
+[release.yml-link]: https://github.com/tomcant/anodos/blob/main/.github/workflows/release.yml
