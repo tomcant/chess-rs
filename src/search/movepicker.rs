@@ -30,16 +30,12 @@ pub struct MovePicker {
 
 impl MovePicker {
     pub fn new(pos: &Position, mode: MovePickerMode<'_>) -> Self {
-        let moves = match &mode {
-            MovePickerMode::AllMoves { .. } => generate_all_moves(pos),
-            MovePickerMode::NonQuiets => generate_non_quiet_moves(pos),
-        };
         let mut scored_moves = SmallVec::new();
 
-        match mode {
+        match &mode {
             MovePickerMode::AllMoves { killers, history, ply } => {
-                let killer1 = killers.probe(ply, 0);
-                let killer2 = killers.probe(ply, 1);
+                let killer1 = killers.probe(*ply, 0);
+                let killer2 = killers.probe(*ply, 1);
 
                 let score = |mv: &Move| {
                     if let Some(victim) = mv.captured_piece {
@@ -66,12 +62,12 @@ impl MovePicker {
 
                     SCORE_QUIET - history.probe(mv.piece, mv.to)
                 };
-                for mv in moves {
+                for mv in generate_all_moves(pos) {
                     scored_moves.push((mv, score(&mv)));
                 }
             }
             MovePickerMode::NonQuiets => {
-                for mv in moves {
+                for mv in generate_non_quiet_moves(pos) {
                     let mvv = PIECE_WEIGHTS[mv.captured_piece.unwrap_or(Piece::pawn(mv.piece.colour()))];
                     let lva = PIECE_WEIGHTS[mv.promotion_piece.unwrap_or(mv.piece)];
                     scored_moves.push((mv, SCORE_CAPTURE - mvv * 100 + lva));
