@@ -6,7 +6,7 @@ use self::{
     tt::TranspositionTable,
 };
 use crate::eval::*;
-use crate::movegen::MoveList;
+use crate::movegen::{Move, MoveList, generate_all_moves, is_in_check};
 use crate::position::Position;
 
 pub mod report;
@@ -30,6 +30,13 @@ const ASP_MAX_RETRIES: u8 = 3;
 #[rustfmt::skip]
 pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl Reporter, stopper: &Stopper) {
     tt.clear();
+
+    if let Some(forced_move) = get_forced_move(pos) {
+        let mut report = Report::new();
+        report.pv = Some((MoveList::from_slice(&[forced_move]), 0));
+        reporter.send(&report);
+        return;
+    }
 
     let mut killers = KillerMoves::new();
     let mut history = HistoryTable::new();
@@ -97,6 +104,29 @@ pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl R
     }
 }
 
+fn get_forced_move(pos: &mut Position) -> Option<Move> {
+    let mut forced_move = None;
+    let colour_to_move = pos.colour_to_move;
+
+    for mv in generate_all_moves(pos) {
+        pos.do_move(&mv);
+        let is_illegal = is_in_check(colour_to_move, &pos.board);
+        pos.undo_move(&mv);
+
+        if is_illegal {
+            continue;
+        }
+
+        if forced_move.is_some() {
+            return None;
+        }
+
+        forced_move = Some(mv);
+    }
+
+    forced_move
+}
+
 fn sanitise_pv(mut pos: Position, (moves, eval): (MoveList, i32)) -> (MoveList, i32) {
     for (index, mv) in moves.iter().enumerate() {
         pos.do_move(mv);
@@ -107,4 +137,64 @@ fn sanitise_pv(mut pos: Position, (moves, eval): (MoveList, i32)) -> (MoveList, 
     }
 
     (moves, eval)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::piece::Piece;
+    use crate::square::Square;
+    use crate::testing::*;
+    use std::cell::Cell;
+    use std::sync::mpsc;
+
+    #[test]
+    fn report_forced_moves_without_searching() {
+        let mut pos = parse_fen("3R2k1/5p1p/6p1/8/8/8/8/4K3 b - - 0 1");
+        let mut tt = TranspositionTable::new(1);
+        let reporter = TestReporter::new();
+        let (_, rx) = mpsc::channel();
+        let mut stopper = Stopper::new(&rx);
+        stopper.at_depth(Some(1));
+
+        search(&mut pos, &mut tt, &reporter, &stopper);
+
+        assert_eq!(reporter.nodes(), 0);
+        assert_eq!(
+            reporter.best_move(),
+            Some(make_move(Piece::BK, Square::G8, Square::G7, None))
+        );
+    }
+
+    struct TestReporter {
+        nodes: Cell<u128>,
+        best_move: Cell<Option<Move>>,
+    }
+
+    impl TestReporter {
+        pub fn new() -> Self {
+            Self {
+                nodes: Cell::new(0),
+                best_move: Cell::new(None),
+            }
+        }
+
+        pub fn nodes(&self) -> u128 {
+            self.nodes.get()
+        }
+
+        pub fn best_move(&self) -> Option<Move> {
+            self.best_move.get()
+        }
+    }
+
+    impl Reporter for TestReporter {
+        fn send(&self, report: &Report) {
+            self.nodes.set(report.nodes);
+
+            if let Some((moves, _)) = &report.pv {
+                self.best_move.set(Some(moves[0].into()));
+            }
+        }
+    }
 }
