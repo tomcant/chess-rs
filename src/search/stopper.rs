@@ -8,6 +8,7 @@ const STOPPER_NODES_MASK: u128 = 255;
 pub struct Stopper<'a> {
     pub depth: Option<u8>,
     elapsed: Option<Duration>,
+    eval: Option<i32>,
     nodes: Option<u128>,
     signal_recv: &'a Receiver<bool>,
     has_signal: Cell<bool>,
@@ -18,6 +19,7 @@ impl<'a> Stopper<'a> {
         Self {
             depth: None,
             elapsed: None,
+            eval: None,
             nodes: None,
             signal_recv,
             has_signal: Cell::new(false),
@@ -30,6 +32,10 @@ impl<'a> Stopper<'a> {
 
     pub fn at_elapsed(&mut self, elapsed: Option<Duration>) {
         self.elapsed = elapsed;
+    }
+
+    pub fn at_eval(&mut self, eval: Option<i32>) {
+        self.eval = eval;
     }
 
     pub fn at_nodes(&mut self, nodes: Option<u128>) {
@@ -50,10 +56,24 @@ impl<'a> Stopper<'a> {
             return true;
         }
 
-        match (self.elapsed, self.nodes) {
-            (Some(elapsed), _) if report.elapsed() > elapsed => true,
-            (_, Some(nodes)) if report.nodes > nodes => true,
-            _ => false,
+        if let Some(elapsed) = self.elapsed
+            && report.elapsed() > elapsed
+        {
+            return true;
         }
+
+        if let Some(eval) = self.eval
+            && report.eval().unwrap_or(0).abs() >= eval
+        {
+            return true;
+        }
+
+        if let Some(nodes) = self.nodes
+            && report.nodes > nodes
+        {
+            return true;
+        }
+
+        false
     }
 }

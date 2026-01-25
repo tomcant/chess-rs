@@ -3,6 +3,7 @@ use self::{
     time::calculate_allocated_time,
 };
 use crate::colour::Colour;
+use crate::eval::EVAL_MATE_THRESHOLD;
 use crate::position::Position;
 use crate::search::{
     stopper::Stopper,
@@ -74,6 +75,11 @@ pub fn main() {
                             Colour::White => (params.wtime, params.winc),
                             _ => (params.btime, params.binc),
                         };
+
+                        if time_left.is_some() {
+                            // Don't waste time searching beyond mate if there's a time limit.
+                            stopper.at_eval(Some(EVAL_MATE_THRESHOLD));
+                        }
 
                         time_left.and_then(|t| calculate_allocated_time(t, time_inc))
                     });

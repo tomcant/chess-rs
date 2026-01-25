@@ -27,6 +27,10 @@ impl Report {
         self.started_at.elapsed()
     }
 
+    pub fn eval(&self) -> Option<i32> {
+        self.pv.as_ref().map(|(_, eval)| *eval)
+    }
+
     pub fn moves_until_mate(&self) -> Option<u8> {
         let (_, eval) = self.pv.clone()?;
 
