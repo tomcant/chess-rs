@@ -1,6 +1,7 @@
 use crate::colour::Colour;
 use crate::position::Board;
 
+mod king;
 mod material;
 mod mobility;
 mod pawns;
@@ -9,8 +10,14 @@ mod rooks;
 
 pub use material::PIECE_WEIGHTS;
 
-pub static TERMS: [fn(Colour, &Board) -> EvalTerm; 5] =
-    [material::eval, mobility::eval, pawns::eval, psqt::eval, rooks::eval];
+pub static TERMS: [fn(Colour, &Board) -> EvalTerm; 6] = [
+    material::eval,
+    mobility::eval,
+    psqt::eval,
+    king::eval,
+    pawns::eval,
+    rooks::eval,
+];
 
 #[derive(Debug, Clone, Copy)]
 pub struct EvalTerm(i32, i32);
