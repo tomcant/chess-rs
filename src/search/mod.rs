@@ -1,6 +1,7 @@
 use self::{
     history::HistoryTable,
     killers::KillerMoves,
+    pv::PvTable,
     report::{Report, Reporter},
     stopper::Stopper,
     tt::TranspositionTable,
@@ -17,9 +18,19 @@ mod alphabeta;
 mod history;
 mod killers;
 mod movepicker;
+mod pv;
 mod quiescence;
 
 pub const MAX_DEPTH: u8 = u8::MAX;
+
+struct SearchState<'a> {
+    pub report: Report,
+    pub stopper: &'a Stopper<'a>,
+    pub tt: &'a mut TranspositionTable,
+    pub killers: KillerMoves,
+    pub history: HistoryTable,
+    pub pv: PvTable,
+}
 
 // Aspiration window tuning
 const ASP_MIN_DEPTH: u8 = 4;
@@ -28,7 +39,12 @@ const ASP_EXPANSION_FACTOR: i32 = 2;
 const ASP_MAX_RETRIES: u8 = 3;
 
 #[rustfmt::skip]
-pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl Reporter, stopper: &Stopper) {
+pub fn search(
+    pos: &mut Position,
+    tt: &mut TranspositionTable,
+    reporter: &impl Reporter,
+    stopper: &Stopper,
+) {
     tt.clear();
 
     if let Some(forced_move) = get_forced_move(pos) {
@@ -38,16 +54,19 @@ pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl R
         return;
     }
 
-    let mut killers = KillerMoves::new();
-    let mut history = HistoryTable::new();
-    let mut report = Report::new();
+    let mut ss = SearchState {
+        report: Report::new(),
+        stopper,
+        tt,
+        killers: KillerMoves::new(),
+        history: HistoryTable::new(),
+        pv: PvTable::new(),
+    };
 
     let mut last_eval: i32 = 0;
     let max_depth = stopper.depth.unwrap_or(MAX_DEPTH);
 
     for depth in 1..=max_depth {
-        let mut pv = MoveList::new();
-
         // Bypass aspiration search for shallow depths or near-mate situations
         let do_aspiration_search = depth >= ASP_MIN_DEPTH && last_eval.abs() < EVAL_MATE_THRESHOLD;
         let (mut delta_low, mut delta_high) = (ASP_BASE_DELTA, ASP_BASE_DELTA);
@@ -66,9 +85,9 @@ pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl R
             let mut retries = 0;
 
             loop {
-                let eval = alphabeta::search(pos, depth, alpha, beta, &mut pv, tt, &mut killers, &mut history, &mut report, stopper);
+                let eval = alphabeta::search(&mut ss, pos, depth, alpha, beta, 0);
 
-                if (eval > alpha && eval < beta) || stopper.should_stop(&report) {
+                if (eval > alpha && eval < beta) || stopper.should_stop(&ss.report) {
                     eval_final = eval;
                     break;
                 }
@@ -92,15 +111,15 @@ pub fn search(pos: &mut Position, tt: &mut TranspositionTable, reporter: &impl R
             eval_final
         };
 
-        if stopper.should_stop(&report) {
+        if stopper.should_stop(&ss.report) {
             break;
         }
 
-        report.depth = depth;
-        report.pv = Some(sanitise_pv(pos.clone(), (pv.clone(), last_eval)));
-        report.tt_usage = tt.usage();
+        ss.report.depth = depth;
+        ss.report.pv = Some(sanitise_pv(pos.clone(), (ss.pv.root().clone(), last_eval)));
+        ss.report.tt_usage = ss.tt.usage();
 
-        reporter.send(&report);
+        reporter.send(&ss.report);
     }
 }
 

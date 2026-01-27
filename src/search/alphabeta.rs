@@ -13,30 +13,27 @@ use smallvec::SmallVec;
 const LMR_HISTORY_THRESHOLD: i32 = HISTORY_SCORE_MAX / 4;
 
 #[rustfmt::skip]
-#[allow(clippy::too_many_arguments)]
 pub fn search(
+    ss: &mut SearchState,
     pos: &mut Position,
     mut depth: u8,
     mut alpha: i32,
     beta: i32,
-    pv: &mut MoveList,
-    tt: &mut TranspositionTable,
-    killers: &mut KillerMoves,
-    history: &mut HistoryTable,
-    report: &mut Report,
-    stopper: &Stopper,
+    ply: u8,
 ) -> i32 {
-    if stopper.should_stop(report) {
+    ss.pv.clear(ply);
+
+    if ss.stopper.should_stop(&ss.report) {
         return 0;
     }
 
-    if pos.is_fifty_move_draw() || pos.is_repetition_draw(report.ply) {
+    if pos.is_fifty_move_draw() || pos.is_repetition_draw(ply) {
         return EVAL_DRAW;
     }
 
     if depth == 0 {
         if !is_in_check(pos.colour_to_move, &pos.board) {
-            return quiescence::search(pos, alpha, beta, report);
+            return quiescence::search(pos, alpha, beta, &mut ss.report);
         }
 
         // Extend the search if we're in check so that quiescence doesn't need
@@ -46,9 +43,9 @@ pub fn search(
 
     let mut tt_move = None;
 
-    if let Some(entry) = tt.probe(pos.key) {
+    if let Some(entry) = ss.tt.probe(pos.key) {
         if entry.depth >= depth {
-            let eval = tt::eval_out(entry.eval, report.ply);
+            let eval = tt::eval_out(entry.eval, ply);
 
             match entry.bound {
                 Bound::Exact => return eval,
@@ -61,7 +58,7 @@ pub fn search(
         tt_move = entry.mv;
     }
 
-    report.nodes += 1;
+    ss.report.nodes += 1;
 
     let is_pv_node = beta - alpha > 1;
     let colour_to_move = pos.colour_to_move;
@@ -72,7 +69,7 @@ pub fn search(
     // where we need accurate scores.
     let futility_base_eval = if !is_pv_node
         && !in_check
-        && report.ply > 0
+        && ply > 0
         && depth <= 5
         && alpha > -EVAL_MATE_THRESHOLD
         && beta < EVAL_MATE_THRESHOLD
@@ -83,18 +80,14 @@ pub fn search(
         // beta at shallow depths, assume this node will fail high.
         let safe_to_prune = match tt_move {
             Some(mv) => mv.captured_piece.is_none(),
-            None => true
+            None => true,
         };
         if safe_to_prune && eval - depth as i32 * 100 >= beta {
-            tt.store(pos.key, depth, tt::eval_in(beta, report.ply), Bound::Lower, tt_move);
+            ss.tt.store(pos.key, depth, tt::eval_in(beta, ply), Bound::Lower, tt_move);
             return beta;
         }
 
-        if depth <= 3 {
-            Some(eval)
-        } else {
-            None
-        }
+        if depth <= 3 { Some(eval) } else { None }
     } else {
         None
     };
@@ -103,16 +96,14 @@ pub fn search(
     // a null move to quickly detect beta cutoffs.
     if depth >= 3 && !in_check && has_non_pawn_material(&pos.board, colour_to_move) {
         pos.do_null_move();
-        report.ply += 1;
 
         let reduction = if depth > 6 { 3 } else { 2 };
-        let null_eval = -search(pos, depth - reduction - 1, -beta, -beta + 1, &mut MoveList::new(), tt, killers, history, report, stopper);
+        let eval = -search(ss, pos, depth - reduction - 1, -beta, -beta + 1, ply + 1);
 
-        report.ply -= 1;
         pos.undo_null_move();
 
-        if null_eval >= beta {
-            tt.store(pos.key, depth, tt::eval_in(null_eval, report.ply), Bound::Lower, None);
+        if eval >= beta {
+            ss.tt.store(pos.key, depth, tt::eval_in(eval, ply), Bound::Lower, None);
             return beta;
         }
     }
@@ -126,33 +117,27 @@ pub fn search(
     // chance it leads to a cutoff
     if let Some(mv) = tt_move {
         pos.do_move(&mv);
-        report.ply += 1;
 
-        let mut child_pv = MoveList::new();
-        let eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
+        let eval = -search(ss, pos, depth - 1, -beta, -alpha, ply + 1);
 
-        report.ply -= 1;
         pos.undo_move(&mv);
 
         if eval >= beta {
             if mv.is_quiet() {
-                killers.store(report.ply, &mv);
+                ss.killers.store(ply, &mv);
 
                 let history_bonus = depth as i32 * depth as i32;
-                history.store(history_bonus, mv.piece, mv.to);
+                ss.history.store(history_bonus, mv.piece, mv.to);
             }
 
-            tt.store(pos.key, depth, tt::eval_in(eval, report.ply), Bound::Lower, tt_move);
+            ss.tt.store(pos.key, depth, tt::eval_in(eval, ply), Bound::Lower, tt_move);
             return beta;
         }
 
         if eval > alpha {
             alpha = eval;
             tt_bound = Bound::Exact;
-
-            pv.clear();
-            pv.push(mv);
-            pv.append(&mut child_pv);
+            ss.pv.update(ply, mv);
         }
 
         if mv.is_quiet() {
@@ -163,7 +148,14 @@ pub fn search(
         move_number = 1;
     }
 
-    let mut move_picker = MovePicker::new(pos, MovePickerMode::AllMoves { killers, history, ply: report.ply });
+    let mut move_picker = MovePicker::new(
+        pos,
+        MovePickerMode::AllMoves {
+            killers: &ss.killers,
+            history: &ss.history,
+            ply,
+        },
+    );
 
     while let Some(mv) = move_picker.pick() {
         if tt_move.is_some() && mv.equals(&tt_move.unwrap()) {
@@ -193,8 +185,6 @@ pub fn search(
             continue;
         }
 
-        report.ply += 1;
-
         // Principal variation search: after one move has been searched with the
         // full window (assumed best due to ordering), try the remaining moves
         // with a narrow window. This is cheaper because it's not searching for
@@ -202,7 +192,6 @@ pub fn search(
         // rare case the eval lies between alpha and beta do we pay the cost of
         // a full window re-search to obtain the exact eval and PV.
         let mut eval;
-        let mut child_pv = MoveList::new();
 
         if has_searched_one {
             // Late Move Reductions: for moves that are quiet, non-checking, and
@@ -214,47 +203,46 @@ pub fn search(
                 && !in_check
                 && !gives_check
                 && mv.is_quiet()
-                && !killers.is_killer(report.ply - 1, &mv)
-                && history.probe(mv.piece, mv.to) < LMR_HISTORY_THRESHOLD
+                && !ss.killers.is_killer(ply, &mv)
+                && ss.history.probe(mv.piece, mv.to) < LMR_HISTORY_THRESHOLD
             {
                 (log2(depth) * log2(move_number) / 3).min(depth.saturating_sub(2))
             } else {
                 0
             };
 
-            eval = -search(pos, depth - reduction - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, history, report, stopper);
+            eval = -search(ss, pos, depth - reduction - 1, -alpha - 1, -alpha, ply + 1);
 
             // If the reduced search raised alpha then re-search at full depth
             // to see if the move is actually good.
             if eval > alpha && reduction > 0 {
-                eval = -search(pos, depth - 1, -alpha - 1, -alpha, &mut MoveList::new(), tt, killers, history, report, stopper);
+                eval = -search(ss, pos, depth - 1, -alpha - 1, -alpha, ply + 1);
             }
 
             // If the zero-window PVS raised alpha then re-search at full window
             // to obtain the exact eval and PV.
             if eval > alpha && eval < beta {
-                eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
+                eval = -search(ss, pos, depth - 1, -beta, -alpha, ply + 1);
             }
         } else {
-            eval = -search(pos, depth - 1, -beta, -alpha, &mut child_pv, tt, killers, history, report, stopper);
+            eval = -search(ss, pos, depth - 1, -beta, -alpha, ply + 1);
         }
 
-        report.ply -= 1;
         pos.undo_move(&mv);
 
         if eval >= beta {
             if mv.is_quiet() {
-                killers.store(report.ply, &mv);
+                ss.killers.store(ply, &mv);
 
                 let history_bonus = depth as i32 * depth as i32;
-                history.store(history_bonus, mv.piece, mv.to);
+                ss.history.store(history_bonus, mv.piece, mv.to);
 
                 for &(piece, to) in &searched_quiets {
-                    history.store(-history_bonus, piece, to);
+                    ss.history.store(-history_bonus, piece, to);
                 }
             }
 
-            tt.store(pos.key, depth, tt::eval_in(eval, report.ply), Bound::Lower, Some(mv));
+            ss.tt.store(pos.key, depth, tt::eval_in(eval, ply), Bound::Lower, Some(mv));
             return beta;
         }
 
@@ -266,20 +254,17 @@ pub fn search(
             alpha = eval;
             tt_bound = Bound::Exact;
             tt_move = Some(mv);
-
-            pv.clear();
-            pv.push(mv);
-            pv.append(&mut child_pv);
+            ss.pv.update(ply, mv);
         }
 
         has_searched_one = true;
     }
 
     if move_number == 0 {
-        return if in_check { -EVAL_MATE + report.ply as i32 } else { EVAL_DRAW };
+        return if in_check { -EVAL_MATE + ply as i32 } else { EVAL_DRAW };
     }
 
-    tt.store(pos.key, depth, tt::eval_in(alpha, report.ply), tt_bound, tt_move);
+    ss.tt.store(pos.key, depth, tt::eval_in(alpha, ply), tt_bound, tt_move);
 
     alpha
 }
