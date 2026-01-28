@@ -12,6 +12,7 @@ use crate::position::Position;
 
 pub mod report;
 pub mod stopper;
+pub mod time;
 pub mod tt;
 
 mod alphabeta;
@@ -120,6 +121,10 @@ pub fn search(
         ss.report.tt_usage = ss.tt.usage();
 
         reporter.send(&ss.report);
+
+        if stopper.should_soft_stop(&ss.report, depth) {
+            break;
+        }
     }
 }
 

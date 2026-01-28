@@ -29,8 +29,12 @@ impl Report {
         self.pv.as_ref().map(|(_, eval)| *eval)
     }
 
+    pub fn best_move(&self) -> Option<Move> {
+        self.pv.as_ref().map(|(moves, _)| moves[0])
+    }
+
     pub fn moves_until_mate(&self) -> Option<u8> {
-        let (_, eval) = self.pv.clone()?;
+        let eval = self.eval()?;
 
         if eval.abs() < EVAL_MATE_THRESHOLD || eval.abs() > EVAL_MATE {
             return None;
