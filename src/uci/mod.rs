@@ -1,12 +1,10 @@
-use self::{
-    command::{UciCommand::*, handle},
-    time::calculate_allocated_time,
-};
+use self::command::{UciCommand::*, handle};
 use crate::colour::Colour;
 use crate::eval::EVAL_MATE_THRESHOLD;
 use crate::position::Position;
 use crate::search::{
     stopper::Stopper,
+    time::TimeLimit,
     tt::{self, TranspositionTable},
 };
 use std::{
@@ -19,7 +17,6 @@ pub mod command;
 pub mod r#move;
 
 mod reporter;
-mod time;
 
 pub fn main() {
     let (uci_tx, uci_rx) = mpsc::channel();
@@ -68,7 +65,7 @@ pub fn main() {
                     stopper.at_depth(params.depth);
                     stopper.at_nodes(params.nodes);
 
-                    let allocated_time = params.movetime.or_else(|| {
+                    let time = params.movetime.map(TimeLimit::fixed).or_else(|| {
                         let pos = pos.lock().unwrap();
 
                         let (time_left, time_inc) = match pos.colour_to_move {
@@ -81,9 +78,9 @@ pub fn main() {
                             stopper.at_eval(Some(EVAL_MATE_THRESHOLD));
                         }
 
-                        time_left.and_then(|t| calculate_allocated_time(t, time_inc))
+                        time_left.map(|t| TimeLimit::dynamic(t, time_inc))
                     });
-                    stopper.at_elapsed(allocated_time);
+                    stopper.at_time(time);
 
                     // Clone the position so that searching doesn't block
                     // this thread and we can still handle other commands.
