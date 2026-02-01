@@ -46,7 +46,7 @@ pub fn search(
     reporter: &impl Reporter,
     stopper: &Stopper,
 ) {
-    tt.clear();
+    tt.age();
 
     if let Some(forced_move) = get_forced_move(pos) {
         let mut report = Report::new();

@@ -46,7 +46,7 @@ pub fn main() {
         match uci_rx.recv().unwrap() {
             Init => handle::init(),
             IsReady => handle::is_ready(),
-            NewGame => handle::new_game(&mut pos.lock().unwrap()),
+            NewGame => handle::new_game(&mut pos.lock().unwrap(), &mut tt.lock().unwrap()),
             PrintBoard => handle::print_board(&pos.lock().unwrap()),
             PrintFen => handle::print_fen(&pos.lock().unwrap()),
             Perft(depth) => handle::perft(depth, &pos.lock().unwrap()),

@@ -140,6 +140,8 @@ pub fn run(cli_args: &[String]) {
         }
 
         total_nodes += nodes;
+
+        tt.clear();
     }
 
     let elapsed = bench_started_at.elapsed();
