@@ -62,7 +62,7 @@ impl TranspositionTable {
 
     pub fn probe(&self, key: u64) -> Option<&Entry> {
         let entry = &self.entries[self.index(key)];
-        if entry.key == key && entry.age == self.age { Some(entry) } else { None }
+        if entry.key == key { Some(entry) } else { None }
     }
 
     pub fn store(&mut self, key: u64, depth: u8, eval: i32, bound: Bound, mv: Option<Move>) {
@@ -89,7 +89,19 @@ impl TranspositionTable {
     }
 
     pub fn clear(&mut self) {
-        self.age += 1;
+        self.entries.fill(Entry {
+            key: 0,
+            depth: 0,
+            eval: 0,
+            bound: Bound::Exact,
+            mv: None,
+            age: 0,
+        });
+        self.age = 0;
+    }
+
+    pub fn age(&mut self) {
+        self.age = self.age.wrapping_add(1);
     }
 
     #[inline]

@@ -41,10 +41,12 @@ pub fn search(
         depth = 1;
     }
 
+    let is_pv_node = beta - alpha > 1;
     let mut tt_move = None;
 
     if let Some(entry) = ss.tt.probe(pos.key) {
-        if entry.depth >= depth {
+        // Don't cut off at PV nodes since we need to build the full PV.
+        if !is_pv_node && entry.depth >= depth {
             let eval = tt::eval_out(entry.eval, ply);
 
             match entry.bound {
@@ -60,7 +62,6 @@ pub fn search(
 
     ss.report.nodes += 1;
 
-    let is_pv_node = beta - alpha > 1;
     let colour_to_move = pos.colour_to_move;
     let in_check = is_in_check(colour_to_move, &pos.board);
 

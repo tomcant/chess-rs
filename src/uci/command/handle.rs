@@ -26,8 +26,9 @@ pub fn is_ready() {
     println!("readyok");
 }
 
-pub fn new_game(pos: &mut Position) {
+pub fn new_game(pos: &mut Position, tt: &mut TranspositionTable) {
     *pos = Position::startpos();
+    tt.clear();
 }
 
 pub fn print_board(pos: &Position) {
