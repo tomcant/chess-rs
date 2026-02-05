@@ -9,7 +9,11 @@ use crate::search::{
 };
 use std::{
     io,
-    sync::{Arc, Mutex, mpsc},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+    },
     thread,
 };
 
@@ -20,8 +24,7 @@ mod reporter;
 
 pub fn main() {
     let (uci_tx, uci_rx) = mpsc::channel();
-    let (stopper_tx, stopper_rx) = mpsc::channel();
-    let stopper_rx = Arc::new(Mutex::new(stopper_rx));
+    let stop_signal = Arc::new(AtomicBool::new(false));
     let pos = Arc::new(Mutex::new(Position::startpos()));
     let tt = Arc::new(Mutex::new(TranspositionTable::new(tt::DEFAULT_SIZE_MB)));
 
@@ -53,15 +56,15 @@ pub fn main() {
             DoMove(mv) => handle::do_move(mv, &mut pos.lock().unwrap()),
             Position(fen, moves) => handle::position(fen, moves, &mut pos.lock().unwrap()),
             Go(params) => {
-                let stopper_rx = Arc::clone(&stopper_rx);
+                let stop_signal = Arc::clone(&stop_signal);
                 let pos = Arc::clone(&pos);
                 let tt = Arc::clone(&tt);
 
                 thread::spawn(move || {
-                    let rx_lock = stopper_rx.lock().unwrap();
-                    while rx_lock.try_recv().is_ok() {} // Clear any pending signals
+                    stop_signal.store(false, Ordering::Relaxed);
 
-                    let mut stopper = Stopper::new(&rx_lock);
+                    let mut stopper = Stopper::new();
+                    stopper.at_signal(&stop_signal);
                     stopper.at_depth(params.depth);
                     stopper.at_nodes(params.nodes);
 
@@ -89,7 +92,7 @@ pub fn main() {
                 });
             }
             SetOption(name, value) => handle::set_option(name, value, &mut tt.lock().unwrap()),
-            Stop => stopper_tx.send(true).unwrap(),
+            Stop => stop_signal.store(true, Ordering::Relaxed),
             Quit => break,
         }
     }
