@@ -7,7 +7,6 @@ use crate::search::{
 };
 use std::cell::Cell;
 use std::io::{self, IsTerminal, Write};
-use std::sync::mpsc;
 use std::time::Instant;
 
 const BENCH_DEFAULT_DEPTH: u8 = 13;
@@ -92,8 +91,7 @@ pub fn run(cli_args: &[String]) {
 
     let mut tt = TranspositionTable::new(tt_mb);
     let reporter = BenchReporter::new();
-    let (_, rx) = mpsc::channel();
-    let mut stopper = Stopper::new(&rx);
+    let mut stopper = Stopper::new();
     stopper.at_depth(Some(depth));
 
     let mut total_nodes = 0;

@@ -69,10 +69,10 @@ pub fn search(
 
     for depth in 1..=max_depth {
         // Bypass aspiration search for shallow depths or near-mate situations
-        let do_aspiration_search = depth >= ASP_MIN_DEPTH && last_eval.abs() < EVAL_MATE_THRESHOLD;
+        let do_asp = depth >= ASP_MIN_DEPTH && last_eval.abs() < EVAL_MATE_THRESHOLD;
         let (mut delta_low, mut delta_high) = (ASP_BASE_DELTA, ASP_BASE_DELTA);
 
-        let (mut alpha, mut beta) = if do_aspiration_search {
+        let (mut alpha, mut beta) = if do_asp {
             (
                 (last_eval - delta_low).max(EVAL_MIN),
                 (last_eval + delta_high).min(EVAL_MAX),
@@ -82,19 +82,17 @@ pub fn search(
         };
 
         last_eval = {
-            let eval_final;
-            let mut retries = 0;
+            let mut asp_retries = 0;
 
             loop {
                 let eval = alphabeta::search(&mut ss, pos, depth, alpha, beta, 0);
 
                 if (eval > alpha && eval < beta) || stopper.should_stop(&ss.report) {
-                    eval_final = eval;
-                    break;
+                    break eval;
                 }
 
-                retries += 1;
-                if retries > ASP_MAX_RETRIES {
+                asp_retries += 1;
+                if asp_retries > ASP_MAX_RETRIES {
                     alpha = EVAL_MIN;
                     beta = EVAL_MAX;
                     continue;
@@ -103,13 +101,11 @@ pub fn search(
                 if eval <= alpha {
                     delta_low *= ASP_EXPANSION_FACTOR;
                     alpha = (last_eval - delta_low).max(EVAL_MIN);
-                } else if eval >= beta {
+                } else {
                     delta_high *= ASP_EXPANSION_FACTOR;
                     beta = (last_eval + delta_high).min(EVAL_MAX);
                 }
             }
-
-            eval_final
         };
 
         if stopper.should_stop(&ss.report) {
@@ -170,15 +166,13 @@ mod tests {
     use crate::square::Square;
     use crate::testing::*;
     use std::cell::Cell;
-    use std::sync::mpsc;
 
     #[test]
     fn report_forced_moves_without_searching() {
         let mut pos = parse_fen("3R2k1/5p1p/6p1/8/8/8/8/4K3 b - - 0 1");
         let mut tt = TranspositionTable::new(1);
         let reporter = TestReporter::new();
-        let (_, rx) = mpsc::channel();
-        let mut stopper = Stopper::new(&rx);
+        let mut stopper = Stopper::new();
         stopper.at_depth(Some(1));
 
         search(&mut pos, &mut tt, &reporter, &stopper);

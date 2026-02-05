@@ -3,7 +3,7 @@ use super::time::TimeLimit;
 use crate::eval::EVAL_MIN;
 use crate::movegen::Move;
 use std::cell::Cell;
-use std::sync::mpsc::Receiver;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 const STOPPER_NODES_MASK: u128 = 255;
 const SOFT_STOP_MIN_DEPTH: u8 = 5;
@@ -17,20 +17,18 @@ pub struct Stopper<'a> {
     time: Option<TimeLimit>,
     eval: Option<i32>,
     nodes: Option<u128>,
-    signal_recv: &'a Receiver<bool>,
-    has_signal: Cell<bool>,
+    signal: Option<&'a AtomicBool>,
     stability: Cell<SearchStability>,
 }
 
 impl<'a> Stopper<'a> {
-    pub fn new(signal_recv: &'a Receiver<bool>) -> Self {
+    pub fn new() -> Self {
         Self {
             depth: None,
             time: None,
             eval: None,
             nodes: None,
-            signal_recv,
-            has_signal: Cell::new(false),
+            signal: None,
             stability: Cell::new(SearchStability::default()),
         }
     }
@@ -51,17 +49,18 @@ impl<'a> Stopper<'a> {
         self.nodes = nodes;
     }
 
-    pub fn should_stop(&self, report: &Report) -> bool {
-        if self.has_signal.get() {
-            return true;
-        }
+    pub fn at_signal(&mut self, signal: &'a AtomicBool) {
+        self.signal = Some(signal);
+    }
 
+    pub fn should_stop(&self, report: &Report) -> bool {
         if report.nodes & STOPPER_NODES_MASK != 0 {
             return false;
         }
 
-        if self.signal_recv.try_recv().is_ok() {
-            self.has_signal.set(true);
+        if let Some(signal) = self.signal
+            && signal.load(Ordering::Relaxed)
+        {
             return true;
         }
 
